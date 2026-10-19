@@ -244,18 +244,25 @@ class EpisodicIndexService:
         ids=result.get('ids',[])
         return [value for value in ids[0] if isinstance(value,str)] if ids else []
 
-    async def search_candidates(self, user_id: str, query: str, limit: int = 6) -> List[str]:
-        if user_id.strip().casefold() in {'anonymous','demo'} or not self.repository.long_term_enabled or not query.strip():
-            return []
+    async def search_candidates_status(self, user_id: str, query: str, limit: int = 6):
+        if user_id.strip().casefold() in {'anonymous','demo'} or not self.repository.long_term_enabled:
+            return [], 'disabled'
+        if not query.strip():
+            return [], 'skipped'
         if self._search_task is not None and not self._search_task.done():
-            return []
+            return [], 'busy'
         try:
             self._search_task = asyncio.create_task(asyncio.to_thread(self._search, user_id, query, limit))
             self._search_task.add_done_callback(self._done)
-            return await asyncio.wait_for(asyncio.shield(self._search_task), timeout=1.5)
+            result = await asyncio.wait_for(asyncio.shield(self._search_task), timeout=1.5)
+            return result, 'ready'
         except Exception as error:
             logger.warning('Episode retrieval unavailable: %s',type(error).__name__)
-            return []
+            return [], 'unavailable'
+
+    async def search_candidates(self, user_id: str, query: str, limit: int = 6) -> List[str]:
+        ids, _ = await self.search_candidates_status(user_id, query, limit)
+        return ids
 
     async def close(self) -> None:
         self._closed=True

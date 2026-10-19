@@ -177,11 +177,13 @@ class MemoryManager:
     async def get_snapshot(self, user_id: str, conv_id: str, request_id: Optional[str] = None, query: str = "") -> MemorySnapshot:
         if self._repo is None:
             raise RuntimeError("SQLite memory repository is not configured")
-        candidate_ids = await self.index_service.search_candidates(user_id, query) if self.index_service is not None else []
+        candidate_ids, index_status = await self.index_service.search_candidates_status(user_id, query) if self.index_service is not None else ([], 'disabled')
         snapshot = await asyncio.to_thread(
             self._repo.get_snapshot, self._safe_text(user_id), self._safe_text(conv_id),
             exclude_request_id=request_id, candidate_ids=candidate_ids,
         )
+        if index_status in {"busy", "unavailable"}:
+            snapshot.status = "degraded"
         if self._safe_text(user_id) in {"anonymous", "demo", ""} or not self.long_term_enabled:
             snapshot.facts = []
             snapshot.episodes = []

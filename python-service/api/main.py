@@ -130,6 +130,8 @@ async def lifespan(_app: FastAPI):
 
     # Invalid settings fail startup; an unavailable database degrades only memory.
     settings = _memory_config()
+    if pathlib.Path(settings.db_path).resolve() == pathlib.Path(database_path()).resolve():
+        raise ValueError("MEMORY_DB_PATH must differ from BUSINESS_DB_PATH")
     initialize_business(database_path(), os.getenv("BUSINESS_SEED_DEMO", "false").lower() == "true")
     cfg = _llm_config()
     worker = None

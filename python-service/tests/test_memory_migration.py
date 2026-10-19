@@ -254,3 +254,20 @@ def test_sensitive_legacy_profile_candidates_are_filtered_and_only_count_is_audi
         audit = db.execute("SELECT result FROM memory_job WHERE kind='legacy_import'").fetchone()[0]
         assert json.loads(audit)["skipped_sensitive_candidates"] == 3
         assert "syntheticCredential" not in audit
+
+
+def test_apply_cannot_initialize_memory_tables_inside_business_database(tmp_path):
+    import hashlib
+    import sqlite3
+    from memory.migrate import backup_database, MigrationError
+    path = tmp_path / 'business.sqlite3'
+    with sqlite3.connect(path) as db:
+        db.execute('CREATE TABLE orders(order_id TEXT)')
+        db.execute("INSERT INTO orders VALUES('demo-business-row')")
+    before = hashlib.sha256(path.read_bytes()).hexdigest()
+    with pytest.raises(MigrationError, match='business tables'):
+        backup_database(path, tmp_path / 'backups')
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == before
+    with sqlite3.connect(path) as db:
+        assert db.execute('SELECT order_id FROM orders').fetchone()[0] == 'demo-business-row'
+        assert db.execute("SELECT COUNT(*) FROM sqlite_master WHERE name='memory_scope'").fetchone()[0] == 0

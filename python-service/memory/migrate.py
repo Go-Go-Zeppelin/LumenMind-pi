@@ -165,6 +165,11 @@ def plan_report(plan: dict) -> dict:
 
 def backup_database(database_path: str | Path, backup_dir: str | Path) -> Path:
     source_path = Path(database_path).expanduser().resolve()
+    if source_path.is_file():
+        with sqlite3.connect(source_path.as_uri() + "?mode=ro", uri=True) as check:
+            names = {row[0] for row in check.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+            if names.intersection({"orders", "bills"}):
+                raise MigrationError("Destination contains business tables; memory migration is refused")
     destination_dir = Path(backup_dir).expanduser().resolve()
     destination_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
     source_path.parent.mkdir(parents=True, exist_ok=True)

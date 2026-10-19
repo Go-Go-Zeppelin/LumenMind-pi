@@ -104,3 +104,22 @@ def test_empty_fact_clear_still_reports_the_context_barrier_mutation(tmp_path):
     assert result['status'] == 'WRITTEN' and result['applied'] == 0 and result['mutated'] is True
     assert repo.get_snapshot('u', 'c').recent_messages == []
     assert repo.clear_facts('u', 'clear') == result
+
+
+def test_optional_index_failure_is_distinguishable_from_an_empty_result(tmp_path):
+    from memory.episodic_index import EpisodicIndexService
+    class UnavailableCollection:
+        def query(self, **kwargs):
+            raise RuntimeError('synthetic index outage')
+    async def scenario():
+        manager = MemoryManager(db_path=str(tmp_path / 'index-outage.sqlite3'))
+        b = await manager.begin_turn('u', 'c', 'r', 'hello')
+        await manager.finish_turn('u', 'c', 'r', b.lease_token, response='answer')
+        manager.index_service = EpisodicIndexService(manager._repo, collection=UnavailableCollection())
+        snapshot = await manager.get_snapshot('u', 'c', query='hello')
+        assert snapshot.status == 'degraded'
+        assert [item['content'] for item in snapshot.recent_messages] == ['hello', 'answer']
+        assert snapshot.episodes == []
+        await manager.index_service.close()
+        await manager.close()
+    asyncio.run(scenario())
