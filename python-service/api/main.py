@@ -123,6 +123,8 @@ def _initialize_optional_services(cfg: Dict[str, Any], chroma_host: str, chroma_
 async def lifespan(_app: FastAPI):
     global _memory
     from memory.conversation_memory import MemoryManager
+    from memory.fact_service import FactService, FactServiceSettings
+    from memory.model_client import MemoryModelClient
 
     # Invalid settings fail startup; an unavailable database degrades only memory.
     settings = _memory_config()
@@ -134,13 +136,21 @@ async def lifespan(_app: FastAPI):
         _memory = await asyncio.to_thread(
             MemoryManager, db_path=settings.db_path, namespace=settings.namespace,
             long_term_enabled=settings.long_term_enabled, context_max_chars=settings.context_max_chars,
-            lease_seconds=settings.lease_seconds,
+            lease_seconds=settings.lease_seconds, settings=settings,
         )
     except (sqlite3.Error, OSError, RepositoryError):
         _memory = None
         logger.exception("SQLite memory unavailable; memory endpoints will return 503")
     if _memory is not None:
-        worker = MemoryWorker(_memory._repo, settings.recovery_poll_seconds)
+        _memory.fact_service = FactService(_memory._repo,
+            MemoryModelClient(**cfg, timeout_seconds=settings.model_timeout_seconds),
+            FactServiceSettings(min_messages=settings.extract_min_messages,
+                max_wait_seconds=settings.extract_max_wait_seconds, max_messages=settings.extract_max_messages,
+                max_chars=settings.extract_max_chars, lease_seconds=settings.job_lease_seconds))
+        _memory._repo.fact_max_count = settings.fact_max_count
+        _memory._repo.fact_max_chars = settings.fact_max_chars
+        _memory._repo.fact_block_max_chars = settings.fact_block_max_chars
+        worker = MemoryWorker(_memory._repo, settings.recovery_poll_seconds, services=(_memory.fact_service,))
         worker_task = asyncio.create_task(worker.run(), name="memory-lease-recovery")
     _app.state.memory_worker = worker
     _app.state.memory_worker_task = worker_task
@@ -162,6 +172,8 @@ async def lifespan(_app: FastAPI):
                 with suppress(asyncio.CancelledError):
                     await worker_task
         if _memory is not None:
+            if _memory.fact_service is not None:
+                await _memory.fact_service.close()
             await _memory.close()
             _memory = None
         logger.info("Python infrastructure stopped")
@@ -423,7 +435,7 @@ async def memory_turn_finish(body: MemoryFinishInput):
 
 @app.post("/memory/flush")
 async def memory_flush(body: MemoryFlushInput):
-    """Queue work without claiming that the unimplemented Judge has persisted facts."""
+    """Bounded flush; source material is loaded from the durable current request."""
     result = await _memory_call("flush", body.user_id, body.conv_id, body.request_id)
     return {"request_id": body.request_id or str(uuid.uuid4()), **result}
 

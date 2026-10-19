@@ -13,10 +13,11 @@ logger = logging.getLogger(__name__)
 
 
 class MemoryWorker:
-    def __init__(self, repository, poll_seconds: float = 5.0):
+    def __init__(self, repository, poll_seconds: float = 5.0, services=()):
         if not math.isfinite(poll_seconds) or poll_seconds <= 0:
             raise ValueError("poll_seconds must be a positive finite number")
         self.repository = repository
+        self.services = tuple(services)
         self.poll_seconds = poll_seconds
         self._stop = asyncio.Event()
 
@@ -28,6 +29,11 @@ class MemoryWorker:
             try:
                 # SQLite work is blocking; keep the API event loop available.
                 await asyncio.to_thread(self.repository.recover_interrupted_turns)
+                for service in self.services:
+                    try:
+                        await service.tick()
+                    except Exception:
+                        logger.exception("Memory background pipeline tick failed")
             except Exception:
                 logger.exception("Memory lease recovery failed; retrying on next poll")
             try:

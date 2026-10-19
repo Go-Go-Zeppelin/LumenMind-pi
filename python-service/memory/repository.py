@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional
 
 from .models import MemoryScope, MemorySnapshot, TurnReceipt
+from .fact_repository import FactRepositoryMixin
 
 
 def utc_now() -> str:
@@ -42,8 +43,8 @@ class CapacityError(RepositoryError):
     pass
 
 
-class MemoryRepository:
-    SCHEMA_VERSION = 2
+class MemoryRepository(FactRepositoryMixin):
+    SCHEMA_VERSION = 3
 
     def __init__(self, path: str = "data/memory/memory.sqlite3", namespace: str = "lumenmind", long_term_enabled: bool = True):
         self.path = str(Path(path).expanduser())
@@ -128,14 +129,9 @@ class MemoryRepository:
         return TurnReceipt(row["request_id"], self.namespace, row["user_id"], row["conv_id"], row["turn_seq"], row["source_seq"], row["status"], row["lease_token"] or "", int(revision if revision is not None else session["context_revision"] if session else 0), response=row["assistant_text"], lease_until=session["lease_until"] if session and session["lease_owner"] == row["request_id"] else None, replayed=replayed)
 
     def _enqueue_turn(self, db: sqlite3.Connection, row: sqlite3.Row) -> None:
-        if not row["memory_eligible"] or row["deleted_at"]:
-            return
-        scope = db.execute("SELECT * FROM memory_scope WHERE namespace=? AND user_id=?", (self.namespace,row["user_id"])).fetchone()
-        if not self.long_term_enabled or not scope["long_term_enabled"] or row["source_seq"] <= scope["extract_cursor"]:
-            return
-        now = self._db_now(db)
-        db.execute("""INSERT OR IGNORE INTO memory_job(namespace,user_id,job_id,kind,dedup_key,from_seq,to_seq,expected_revision,expected_cursor,expected_epoch,next_run_at,created_at)
-                      VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""", (self.namespace,row["user_id"],secrets.token_hex(16),"fact_extract",f"fact:{row['source_seq']}:{scope['erase_epoch']}",row["source_seq"],row["source_seq"],scope["fact_revision"],scope["extract_cursor"],scope["erase_epoch"],now,now))
+        # The scheduler scans durable turns and selects a contiguous scope batch.
+        # Per-turn jobs would bypass minimum count/age and break cursor ordering.
+        return None
 
     def _interrupt_expired(self, db: sqlite3.Connection, user_id: Optional[str] = None, conv_id: Optional[str] = None) -> int:
         query = """SELECT t.* FROM memory_turn t JOIN memory_session s ON s.namespace=t.namespace AND s.user_id=t.user_id AND s.conv_id=t.conv_id
@@ -311,6 +307,8 @@ class MemoryRepository:
         db.execute("UPDATE memory_session SET current_summary='',summary_generation=0,context_revision=context_revision+1 WHERE namespace=? AND user_id=?", (self.namespace,user_id))
         db.execute("UPDATE memory_episode SET invalid_at=? WHERE namespace=? AND user_id=? AND invalid_at IS NULL", (now,self.namespace,user_id))
         db.execute("UPDATE memory_job SET status='CANCELLED',claim_token=NULL,lease_until=NULL,error_code=? WHERE namespace=? AND user_id=? AND status IN ('READY','PROCESSING','RETRY_WAIT','QUARANTINED') AND kind!='index_delete'", (reason,self.namespace,user_id))
+        epoch = db.execute("SELECT erase_epoch FROM memory_scope WHERE namespace=? AND user_id=?", (self.namespace,user_id)).fetchone()[0]
+        db.execute("INSERT OR IGNORE INTO memory_job(namespace,user_id,job_id,kind,dedup_key,expected_epoch,next_run_at,created_at) VALUES(?,?,?,?,?,?,?,?)", (self.namespace,user_id,secrets.token_hex(16),'index_delete',f'forget-before-epoch:{epoch}',epoch,now,now))
 
     def retract_fact(self, user_id: str, fact_id: str, request_id: Optional[str] = None) -> Dict[str, Any]:
         with self._lock, self._connection() as db:

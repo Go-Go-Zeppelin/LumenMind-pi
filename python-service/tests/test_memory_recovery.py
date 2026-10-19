@@ -33,7 +33,7 @@ def test_new_begin_recovers_expired_input_before_taking_lease(repo):
     assert [(x["role"],x["content"]) for x in snapshot.recent_messages] == [("user","original input")]
     with repo._connection() as db:
         assert db.execute("SELECT lease_owner FROM memory_session").fetchone()[0] == "new"
-        assert db.execute("SELECT COUNT(*) FROM memory_job WHERE kind='fact_extract'").fetchone()[0] == 1
+        assert db.execute("SELECT COUNT(*) FROM memory_job WHERE kind='fact_extract'").fetchone()[0] == 0
 
 
 def test_expired_lease_cannot_finish_or_renew_even_before_recovery(repo):
@@ -57,6 +57,7 @@ def test_failed_and_cancelled_input_has_no_invented_assistant(repo):
 def test_clear_deduplicates_and_fences_old_context_and_claim(repo):
     complete(repo)
     fact = repo.add_fact("u","preference","short replies",source_seqs=[1],evidence="user evidence")
+    repo.schedule_due_fact_jobs(force=True)
     job = repo.claim_due_jobs()[0]
     with repo._connection() as db:
         db.execute("UPDATE memory_session SET current_summary='{\"user_goal\":\"short replies\"}',summary_generation=1")
@@ -83,10 +84,12 @@ def test_retract_preserves_other_fact_but_removes_old_background(repo):
 
 def test_disable_prevents_disabled_interval_backfill(repo):
     complete(repo)
+    repo.schedule_due_fact_jobs(force=True)
     repo.set_long_term_enabled("u",False)
     complete(repo,"disabled",message="remember disabled input")
     repo.set_long_term_enabled("u",True)
     complete(repo,"enabled",message="remember enabled input")
+    repo.schedule_due_fact_jobs(force=True)
     with repo._connection() as db:
         assert [(x[0],x[1]) for x in db.execute("SELECT request_id,memory_eligible FROM memory_turn ORDER BY source_seq")] == [("r",1),("disabled",0),("enabled",1)]
         assert db.execute("SELECT extract_cursor FROM memory_scope").fetchone()[0] == 1
@@ -148,6 +151,7 @@ def test_flush_reports_pending_without_consuming_unjudged_user_input(repo):
 
 def test_job_lease_fences_late_completion_and_retry_has_backoff(repo):
     complete(repo)
+    repo.schedule_due_fact_jobs(force=True)
     job = repo.claim_due_jobs()[0]
     with repo._connection() as db:
         db.execute("UPDATE memory_job SET lease_until='2000-01-01T00:00:00+00:00'")

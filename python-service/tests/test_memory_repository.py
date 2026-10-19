@@ -29,7 +29,7 @@ def test_schema_is_versioned_and_upgrades_preview_database(tmp_path):
     repo = MemoryRepository(str(path))
     MemoryRepository(str(path))  # Restart does not replay ALTER TABLE.
     with repo._connection() as db:
-        assert db.execute("SELECT version FROM memory_schema_version").fetchone()[0] == 2
+        assert db.execute("SELECT version FROM memory_schema_version").fetchone()[0] == repo.SCHEMA_VERSION
         assert db.execute("SELECT created_at FROM memory_scope").fetchone()[0] == "old"
     assert finish(repo).status == "COMPLETED"
 
@@ -62,7 +62,7 @@ def test_terminal_retries_keep_original_reply_revision_and_job(repo):
     begin_retry = repo.begin_turn("u","c","r","hello")
     assert begin_retry.response == "answer" and begin_retry.replayed
     with repo._connection() as db:
-        assert db.execute("SELECT COUNT(*) FROM memory_job").fetchone()[0] == 2
+        assert db.execute("SELECT COUNT(*) FROM memory_job").fetchone()[0] == 0
         assert db.execute("SELECT next_turn_seq FROM memory_session").fetchone()[0] == 3
 
 

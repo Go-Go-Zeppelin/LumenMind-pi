@@ -18,6 +18,7 @@ from anthropic import AsyncAnthropic
 
 from core.llm_utils import extract_text_content
 from .context_builder import ContextBudget, build_context
+from .config import MemorySettings
 from .models import MemorySnapshot, TurnReceipt
 from .repository import CapacityError, ConflictError, LeaseError, MemoryRepository
 
@@ -96,6 +97,7 @@ class MemoryManager:
         long_term_enabled: bool = True,
         context_max_chars: int = 24000,
         lease_seconds: int = 90,
+        settings: Optional[MemorySettings] = None,
     ):
         kwargs: Dict[str, Any] = {"api_key": api_key}
         if base_url:
@@ -106,6 +108,10 @@ class MemoryManager:
         self.long_term_enabled = bool(long_term_enabled)
         self.context_max_chars = max(1000, int(context_max_chars))
         self.lease_seconds = lease_seconds
+        self.settings = settings
+        self.fact_service = None
+        self.summary_service = None
+        self.index_service = None
         self._repo = MemoryRepository(db_path, self.namespace, long_term_enabled=self.long_term_enabled) if db_path else None
         self._redis = None
         self._episodic = None
@@ -210,6 +216,8 @@ class MemoryManager:
             return {"status": "DISABLED", "covered_source_seq": 0, "revision": 0, "applied": 0, "mutated": False}
         if self._repo is None:
             return {"status": "UNAVAILABLE", "covered_source_seq": 0, "revision": 0, "applied": 0, "mutated": False}
+        if self.fact_service is not None:
+            return await self.fact_service.flush(self._safe_text(user_id), request_id)
         return await asyncio.to_thread(self._repo.flush_user_messages, self._safe_text(user_id))
 
     async def set_long_term_enabled(self, user_id: str, enabled: bool) -> Dict[str, Any]:
@@ -244,7 +252,14 @@ class MemoryManager:
             "routing_context": snapshot.routing_context,
             "recent_messages": snapshot.recent_messages,
         }
-        result = build_context(raw, ContextBudget(total_chars=self.context_max_chars))
+        settings = self.settings
+        result = build_context(raw, ContextBudget(
+            total_chars=self.context_max_chars,
+            summary_chars=settings.summary_max_chars if settings else 4000,
+            facts_chars=settings.fact_block_max_chars if settings else 3000,
+            episodes_chars=settings.episode_block_max_chars if settings else 3000,
+            recent_min_turns=settings.recent_min_turns if settings else 3,
+        ))
         result.update({"schema_version": 2, "status": snapshot.status, "snapshot": raw["snapshot"]})
         result["relevant_history"] = [item.get("summary", "") for item in result["blocks"]["episodes"]]
         result["user_profile"] = {
