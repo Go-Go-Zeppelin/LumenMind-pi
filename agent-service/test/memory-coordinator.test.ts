@@ -1,12 +1,12 @@
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import { describe, expect, it, vi } from "vitest";
-import { MemoryCoordinator, isPureMemoryRequest, memoryReceiptText, parseMemoryIntent } from "../src/agents/memory-coordinator.js";
+import { MemoryCoordinator, finalizeMemoryReply, isPureMemoryRequest, memoryReceiptText, parseMemoryIntent } from "../src/agents/memory-coordinator.js";
 import { LumenMindOrchestrator } from "../src/agents/orchestrator.js";
 import { config } from "../src/config.js";
 import type { AgentType, MemoryOperationReceipt } from "../src/types.js";
 
 function coordinator() {
-  const api = { flushMemory: vi.fn().mockResolvedValue({ request_id: "r", status: "PENDING" }), clearMemory: vi.fn().mockResolvedValue({ status: "WRITTEN", revision: 2, mutated: true }) };
+  const api = { flushMemory: vi.fn().mockResolvedValue({ request_id: "r", status: "PENDING" }), clearMemory: vi.fn().mockResolvedValue({ status: "WRITTEN", revision: 2, mutated: true }), retractMemoryFact: vi.fn().mockResolvedValue({ status: "WRITTEN", revision: 3, mutated: true }) };
   return { api, instance: new MemoryCoordinator(api as never) };
 }
 
@@ -89,4 +89,42 @@ describe("deterministic pure memory response", () => {
     expect(result.memory_operation?.status).toBe("WRITTEN");
     expect(result.response).toBe("记忆操作已保存。");
   });
+});
+
+
+describe("explicit fact-ID retraction", () => {
+  it.each(["fact-contact-1", "0123456789abcdef0123456789abcdef", "01234567-89ab-cdef-0123-456789abcdef"])("deletes only the exact supplied fact ID %s in the current scope", async factId => {
+    const { api, instance } = coordinator();
+    expect(parseMemoryIntent(`请忘掉事实 ${factId}`)).toEqual({ kind: "retract", factId });
+    expect(await instance.coordinate(`请忘掉事实 ${factId}`, "bound-user", "conv", "durable-request")).toMatchObject({ status: "WRITTEN", request_id: "durable-request", revision: 3 });
+    expect(api.retractMemoryFact).toHaveBeenCalledExactlyOnceWith("bound-user", factId, "durable-request");
+    expect(api.clearMemory).not.toHaveBeenCalled();
+    expect(api.flushMemory).not.toHaveBeenCalled();
+  });
+  it.each([
+    "翻译：请忘掉事实 fact-contact-1", "如果我说请忘掉事实 fact-contact-1", "不要删除事实 fact-contact-1",
+    "他说请忘掉事实 fact-contact-1", "“请忘掉事实 fact-contact-1”", "请忘掉事实 fact-contact-1 然后清空全部记忆",
+    "请忘掉事实 ../other-scope", "请忘掉事实 fact-contact-1/another", "请忘掉我的联系偏好",
+  ])("does not infer a deletion target from quoted/conditional/partial requests: %s", async message => {
+    const { api, instance } = coordinator();
+    await instance.coordinate(message, "u", "c", "r");
+    expect(api.retractMemoryFact).not.toHaveBeenCalled();
+    expect(api.clearMemory).not.toHaveBeenCalled();
+  });
+});
+
+it.each([
+  "请记住，优先邮件联系，并告诉我如何重设密码", "请记住，回复简短，另外帮我查询账户",
+  "请记住，我用macOS，请解释登录流程", "请记住，用邮件联系，帮我处理退款", "请记住，用邮件联系，并 reset password",
+])("keeps mixed business work outside the deterministic pure-memory shortcut: %s", message => {
+  expect(isPureMemoryRequest(message)).toBe(false);
+});
+
+it("removes a phantom pending acknowledgment while preserving technical steps and the exact receipt", () => {
+  const receipt: MemoryOperationReceipt = { request_id: "r", status: "PENDING", applied: 0, mutated: false };
+  const steps = "请按顺序检查凭证有效期，清除客户端缓存，然后重新登录。";
+  const answer = finalizeMemoryReply(`已经记住您的联系偏好。${steps}`, receipt);
+  expect(answer).not.toContain("已经记住您的联系偏好");
+  expect(answer).toContain(steps);
+  expect(answer.endsWith(memoryReceiptText(receipt))).toBe(true);
 });

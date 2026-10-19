@@ -30,7 +30,10 @@ class MemoryWorker:
             try:
                 # SQLite work is blocking; keep the API event loop available.
                 await asyncio.to_thread(self.repository.recover_interrupted_turns)
-                await asyncio.to_thread(memory_metrics_snapshot, self.repository)
+                try:
+                    await asyncio.to_thread(memory_metrics_snapshot, self.repository)
+                except Exception:
+                    logger.warning("Memory operational metrics could not be refreshed")
                 for service in self.services:
                     try:
                         await service.tick()

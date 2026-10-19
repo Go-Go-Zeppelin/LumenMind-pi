@@ -24,7 +24,7 @@ import { IntentRouter } from "./intent-router.js";
 import { AGENT_PROFILES } from "./profiles.js";
 import { runAgentWorkflow } from "./workflow.js";
 import { roleTools } from "../tools/agent-tools.js";
-import { MemoryCoordinator, isPureMemoryRequest, memoryReceiptText } from "./memory-coordinator.js";
+import { MemoryCoordinator, isPureMemoryRequest, memoryReceiptText, finalizeMemoryReply } from "./memory-coordinator.js";
 import { ModelBudgetError } from "./model-budget.js";
 import { withMemoryTurn } from "./memory-turn.js";
 
@@ -282,7 +282,7 @@ export class LumenMindOrchestrator {
     signal.throwIfAborted();
 
     if (needsClarification(message, intent)) {
-      const response = "我还不能确定您要处理的是哪类问题。请补充一下是订单物流、退款账单、账户资料，还是技术故障？";
+      const response = finalizeMemoryReply("我还不能确定您要处理的是哪类问题。请补充一下是订单物流、退款账单、账户资料，还是技术故障？", memoryOperation);
       const result: ChatResponse = {
         conv_id: convId,
         response,
@@ -344,6 +344,7 @@ export class LumenMindOrchestrator {
         urgency: intent.urgency,
         workflowContext: "升级节点不执行业务 Agent 工作流",
       }, sink);
+      result.response = finalizeMemoryReply(result.response, memoryOperation);
       const escalatedResult: ChatResponse = {
         conv_id: convId,
         response: result.response,
@@ -391,7 +392,9 @@ export class LumenMindOrchestrator {
     const primaryExecution: AgentType = routing.primaryAgent;
     const targets = [primaryExecution, ...routing.supportingAgents.filter((agent) => agent !== primaryExecution)];
     // 5) 并行执行：每个 target 组装 AgentRunInput{message, convId, memory.prompt_text, skillPrompt, entities, allowKnowledge} -> AgentRunResult。
-    const results = await Promise.all(targets.map((agentType) => this.runWithFallback(
+    const executionController = new AbortController();
+    const executionSignal = AbortSignal.any([signal, executionController.signal]);
+    const pending = targets.map((agentType) => this.runWithFallback(
       agentType,
       message,
       userId,
@@ -403,14 +406,18 @@ export class LumenMindOrchestrator {
       intent.intent,
       intent.urgency,
       sink,
-      signal,
+      executionSignal,
       memoryOperation,
-    )));
+    ).catch(error => { executionController.abort(error); throw error; }));
+    const settled = await Promise.allSettled(pending);
+    const failure = settled.find((item): item is PromiseRejectedResult => item.status === "rejected");
+    if (failure) throw executionSignal.reason ?? failure.reason;
+    const results = settled.map(item => (item as PromiseFulfilledResult<AgentRunResult>).value);
 
     // 6) 合并结果：单 Agent 直接返回；多 Agent 按“主处理/辅助处理”标签拼接最终回复。
     signal.throwIfAborted();
     const composed = await this.composer.compose(message, primaryExecution, results, memoryOperation, signal);
-    const response = memoryOperation ? `${composed}\n\n${memoryReceiptText(memoryOperation)}` : composed;
+    const response = finalizeMemoryReply(composed, memoryOperation);
     // 7) 将多个 AgentRunResult 汇总为本次请求的统一状态：
     //    AgentRunResult[]
     //      -> 汇总知识库使用状态（任一 Agent 使用有效知识即为 true）

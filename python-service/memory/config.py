@@ -50,6 +50,15 @@ class MemorySettings:
     model_timeout_seconds: int = 30
     job_lease_seconds: int = 180
     episodic_enabled: bool = True
+    job_max_attempts: int = 3
+    model_context_window_tokens: int = 65536
+    model_max_input_chars: int = 24000
+
+    def __post_init__(self):
+        if self.extract_min_messages > self.extract_max_messages:
+            raise ValueError("MEMORY_EXTRACT_MIN_MESSAGES must not exceed MEMORY_EXTRACT_MAX_MESSAGES")
+        if self.job_lease_seconds <= self.model_timeout_seconds + 5:
+            raise ValueError("MEMORY_JOB_LEASE_SECONDS must exceed MEMORY_MODEL_TIMEOUT_SECONDS by more than 5 seconds")
 
     @classmethod
     def from_env(cls, project_root: Path, env: Mapping[str, str] | None = None) -> "MemorySettings":
@@ -90,5 +99,8 @@ class MemorySettings:
             extract_max_wait_seconds=_integer(values.get("MEMORY_EXTRACT_MAX_WAIT_SECONDS", "60"), "MEMORY_EXTRACT_MAX_WAIT_SECONDS", 1, 3600),
             model_timeout_seconds=_integer(values.get("MEMORY_MODEL_TIMEOUT_SECONDS", "30"), "MEMORY_MODEL_TIMEOUT_SECONDS", 1, 120),
             job_lease_seconds=_integer(values.get("MEMORY_JOB_LEASE_SECONDS", "180"), "MEMORY_JOB_LEASE_SECONDS", 10, 3600),
+            job_max_attempts=_integer(values.get("MEMORY_JOB_MAX_ATTEMPTS", "3"), "MEMORY_JOB_MAX_ATTEMPTS", 1, 10),
+            model_context_window_tokens=_integer(values.get("MEMORY_MODEL_CONTEXT_WINDOW_TOKENS", "65536"), "MEMORY_MODEL_CONTEXT_WINDOW_TOKENS", 8192, 2000000),
+            model_max_input_chars=_integer(values.get("MEMORY_MODEL_MAX_INPUT_CHARS", "24000"), "MEMORY_MODEL_MAX_INPUT_CHARS", 1000, 1000000),
             episodic_enabled=_boolean(values.get("MEMORY_EPISODIC_ENABLED", "true"), "MEMORY_EPISODIC_ENABLED"),
         )

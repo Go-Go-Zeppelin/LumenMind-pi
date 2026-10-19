@@ -36,7 +36,7 @@ def _reject_constant(value: str):
 
 
 def parse_model_json(response: Any) -> dict:
-    """Reject truncation, tool use, non-text blocks, prose and ambiguous JSON."""
+    """Reject truncation/tools/prose; parse final text only, never provider thinking."""
     if getattr(response, "stop_reason", None) != "end_turn":
         raise MemoryModelError("Memory model did not complete an end_turn response")
     content = getattr(response, "content", None)
@@ -44,9 +44,13 @@ def parse_model_json(response: Any) -> dict:
         raise MemoryModelError("Memory model returned no text blocks")
     texts = []
     for block in content:
+        if getattr(block, "type", None) in {"thinking", "redacted_thinking"}:
+            continue  # Provider reasoning is never evidence or part of the JSON payload.
         if getattr(block, "type", None) != "text" or not isinstance(getattr(block, "text", None), str):
             raise MemoryModelError("Memory model may return text blocks only")
         texts.append(block.text)
+    if not texts or not "".join(texts).strip():
+        raise MemoryModelError("Memory model returned no final text")
     try:
         value = json.loads("".join(texts), object_pairs_hook=_strict_object,
                            parse_constant=_reject_constant)

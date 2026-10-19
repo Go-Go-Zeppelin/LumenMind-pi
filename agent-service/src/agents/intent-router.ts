@@ -260,7 +260,24 @@ export class IntentRouter {
       },
     });
 
-    const recent = routingContext || Array.from(escapeMemoryData(history.slice(-4))).slice(0, this.appConfig.memoryRoutingMaxChars).join("");
+    const recent = (() => {
+      const limit = this.appConfig.memoryRoutingMaxChars;
+      if (routingContext && Array.from(routingContext).length <= limit) return routingContext;
+      // Legacy data must remain valid JSON and keep complete user/assistant
+      // turns. An oversized routing block is omitted rather than cut mid-string.
+      const turns: MemoryMessage[][] = [];
+      for (const item of history) {
+        if (item.role === "user") turns.push([item]);
+        else if (item.role === "assistant" && turns.length) turns.at(-1)!.push(item);
+      }
+      let selected: MemoryMessage[] = [];
+      for (const turn of turns.slice(-2).reverse()) {
+        const candidate = [...turn, ...selected];
+        if (Array.from(escapeMemoryData(candidate)).length > limit) break;
+        selected = candidate;
+      }
+      return selected.length ? escapeMemoryData(selected) : "";
+    })();
     try {
       // 输入给 Router Agent 的数据是“最近最多 4 条对话 + 当前用户消息”。
       signal?.throwIfAborted();

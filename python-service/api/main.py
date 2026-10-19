@@ -145,18 +145,19 @@ async def lifespan(_app: FastAPI):
         logger.exception("SQLite memory unavailable; memory endpoints will return 503")
     if _memory is not None:
         _memory.fact_service = FactService(_memory._repo,
-            MemoryModelClient(**cfg, timeout_seconds=settings.model_timeout_seconds),
+            MemoryModelClient(**cfg, timeout_seconds=settings.model_timeout_seconds, max_input_chars=settings.model_max_input_chars, context_window_tokens=settings.model_context_window_tokens),
             FactServiceSettings(min_messages=settings.extract_min_messages,
                 max_wait_seconds=settings.extract_max_wait_seconds, max_messages=settings.extract_max_messages,
                 max_chars=settings.extract_max_chars, lease_seconds=settings.job_lease_seconds))
+        _memory._repo.job_max_attempts = settings.job_max_attempts
         _memory._repo.fact_max_count = settings.fact_max_count
         _memory._repo.fact_max_chars = settings.fact_max_chars
         _memory._repo.fact_block_max_chars = settings.fact_block_max_chars
         _memory.summary_service = SummaryService(_memory._repo,
-            MemoryModelClient(**cfg, timeout_seconds=settings.model_timeout_seconds, purpose="summary"),
+            MemoryModelClient(**cfg, timeout_seconds=settings.model_timeout_seconds, purpose="summary", max_input_chars=settings.model_max_input_chars, context_window_tokens=settings.model_context_window_tokens),
             SummaryServiceSettings(trigger_chars=settings.summary_trigger_chars, trigger_turns=settings.summary_trigger_turns,
                 recent_min_turns=settings.recent_min_turns, max_summary_chars=settings.summary_max_chars,
-                lease_seconds=settings.job_lease_seconds))
+                lease_seconds=settings.job_lease_seconds, max_attempts=settings.job_max_attempts))
         services = [_memory.fact_service, _memory.summary_service]
         if settings.episodic_enabled:
             def create_episode_client():
@@ -472,12 +473,16 @@ async def memory_add_fact(body: MemoryFactInput):
 
 @app.delete("/memory/facts/{fact_id}")
 async def memory_retract_fact(fact_id: str, user_id: str = "anonymous", request_id: Optional[str] = None):
-    return await _memory_call("retract_fact", user_id, fact_id, request_id=request_id)
+    operation_id = request_id or str(uuid.uuid4())
+    result = await _memory_call("retract_fact", user_id, fact_id, request_id=operation_id)
+    return {"request_id": operation_id, **result}
 
 
 @app.post("/memory/clear")
 async def memory_clear(body: MemoryFlushInput):
-    return await _memory_call("clear_facts", body.user_id, request_id=body.request_id)
+    operation_id = body.request_id or str(uuid.uuid4())
+    result = await _memory_call("clear_facts", body.user_id, request_id=operation_id)
+    return {"request_id": operation_id, **result}
 
 
 @app.post("/memory/settings")

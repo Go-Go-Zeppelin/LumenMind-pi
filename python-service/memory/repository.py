@@ -356,7 +356,7 @@ class MemoryRepository(FactRepositoryMixin, SummaryRepositoryMixin, EpisodicInde
             rev = db.execute("SELECT fact_revision FROM memory_scope WHERE namespace=? AND user_id=?", (self.namespace,user_id)).fetchone()[0]
             db.execute("UPDATE memory_fact SET status='INVALID',invalid_at=COALESCE(invalid_at,?),revision=? WHERE namespace=? AND user_id=? AND fact_id=?", (self._db_now(db),rev,self.namespace,user_id,fact_id))
             self._erase_barrier(db,user_id,"FACT_RETRACTED")
-            result = {"status":"WRITTEN","revision":rev,"mutated":mutated}
+            result = {"status":"WRITTEN","revision":rev,"mutated":True,"applied":int(mutated)}
             self._audit_operation(db,user_id,request_id,operation,result)
             db.commit(); return result
 
@@ -370,7 +370,7 @@ class MemoryRepository(FactRepositoryMixin, SummaryRepositoryMixin, EpisodicInde
             rev = db.execute("SELECT fact_revision FROM memory_scope WHERE namespace=? AND user_id=?", (self.namespace,user_id)).fetchone()[0]
             changed = db.execute("UPDATE memory_fact SET status='INVALID',invalid_at=?,revision=? WHERE namespace=? AND user_id=? AND status='ACTIVE'", (self._db_now(db),rev,self.namespace,user_id)).rowcount
             self._erase_barrier(db,user_id,"FACTS_CLEARED")
-            result = {"status":"WRITTEN","revision":rev,"mutated":bool(changed)}
+            result = {"status":"WRITTEN","revision":rev,"mutated":True,"applied":changed}
             self._audit_operation(db,user_id,request_id,"clear",result)
             db.commit(); return result
 

@@ -43,6 +43,9 @@ export async function withMemoryTurn(
       if (!begin.request_id || !begin.conv_id) throw new Error("Invalid memory receipt");
       if (begin.status !== "RECEIVED") return replay(begin);
       if (!begin.lease_token) throw new Error("Invalid memory lease receipt");
+      if (begin.lease_until && (!Number.isFinite(Date.parse(begin.lease_until)) || Date.parse(begin.lease_until) <= Date.now())) {
+        throw new InfrastructureError("记忆会话租约已过期或无效", 409);
+      }
       if (begin.request_id !== requestId) throw new InfrastructureError("同一幂等请求正在处理", 409);
       convId = begin.conv_id;
       requestId = begin.request_id;
@@ -54,16 +57,43 @@ export async function withMemoryTurn(
   }
   let leaseLost = false;
   let renewing: Promise<void> | undefined;
-  const timer = begin ? setInterval(() => {
-    if (renewing || signal.aborted) return;
-    renewing = infra.renewTurn(userId, convId, requestId, begin!.lease_token)
-      .then(() => undefined, () => {
-        leaseLost = true;
-        controller.abort(new InfrastructureError("记忆会话租约续期失败", 409));
-      }).finally(() => { renewing = undefined; });
-  }, renewMs) : undefined;
-  timer?.unref();
-  const stop = async () => { if (timer) clearInterval(timer); await renewing; };
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let stopped = false;
+  let leaseUntil = begin?.lease_until;
+  const loseLease = () => {
+    leaseLost = true;
+    controller.abort(new InfrastructureError("记忆会话租约续期失败", 409));
+  };
+  const schedule = () => {
+    if (!begin || stopped || signal.aborted) return;
+    const remaining = leaseUntil ? Date.parse(leaseUntil) - Date.now() : undefined;
+    if (remaining !== undefined && (!Number.isFinite(remaining) || remaining <= 0)) {
+      loseLease();
+      return;
+    }
+    // Respect both the local polling cap and the actual server-granted lease.
+    // Recompute after each receipt: a server configuration change may shorten it.
+    const configured = Number.isFinite(renewMs) && renewMs > 0 ? renewMs : 20_000;
+    const interval = Math.max(1, Math.min(configured, remaining === undefined ? configured : Math.floor(remaining / 3)));
+    timer = setTimeout(() => {
+      timer = undefined;
+      if (stopped || signal.aborted) return;
+      renewing = infra.renewTurn(userId, convId, requestId, begin!.lease_token)
+        .then((receipt) => {
+          if (receipt.lease_until) leaseUntil = receipt.lease_until;
+          else if (leaseUntil) throw new Error("Invalid renewal lease receipt");
+        })
+        .catch(loseLease)
+        .finally(() => { renewing = undefined; schedule(); });
+    }, interval);
+    timer.unref();
+  };
+  const stop = async () => {
+    stopped = true;
+    if (timer) clearTimeout(timer);
+    await renewing;
+  };
+  schedule();
   try {
     signal.throwIfAborted();
     const result = await execute({ convId, requestId, available: protocol ? Boolean(begin) : true, signal });
@@ -80,6 +110,9 @@ export async function withMemoryTurn(
     } else { result.memory_status = "unavailable"; }
     return result;
   } catch (error) {
+    // A parallel branch may still be running after Promise.all rejects. Cancel
+    // its model/tool work before releasing this turn's durable lease.
+    controller.abort(error);
     await stop();
     if (begin && !leaseLost) {
       try { await infra.finishTurn(userId, convId, requestId, begin.lease_token, external?.aborted ? "CANCELLED" : "FAILED"); }

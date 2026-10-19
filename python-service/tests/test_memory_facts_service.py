@@ -256,3 +256,22 @@ def test_singleton_over_batch_character_budget_is_preserved_for_final_model_budg
     text = "whole original source, never slice this"
     prompt = json.loads(service._prompt({"messages": [{"source_seq": 1, "conv_id": "c1", "user_text": text}]}))
     assert prompt["user_sources"][0]["user_text"] == text
+
+
+def test_new_requests_remain_blocked_behind_same_quarantined_batch(tmp_path):
+    async def scenario():
+        repo = MemoryRepository(str(tmp_path / 'blocked.sqlite3'))
+        store(repo, 1, 'hello')
+        judge = FakeJudge({'schema_version': 1, 'decisions': [{'action': 'UNKNOWN'}]})
+        service = FactService(repo, judge)
+        for _ in range(3):
+            await service.flush('alice', 'r1')
+            force_retry(repo)
+        store(repo, 2, 'new preference after the bad batch')
+        result = await service.flush('alice', 'r2')
+        assert result['status'] == 'BLOCKED'
+        assert len(judge.calls) == 3
+        repo.set_long_term_enabled('alice', False)
+        assert (await service.flush('alice', 'r2'))['status'] == 'DISABLED'
+        await service.close()
+    asyncio.run(scenario())

@@ -221,8 +221,8 @@ export class InfrastructureClient {
     return this.request("/memory/facts?user_id=" + encodeURIComponent(userId));
   }
 
-  async retractMemoryFact(userId: string, factId: string): Promise<MemoryOperationReceipt> {
-    return this.request<MemoryOperationReceipt>(`/memory/facts/${encodeURIComponent(factId)}?user_id=${encodeURIComponent(userId)}`, { method: "DELETE" });
+  async retractMemoryFact(userId: string, factId: string, requestId?: string): Promise<MemoryOperationReceipt> {
+    return this.request<MemoryOperationReceipt>(`/memory/facts/${encodeURIComponent(factId)}?user_id=${encodeURIComponent(userId)}${requestId ? `&request_id=${encodeURIComponent(requestId)}` : ""}`, { method: "DELETE" });
   }
 
   async clearMemory(userId: string, convId = "", requestId: string = randomUUID()): Promise<MemoryOperationReceipt> {

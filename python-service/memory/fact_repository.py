@@ -40,10 +40,10 @@ class FactRepositoryMixin:
                     chosen.append(row); chars += length
                 now = self._db_now(db)
                 db.execute("""INSERT INTO memory_job(namespace,user_id,job_id,kind,dedup_key,from_seq,to_seq,expected_revision,expected_cursor,expected_epoch,next_run_at,created_at)
-                              VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""", (self.namespace,uid,secrets.token_hex(16),'fact_extract',f"batch:{scope['erase_epoch']}:{chosen[0]['source_seq']}:{chosen[-1]['source_seq']}",chosen[0]['source_seq'],chosen[-1]['source_seq'],scope['fact_revision'],scope['extract_cursor'],scope['erase_epoch'],now,now))
+                              VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""", (self.namespace,uid,secrets.token_hex(16),'fact_extract',f"{'explicit' if force else 'batch'}:{scope['erase_epoch']}:{chosen[0]['source_seq']}:{chosen[-1]['source_seq']}",chosen[0]['source_seq'],chosen[-1]['source_seq'],scope['fact_revision'],scope['extract_cursor'],scope['erase_epoch'],now,now))
                 if not any(row['memory_eligible'] and not row['deleted_at'] and not contains_sensitive(row['user_text']) for row in chosen):
                     receipt = dict(status='NOOP',revision=scope['fact_revision'],covered_source_seq=chosen[-1]['source_seq'],applied=0,mutated=False,reason='POLICY_EXCLUDED')
-                    db.execute("UPDATE memory_job SET status='NOOP',result=?,error_code='POLICY_EXCLUDED' WHERE namespace=? AND user_id=? AND dedup_key=?", (json.dumps(receipt),self.namespace,uid,f"batch:{scope['erase_epoch']}:{chosen[0]['source_seq']}:{chosen[-1]['source_seq']}"))
+                    db.execute("UPDATE memory_job SET status='NOOP',result=?,error_code='POLICY_EXCLUDED' WHERE namespace=? AND user_id=? AND dedup_key=?", (json.dumps(receipt),self.namespace,uid,f"{'explicit' if force else 'batch'}:{scope['erase_epoch']}:{chosen[0]['source_seq']}:{chosen[-1]['source_seq']}"))
                     db.execute("UPDATE memory_scope SET extract_cursor=?,updated_at=? WHERE namespace=? AND user_id=?", (chosen[-1]['source_seq'],now,self.namespace,uid))
                 scheduled += 1
             db.commit()
@@ -154,7 +154,7 @@ class FactRepositoryMixin:
             for fid in invalidated:
                 db.execute("UPDATE memory_fact SET status='INVALID',invalid_at=?,revision=? WHERE namespace=? AND user_id=? AND fact_id=?", (now,rev,self.namespace,uid,fid))
             for fact,item in inserted:
-                db.execute("INSERT INTO memory_fact(namespace,user_id,fact_id,category,fact_key,content,normalized_hash,origin,status,valid_from,revision,erase_epoch) VALUES(?,?,?,?,?,?,?,'BACKGROUND','ACTIVE',?,?,?)", (self.namespace,uid,fact['fact_id'],fact['category'],fact['fact_key'],fact['content'],fact['normalized_hash'],now,rev,epoch))
+                db.execute("INSERT INTO memory_fact(namespace,user_id,fact_id,category,fact_key,content,normalized_hash,origin,status,valid_from,revision,erase_epoch) VALUES(?,?,?,?,?,?,?,?,'ACTIVE',?,?,?)", (self.namespace,uid,fact['fact_id'],fact['category'],fact['fact_key'],fact['content'],fact['normalized_hash'],'EXPLICIT' if job['dedup_key'].startswith('explicit:') else 'BACKGROUND',now,rev,epoch))
                 if item['action']=='SUPERSEDE':
                     db.execute("UPDATE memory_fact SET superseded_by=? WHERE namespace=? AND user_id=? AND fact_id=?", (fact['fact_id'],self.namespace,uid,item['target_fact_id']))
                 for seq in set(item['source_seqs']):
@@ -173,18 +173,24 @@ class FactRepositoryMixin:
             if not job:
                 db.commit(); return {'status':'STALE'}
             failures = job['failure_count'] + int(not conflict)
-            status = 'QUARANTINED' if failures >= 3 else 'RETRY_WAIT'
+            status = 'QUARANTINED' if failures >= getattr(self, 'job_max_attempts', 3) else 'RETRY_WAIT'
             db.execute("UPDATE memory_job SET status=?,failure_count=?,error_code=?,next_run_at=?,lease_until=NULL WHERE namespace=? AND job_id=?", (status,failures,error[:120],self._db_now(db,min(300,2 ** max(1,failures))),self.namespace,job_id))
             db.commit(); return dict(status=status,job_id=job_id,attempt_count=job['attempt_count'],failure_count=failures)
 
     def lookup_fact_receipt(self, user_id: str, request_id: str) -> Dict[str,Any]:
         with self._connection() as db:
             db.execute('BEGIN')
+            scope = db.execute("SELECT long_term_enabled FROM memory_scope WHERE namespace=? AND user_id=?", (self.namespace,user_id)).fetchone()
+            if not self.long_term_enabled or not scope or not scope['long_term_enabled'] or user_id.strip().casefold() in {'anonymous','demo'}:
+                return {'status':'DISABLED','applied':0,'mutated':False}
             turn = db.execute("SELECT source_seq FROM memory_turn WHERE namespace=? AND user_id=? AND request_id=?", (self.namespace,user_id,request_id)).fetchone()
             if not turn:
                 return {'status':'PENDING','queued':False}
             row = db.execute("SELECT * FROM memory_job WHERE namespace=? AND user_id=? AND kind='fact_extract' AND from_seq<=? AND to_seq>=? ORDER BY created_at DESC LIMIT 1", (self.namespace,user_id,turn['source_seq'],turn['source_seq'])).fetchone()
             if not row:
+                blocked = db.execute("SELECT job_id,error_code FROM memory_job WHERE namespace=? AND user_id=? AND kind='fact_extract' AND status='QUARANTINED' AND to_seq<? LIMIT 1", (self.namespace,user_id,turn['source_seq'])).fetchone()
+                if blocked:
+                    return {'status':'QUARANTINED','job_id':blocked['job_id'],'error_code':blocked['error_code'],'queued':False}
                 return {'status':'PENDING','queued':False}
             if row['result']:
                 result = json.loads(row['result'])

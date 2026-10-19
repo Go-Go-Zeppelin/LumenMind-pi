@@ -151,6 +151,7 @@ def repository_status(repository: Any) -> dict[str, Any]:
             AND lower(trim(t.user_id)) NOT IN ('anonymous','demo') AND s.migration_state!='IMPORTING'
             AND t.source_seq>s.extract_cursor AND t.source_seq>s.context_floor_source_seq""", params).fetchone()
         deletes = db.execute("SELECT COUNT(*) FROM memory_job WHERE namespace=? AND kind='index_delete' AND status IN ('READY','PROCESSING','RETRY_WAIT','QUARANTINED')", params).fetchone()[0]
+        deletes += db.execute("SELECT COUNT(DISTINCT claim_token) FROM memory_job WHERE namespace=? AND error_code='INDEX_WRITE_UNACKNOWLEDGED'", params).fetchone()[0]
         recoverable = db.execute("""SELECT COUNT(*) FROM memory_turn t LEFT JOIN memory_session s
             ON t.namespace=s.namespace AND t.user_id=s.user_id AND t.conv_id=s.conv_id
             WHERE t.namespace=? AND t.status='RECEIVED' AND (s.lease_until IS NULL

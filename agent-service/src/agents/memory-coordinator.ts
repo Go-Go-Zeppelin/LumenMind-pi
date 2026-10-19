@@ -1,7 +1,7 @@
 import type { InfrastructureClient } from "../clients/infrastructure.js";
 import type { MemoryOperationReceipt } from "../types.js";
 
-export type MemoryIntent = { kind: "remember" | "clear" | "retract" | "clarify" | "none" };
+export type MemoryIntent = { kind: "remember" | "clear" | "retract" | "clarify" | "none"; factId?: string };
 
 /** Only anchored direct requests qualify. Ambiguous quoted/conditional text never deletes. */
 export function parseMemoryIntent(message: string): MemoryIntent {
@@ -10,6 +10,8 @@ export function parseMemoryIntent(message: string): MemoryIntent {
       || /[“”「」『』"`]|不要忘|别忘|不要记|不要清空|不要删除/u.test(text)) return { kind: "none" };
   if (/^(?:请)?(?:清空|清除|删除)\s*(?:我的)?(?:全部|所有)?(?:长期)?记忆[。！!]?$/u.test(text)) return { kind: "clear" };
   if (/^(?:请)?(?:帮我)?(?:记住|记下来)[，,:：\s]*\S/u.test(text)) return { kind: "remember" };
+  const target = text.match(/^(?:请)?(?:忘掉|撤回|删除)\s*事实\s+((?:fact-[A-Za-z0-9_-]{1,123})|(?:[A-Fa-f0-9]{32})|(?:[A-Fa-f0-9]{8}(?:-[A-Fa-f0-9]{4}){3}-[A-Fa-f0-9]{12}))[。！!]?$/u);
+  if (target) return { kind: "retract", factId: target[1] };
   if (/^(?:请)?(?:忘掉|撤回|删除).*(?:偏好|事实|信息|记录)/u.test(text)) return { kind: "retract" };
   if (/^(?:请)?(?:忘掉|撤回|清空)/u.test(text)) return { kind: "clarify" };
   return { kind: "none" };
@@ -30,7 +32,16 @@ export function memoryReceiptText(receipt: MemoryOperationReceipt): string {
 
 export function isPureMemoryRequest(message: string): boolean {
   const kind = parseMemoryIntent(message).kind;
-  return kind !== "none" && !/订单|账单|报错|故障|退款|发票|查一下|帮我查询|排查/u.test(message);
+  return kind !== "none" && !/订单|账单|报错|故障|退款|发票|密码|重设|重置|找回|登录|登陆|账户|账号|支付|扣款|物流|配送|售后|排查|查询|查一下|查看|解释|说明|告诉我|教我|怎么|如何|帮我(?:查|改|修|办|处理)|(?:reset|password|login|account|lookup|query)\b/iu.test(message);
+}
+
+/** Memory acknowledgements are generated from the durable receipt, not model prose. */
+export function finalizeMemoryReply(body: string, receipt?: MemoryOperationReceipt): string {
+  if (!receipt) return body;
+  const business = body.split(/(?<=[，,。！？!?；;\n])/u)
+    .filter(clause => !/记住|记下|记忆|偏好|喜好|忘掉|撤回.*事实|删除.*事实|(?:已|已经|成功).*(?:保存|记录|清空|清除|删除)/u.test(clause))
+    .join("").trim();
+  return [business, memoryReceiptText(receipt)].filter(Boolean).join("\n\n");
 }
 
 export class MemoryCoordinator {
@@ -44,6 +55,10 @@ export class MemoryCoordinator {
   async coordinate(message: string, userId: string, convId: string, requestId: string): Promise<MemoryOperationReceipt | undefined> {
     const intent = parseMemoryIntent(message);
     if (intent.kind === "none") return undefined;
+    if (intent.kind === "retract" && intent.factId) {
+      const result = await this.infrastructure.retractMemoryFact(userId, intent.factId, requestId);
+      return { ...result, request_id: requestId };
+    }
     if (intent.kind === "clarify" || intent.kind === "retract") {
       return { request_id: requestId, status: "INCOMPLETE", applied: 0, mutated: false };
     }

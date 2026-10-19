@@ -86,3 +86,75 @@ it("HTTP begin retry reuses exact serialized body and key", async () => {
   expect(mock.mock.calls[0]![1].body).toBe(mock.mock.calls[1]![1].body);
   expect(mock.mock.calls[1]![1].headers["Idempotency-Key"]).toBe("key");
 });
+
+it("aborts sibling model/tool work before committing a failed terminal turn", async () => {
+  const api = harness();
+  let runSignal: AbortSignal | undefined;
+  api.finishTurn.mockImplementation(async () => {
+    expect(runSignal?.aborted).toBe(true);
+    return { status: "FAILED" };
+  });
+  await expect(withMemoryTurn(api as never, req, 20_000, undefined, async turn => {
+    runSignal = turn.signal;
+    throw new Error("primary target failed");
+  })).rejects.toThrow("primary target failed");
+  expect(runSignal?.aborted).toBe(true);
+  expect(api.finishTurn).toHaveBeenCalledWith("u", "server-conv", expect.any(String), "token", "FAILED");
+});
+
+it("renews a configured five-second lease well before the twenty-second local cap", async () => {
+  vi.useFakeTimers();
+  const api = harness();
+  api.beginTurn.mockImplementation(async (_u, c, r) => ({
+    status: "RECEIVED", request_id: r, conv_id: c || "server-conv", lease_token: "token",
+    lease_until: new Date(Date.now() + 5_000).toISOString(),
+  }));
+  api.renewTurn.mockImplementation(async () => ({ status: "RECEIVED", lease_until: new Date(Date.now() + 5_000).toISOString() }));
+  let complete: (() => void) | undefined;
+  const task = withMemoryTurn(api as never, req, 20_000, undefined, async turn => {
+    await new Promise<void>(resolve => { complete = resolve; });
+    expect(turn.signal.aborted).toBe(false);
+    return response();
+  });
+  await vi.advanceTimersByTimeAsync(1_667);
+  expect(api.renewTurn).toHaveBeenCalledOnce();
+  await vi.advanceTimersByTimeAsync(5_000);
+  expect(api.renewTurn.mock.calls.length).toBeGreaterThanOrEqual(3);
+  complete!();
+  expect((await task).memory_status).toBe("stored");
+  expect(vi.getTimerCount()).toBe(0);
+});
+
+it("adapts the next renewal interval when the server shortens its lease", async () => {
+  vi.useFakeTimers();
+  const api = harness();
+  api.beginTurn.mockImplementation(async (_u, c, r) => ({
+    status: "RECEIVED", request_id: r, conv_id: c || "server-conv", lease_token: "token",
+    lease_until: new Date(Date.now() + 90_000).toISOString(),
+  }));
+  api.renewTurn.mockImplementation(async () => ({ status: "RECEIVED", lease_until: new Date(Date.now() + 5_000).toISOString() }));
+  let complete: (() => void) | undefined;
+  const task = withMemoryTurn(api as never, req, 20_000, undefined, async () => {
+    await new Promise<void>(resolve => { complete = resolve; });
+    return response();
+  });
+  await vi.advanceTimersByTimeAsync(20_001);
+  expect(api.renewTurn).toHaveBeenCalledOnce();
+  await vi.advanceTimersByTimeAsync(1_667);
+  expect(api.renewTurn).toHaveBeenCalledTimes(2);
+  complete!();
+  await task;
+  expect(vi.getTimerCount()).toBe(0);
+});
+
+it("does not execute a model on an already expired begin receipt", async () => {
+  const api = harness();
+  api.beginTurn.mockImplementation(async (_u, c, r) => ({
+    status: "RECEIVED", request_id: r, conv_id: c || "server-conv", lease_token: "token",
+    lease_until: new Date(Date.now() - 1).toISOString(),
+  }));
+  const execute = vi.fn();
+  await expect(withMemoryTurn(api as never, req, 20_000, undefined, execute)).rejects.toMatchObject({ status: 409 });
+  expect(execute).not.toHaveBeenCalled();
+  expect(api.finishTurn).not.toHaveBeenCalled();
+});

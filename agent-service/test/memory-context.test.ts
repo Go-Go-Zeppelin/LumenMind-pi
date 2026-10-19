@@ -165,3 +165,30 @@ it("propagates a real Pi model budget rejection without calling the provider", a
     skillPrompt: "", entities: {}, allowKnowledge: false,
   })).rejects.toBeInstanceOf(ModelBudgetError);
 });
+
+it("cancels and settles parallel supporting work before releasing the failed turn lease", async () => {
+  const { infrastructure, orchestrator, agents } = orchestratorHarness();
+  const fatal = new ModelBudgetError("supporting model input exceeds window");
+  let primarySettled = false;
+  let primarySignal: AbortSignal | undefined;
+  agents.technical.run.mockImplementation(async (input: AgentRunInput) => {
+    primarySignal = input.signal;
+    await new Promise<void>((_resolve, reject) => {
+      input.signal!.addEventListener("abort", () => {
+        void Promise.resolve().then(() => {
+          primarySettled = true;
+          reject(new Error("primary observed sibling cancellation"));
+        });
+      }, { once: true });
+    });
+  });
+  agents.billing.run.mockRejectedValue(fatal);
+  infrastructure.finishTurn.mockImplementation(async () => {
+    expect(primarySignal?.aborted).toBe(true);
+    expect(primarySettled).toBe(true);
+    return { status: "FAILED" };
+  });
+  await expect(orchestrator.chat({ message: "登录报错401，而且重复扣款50元", user_id: "u", conv_id: "c" })).rejects.toBe(fatal);
+  expect(agents.general.run).not.toHaveBeenCalled();
+  expect(infrastructure.finishTurn).toHaveBeenCalledWith("u", "c", expect.any(String), "token", "FAILED");
+});
