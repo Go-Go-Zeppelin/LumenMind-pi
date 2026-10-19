@@ -49,6 +49,8 @@ function infra() {
   const client = new InfrastructureClient("http://infra.test", 1000);
   vi.spyOn(client, "getMemoryContext").mockResolvedValue({ prompt_text: "", recent_messages: [], relevant_history: [], user_profile: {}, summary: "" });
   vi.spyOn(client, "commitTurn").mockResolvedValue();
+  vi.spyOn(client, "beginTurn").mockImplementation(async (_u, c, r) => ({ status: "RECEIVED", conv_id: c || "generated", request_id: r, lease_token: "test-lease", turn_seq: 1, source_seq: 1 }));
+  vi.spyOn(client, "finishTurn").mockImplementation(async (_u, c, r, _token, status, response) => ({ status, conv_id: c, request_id: r, response }));
   return client;
 }
 
@@ -113,8 +115,9 @@ describe("执行器与编排器用户上下文及业务 trace", () => {
       expect(call.is_error).toBe(false);
       if (fallback) expect(call.fallback_used).toBe(true);
     }
-    expect(client.getMemoryContext).toHaveBeenCalledWith("u1002", "billing-context", "查看我的账单");
-    expect(client.commitTurn).toHaveBeenCalledWith("u1002", "billing-context", "查看我的账单", "演示查询结果");
+    expect(client.getMemoryContext).toHaveBeenCalledWith("u1002", "billing-context", "查看我的账单", result.request_id);
+    expect(client.finishTurn).toHaveBeenCalledWith("u1002", "billing-context", result.request_id, "test-lease", "COMPLETED", "演示查询结果");
+    expect(client.commitTurn).not.toHaveBeenCalled();
   });
 
   it("监控将 Billing 降级到 General 时仍使用原用户身份", async () => {

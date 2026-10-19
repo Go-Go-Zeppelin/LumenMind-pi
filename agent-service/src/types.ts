@@ -46,6 +46,7 @@ export interface ChatRequest {
   message: string;
   user_id?: string;
   conv_id?: string | null;
+  idempotency_key?: string;
 }
 
 export interface ChatResponse {
@@ -71,6 +72,7 @@ export interface ChatResponse {
   request_id: string;
   memory_status?: "stored" | "degraded" | "unavailable" | "failed";
   memory_operation?: MemoryOperationReceipt;
+  replayed?: boolean;
 }
 
 export interface MemoryOperationReceipt {

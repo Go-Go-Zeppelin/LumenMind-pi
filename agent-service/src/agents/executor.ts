@@ -32,6 +32,7 @@ export interface AgentRunInput {
   intent?: string;
   urgency?: string;
   workflowContext?: string;
+  signal?: AbortSignal;
 }
 
 /**
@@ -175,6 +176,7 @@ export class PiAgentExecutor {
         // Pi 最终通过 Anthropic Messages API 流式调用所配置的模型。
         streamFn: (model, context, options) => streamAnthropicSimple(model as Model<"anthropic-messages">, context, {
           ...options,
+          signal: input.signal && options?.signal ? AbortSignal.any([input.signal, options.signal]) : input.signal ?? options?.signal,
           apiKey: this.appConfig.apiKey,
           maxTokens: this.profile.max_tokens || this.appConfig.maxTokens,
           temperature: this.profile.temperature,
@@ -248,7 +250,9 @@ export class PiAgentExecutor {
 
       // 当前用户消息是 Agent 的业务输入；此调用会驱动模型生成和可选工具循环，
       // 直到产生最终 AssistantMessage 或异常结束。
+      input.signal?.throwIfAborted();
       await agent.prompt(input.message);
+      input.signal?.throwIfAborted();
 
       // state.messages 可能包含 user、assistant、toolResult 等消息；这里只保留 assistant。
       const assistantMessages = agent.state.messages.filter(

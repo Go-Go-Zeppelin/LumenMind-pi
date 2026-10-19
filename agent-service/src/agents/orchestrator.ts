@@ -23,7 +23,8 @@ import { IntentRouter } from "./intent-router.js";
 import { AGENT_PROFILES } from "./profiles.js";
 import { runAgentWorkflow } from "./workflow.js";
 import { roleTools } from "../tools/agent-tools.js";
-import { MemoryCoordinator } from "./memory-coordinator.js";
+import { MemoryCoordinator, isPureMemoryRequest, memoryReceiptText } from "./memory-coordinator.js";
+import { withMemoryTurn } from "./memory-turn.js";
 
 // 编排器接收 IntentDecision 后，不直接用 intent 字符串查 Agent，
 // 而是结合关键词和结构化实体计算三个领域的分数。
@@ -191,13 +192,15 @@ export class LumenMindOrchestrator {
     this.memoryCoordinator = new MemoryCoordinator(infrastructure);
   }
 
-  async chat(request: ChatRequest, sink?: ChatEventSink): Promise<ChatResponse> {
-    // 输入：Express 校验后的 ChatRequest，以及可选的 SSE 事件接收器。
-    // 标准化后再进入 runChat：user_id 缺省为 anonymous，conv_id 缺省生成 UUID。
-    // KeyedLock 保证同一 user_id + conv_id 的完整请求串行执行。
+  async chat(request: ChatRequest, sink?: ChatEventSink, signal?: AbortSignal): Promise<ChatResponse> {
     const userId = request.user_id?.trim() || "anonymous";
-    const convId = request.conv_id?.trim() || randomUUID();
-    return this.lock.run(`${userId}:${convId}`, () => this.runChat(request.message.trim(), userId, convId, sink));
+    const requestedConv = request.conv_id?.trim() || undefined;
+    const lockKey = JSON.stringify([userId, requestedConv ?? request.idempotency_key ?? randomUUID()]);
+    return this.lock.run(lockKey, () => withMemoryTurn(
+      this.infrastructure, { ...request, message: request.message.trim(), user_id: userId, conv_id: requestedConv },
+      this.appConfig.memoryRenewIntervalMs, signal,
+      async (turn) => this.runChat(request.message.trim(), userId, turn.convId, turn.requestId, turn.available, turn.signal, sink),
+    ));
   }
 
   /**
@@ -238,29 +241,13 @@ export class LumenMindOrchestrator {
    *     -> Promise.all(runWithFallback(...)) -> AgentRunResult[]
    *     -> 合并主/辅回复 -> commitTurn 写回 Python 记忆 -> ChatResponse
    */
-  private async runChat(message: string, userId: string, convId: string, sink?: ChatEventSink): Promise<ChatResponse> {
+  private async runChat(message: string, userId: string, convId: string, requestId: string, memoryAvailable: boolean, signal: AbortSignal, sink?: ChatEventSink): Promise<ChatResponse> {
     const startedAt = performance.now();
-    const requestId = randomUUID();
-    // 1) 先保存用户原文并领取会话租约。旧测试/旧 Python 版本没有新接口时
-    //    自动退回 commitTurn 兼容路径；新接口失败则普通问答降级但明确标记状态。
-    let leaseToken: string | undefined;
-    let memoryStatus: ChatResponse["memory_status"] = "stored";
+    let memoryStatus: ChatResponse["memory_status"] = memoryAvailable ? "stored" : "unavailable";
     let memoryOperation: MemoryOperationReceipt | undefined;
-    const memoryApi = this.infrastructure as unknown as {
-      beginTurn?: (userId: string, convId: string, requestId: string, message: string) => Promise<{ lease_token: string }>;
-      finishTurn?: (userId: string, convId: string, requestId: string, token: string, status: "COMPLETED" | "FAILED", response?: string) => Promise<unknown>;
-    };
-    if (typeof memoryApi.beginTurn === "function") {
-      try {
-        const begin = await memoryApi.beginTurn(userId, convId, requestId, message);
-        leaseToken = begin.lease_token;
-      } catch (error) {
-        memoryStatus = "degraded";
-        console.warn("记忆 begin 失败，本轮继续降级执行:", error instanceof Error ? error.message : error);
-      }
-    }
+    signal.throwIfAborted();
     const canCoordinateMemory = typeof (this.infrastructure as unknown as { flushMemory?: unknown }).flushMemory === "function";
-    if (canCoordinateMemory) {
+    if (canCoordinateMemory && memoryAvailable) {
       try {
         memoryOperation = await this.memoryCoordinator.coordinate(message, userId, convId, requestId);
       } catch (error) {
@@ -268,15 +255,32 @@ export class LumenMindOrchestrator {
         console.warn("显式记忆操作失败:", error instanceof Error ? error.message : error);
       }
     }
+    if (!memoryAvailable && canCoordinateMemory) {
+      memoryOperation = await this.memoryCoordinator.unavailable(message, requestId);
+    }
+    signal.throwIfAborted();
+    if (memoryOperation && isPureMemoryRequest(message)) {
+      return {
+        conv_id: convId, request_id: requestId, response: memoryReceiptText(memoryOperation),
+        intent: "request", intent_group: "request", agent_type: "general", agent_types: [],
+        primary_agent: "general", supporting_agents: [], routing_reason: "显式记忆操作回执",
+        routing_confidence: 1, escalated: false, latency_ms: performance.now() - startedAt,
+        knowledge_used: false, tools_used: [], output_valid: true, output_errors: [],
+        entities: {}, intent_confidence: 1, intent_source_scores: {}, memory_status: memoryStatus,
+        memory_operation: memoryOperation,
+      };
+    }
     // 2) 读记忆：{user_id, conv_id, query} -> MemoryContext；Python 不可用时返回可区分的降级状态。
-    const memory = await this.infrastructure.getMemoryContext(userId, convId, message);
+    const memory = memoryAvailable
+      ? await this.infrastructure.getMemoryContext(userId, convId, message, requestId)
+      : { prompt_text: "", recent_messages: [], relevant_history: [], user_profile: {}, summary: "", status: "unavailable" as const };
     if (memory.status === "unavailable" || memory.status === "degraded") memoryStatus = memoryStatus === "stored" ? memory.status : memoryStatus;
     // 3) 意图识别：message + recent_messages -> IntentDecision。
     const intent = await this.intentRouter.recognize(message, memory.recent_messages);
+    signal.throwIfAborted();
 
     if (needsClarification(message, intent)) {
       const response = "我还不能确定您要处理的是哪类问题。请补充一下是订单物流、退款账单、账户资料，还是技术故障？";
-      memoryStatus = await this.persistTurn(userId, convId, requestId, message, response, leaseToken, memoryStatus);
       const result: ChatResponse = {
         conv_id: convId,
         response,
@@ -338,7 +342,6 @@ export class LumenMindOrchestrator {
         urgency: intent.urgency,
         workflowContext: "升级节点不执行业务 Agent 工作流",
       }, sink);
-      memoryStatus = await this.persistTurn(userId, convId, requestId, message, result.response, leaseToken, memoryStatus);
       const escalatedResult: ChatResponse = {
         conv_id: convId,
         response: result.response,
@@ -398,10 +401,13 @@ export class LumenMindOrchestrator {
       intent.intent,
       intent.urgency,
       sink,
+      signal,
     )));
 
     // 6) 合并结果：单 Agent 直接返回；多 Agent 按“主处理/辅助处理”标签拼接最终回复。
-    const response = await this.composer.compose(message, primaryExecution, results);
+    signal.throwIfAborted();
+    const composed = await this.composer.compose(message, primaryExecution, results);
+    const response = memoryOperation ? `${composed}\n\n${memoryReceiptText(memoryOperation)}` : composed;
     // 7) 将多个 AgentRunResult 汇总为本次请求的统一状态：
     //    AgentRunResult[]
     //      -> 汇总知识库使用状态（任一 Agent 使用有效知识即为 true）
@@ -418,7 +424,6 @@ export class LumenMindOrchestrator {
     const outputValid = results.every((result) => result.outputValid !== false);
     const escalated = needsEscalation(intent.intent, intent.urgency, response);
     // 8) 写回记忆：只写入最终合并回复（user_id + conv_id + message + response），不单独写辅助 Agent 原始响应。
-    memoryStatus = await this.persistTurn(userId, convId, requestId, message, response, leaseToken, memoryStatus);
 
     const actualAgentTypes = [...new Set(results.map((result) => result.agentType))];
     // 9) 组装 ChatResponse：primary_agent/supporting_agents 表示计划路由；agent_type/agent_types 表示实际成功返回的 Agent。
@@ -503,40 +508,6 @@ export class LumenMindOrchestrator {
     return [...this.recentToolTraces].reverse().slice(0, safeLimit);
   }
 
-  private async commitTurn(userId: string, convId: string, message: string, response: string): Promise<void> {
-    // 输入是最终合并回复，不是每个 Agent 的原始回复。
-    // 记忆写入失败只记录警告，不让已经生成的 ChatResponse 失败。
-    try {
-      await this.infrastructure.commitTurn(userId, convId, message, response);
-    } catch (error) {
-      console.warn("记忆写入失败，但保留本轮 Agent 响应:", error instanceof Error ? error.message : error);
-    }
-  }
-
-  private async persistTurn(
-    userId: string, convId: string, requestId: string, message: string, response: string,
-    leaseToken: string | undefined, status: ChatResponse["memory_status"],
-  ): Promise<ChatResponse["memory_status"]> {
-    const memoryApi = this.infrastructure as unknown as {
-      finishTurn?: (userId: string, convId: string, requestId: string, token: string, finalStatus: "COMPLETED", response?: string) => Promise<unknown>;
-    };
-    if (leaseToken && typeof memoryApi.finishTurn === "function") {
-      try {
-        await memoryApi.finishTurn(userId, convId, requestId, leaseToken, "COMPLETED", response);
-        return status === "unavailable" ? status : "stored";
-      } catch (error) {
-        console.warn("记忆 finish 失败，但保留本轮 Agent 响应:", error instanceof Error ? error.message : error);
-        return "failed";
-      }
-    }
-    try {
-      await this.commitTurn(userId, convId, message, response);
-      return status === "unavailable" ? status : "stored";
-    } catch {
-      return "failed";
-    }
-  }
-
   private async runWithFallback(
     agentType: AgentType,
     message: string,
@@ -548,6 +519,7 @@ export class LumenMindOrchestrator {
     intent?: string,
     urgency?: string,
     sink?: ChatEventSink,
+    signal?: AbortSignal,
   ): Promise<AgentRunResult> {
     /**
      * 输入：一个计划执行的 Agent 类型，以及本轮 AgentRunInput 所需的上下文。
@@ -567,6 +539,7 @@ export class LumenMindOrchestrator {
       allowKnowledge,
       intent,
       urgency,
+      signal,
       workflowContext: runAgentWorkflow(agentType, message, entities).context,
       skillPrompt: this.skills.promptFor(message, agentType),
     };
@@ -574,6 +547,7 @@ export class LumenMindOrchestrator {
     try {
       return { ...await this.bestAgent(agentType).run(input, sink), skillsUsed };
     } catch (error) {
+      signal?.throwIfAborted();
       const failure = error instanceof AgentExecutionError ? error : undefined;
       const failureMessage = error instanceof Error ? error.message : String(error);
       const failedTools = failure?.toolsUsed ?? [];
@@ -601,6 +575,7 @@ export class LumenMindOrchestrator {
             ],
           };
         } catch (fallbackError) {
+          signal?.throwIfAborted();
           const fallbackFailure = fallbackError instanceof AgentExecutionError ? fallbackError : undefined;
           const fallbackMessage = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
           console.error("General Agent 降级也失败:", fallbackMessage);

@@ -1,7 +1,7 @@
 import cors from "cors";
 import express, { type NextFunction, type Request, type Response } from "express";
 import type { AppConfig } from "./config.js";
-import type { InfrastructureClient } from "./clients/infrastructure.js";
+import { InfrastructureError, type InfrastructureClient } from "./clients/infrastructure.js";
 import type { LumenMindOrchestrator } from "./agents/orchestrator.js";
 import { recognizeByRules } from "./agents/intent-router.js";
 import { handleMcpHttpRequest } from "./mcp/server.js";
@@ -22,7 +22,7 @@ export function createApp(
     const message = typeof (body as { message?: unknown })?.message === "string"
       ? (body as { message: string }).message.trim() : "";
     if (!message) return { error: "message 不能为空" };
-    if (message.length > 20_000) return { error: "message 超过 20000 字符限制" };
+    if (Array.from(message).length > 20_000) return { error: "message 超过 20000 字符限制" };
     return { message };
   };
 
@@ -89,6 +89,7 @@ export function createApp(
       message,
       user_id: typeof req.body?.user_id === "string" ? req.body.user_id : "anonymous",
       conv_id: typeof req.body?.conv_id === "string" ? req.body.conv_id : null,
+      idempotency_key: req.get("Idempotency-Key") || undefined,
     });
     res.json(result);
   });
@@ -105,6 +106,8 @@ export function createApp(
     res.setHeader("cache-control", "no-cache, no-transform");
     res.setHeader("connection", "keep-alive");
     res.flushHeaders();
+    const cancelled = new AbortController();
+    res.on("close", () => { if (!res.writableEnded) cancelled.abort(); });
     const send = (event: string, data: unknown) => {
       res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
     };
@@ -113,7 +116,8 @@ export function createApp(
         message,
         user_id: typeof req.body?.user_id === "string" ? req.body.user_id : "anonymous",
         conv_id: typeof req.body?.conv_id === "string" ? req.body.conv_id : null,
-      }, (event) => send(event.type, event));
+      idempotency_key: req.get("Idempotency-Key") || undefined,
+      }, (event) => send(event.type, event), cancelled.signal);
       send("done", result);
     } catch (error) {
       send("error", { detail: error instanceof Error ? error.message : "流式对话失败" });
@@ -129,7 +133,7 @@ export function createApp(
   app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
     console.error(error);
     if (!res.headersSent) {
-      res.status(500).json({ detail: error instanceof Error ? error.message : "内部服务错误" });
+      res.status(error instanceof InfrastructureError ? error.status ?? 503 : 500).json({ detail: error instanceof Error ? error.message : "内部服务错误" });
     }
   });
   return app;

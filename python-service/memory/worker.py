@@ -1,33 +1,36 @@
-"""可恢复持久任务 Worker 的最小调度外壳。
+"""Recovery scheduler for expired turn leases.
 
-Worker 不依赖 FastAPI BackgroundTasks；进程重启后由 repository 扫描 READY/
-RETRY_WAIT 任务即可继续。实际 Judge/摘要器通过函数注入，便于离线测试。
+Fact extraction, summaries and index jobs are deliberately not claimed here:
+there is no installed model pipeline that can safely complete those jobs yet.
 """
 from __future__ import annotations
 
 import asyncio
-from typing import Awaitable, Callable, Optional
+import logging
+import math
+
+logger = logging.getLogger(__name__)
 
 
 class MemoryWorker:
     def __init__(self, repository, poll_seconds: float = 5.0):
+        if not math.isfinite(poll_seconds) or poll_seconds <= 0:
+            raise ValueError("poll_seconds must be a positive finite number")
         self.repository = repository
-        self.poll_seconds = max(0.1, float(poll_seconds))
+        self.poll_seconds = poll_seconds
         self._stop = asyncio.Event()
 
     def stop(self) -> None:
         self._stop.set()
 
-    async def run(self, handler: Callable[[dict], Awaitable[None]]) -> None:
+    async def run(self) -> None:
         while not self._stop.is_set():
-            await asyncio.to_thread(self.repository.recover_interrupted_turns)
-            jobs = await asyncio.to_thread(self.repository.claim_due_jobs)
-            for job in jobs:
-                try:
-                    await handler(job)
-                    await asyncio.to_thread(self.repository.complete_job, job["job_id"], job["claim_token"], {"status": "DONE"})
-                except Exception as error:
-                    await asyncio.to_thread(self.repository.retry_job, job["job_id"], job["claim_token"], str(error))
-            try: await asyncio.wait_for(self._stop.wait(), timeout=self.poll_seconds)
-            except asyncio.TimeoutError: pass
-
+            try:
+                # SQLite work is blocking; keep the API event loop available.
+                await asyncio.to_thread(self.repository.recover_interrupted_turns)
+            except Exception:
+                logger.exception("Memory lease recovery failed; retrying on next poll")
+            try:
+                await asyncio.wait_for(self._stop.wait(), timeout=self.poll_seconds)
+            except asyncio.TimeoutError:
+                pass

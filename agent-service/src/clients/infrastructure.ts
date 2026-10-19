@@ -68,6 +68,8 @@ export interface MemoryTurnBeginReceipt {
   lease_token: string;
   lease_until?: string | null;
   context_revision?: number;
+  replayed?: boolean;
+  response?: string | null;
 }
 
 export interface MemoryTurnFinishReceipt {
@@ -134,6 +136,17 @@ export class InfrastructureClient {
     return payload as T;
   }
 
+  // Only retry durable idempotent protocol operations; the serialized payload stays unchanged.
+  private async retryMemory<T>(path: string, init: RequestInit): Promise<T> {
+    for (let attempt = 0; ; attempt++) {
+      try { return await this.request<T>(path, init); }
+      catch (error) {
+        if (attempt >= 1 || (error instanceof InfrastructureError && (error.status ?? 500) < 500)) throw error;
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+    }
+  }
+
   /** 探测 Python 基础设施健康状态，供 Pi /health 聚合展示依赖状态。 */
   async health(): Promise<Record<string, unknown>> {
     return this.request<Record<string, unknown>>("/health");
@@ -183,8 +196,8 @@ export class InfrastructureClient {
     }
   }
 
-  async beginTurn(userId: string, convId: string, requestId: string, message: string, idempotencyKey?: string): Promise<MemoryTurnBeginReceipt> {
-    return this.request<MemoryTurnBeginReceipt>("/memory/turn/begin", {
+  async beginTurn(userId: string, convId: string | undefined, requestId: string, message: string, idempotencyKey?: string): Promise<MemoryTurnBeginReceipt> {
+    return this.retryMemory<MemoryTurnBeginReceipt>("/memory/turn/begin", {
       method: "POST",
       headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined,
       body: JSON.stringify({ user_id: userId, conv_id: convId, request_id: requestId, message, idempotency_key: idempotencyKey }),
@@ -196,7 +209,7 @@ export class InfrastructureClient {
   }
 
   async finishTurn(userId: string, convId: string, requestId: string, leaseToken: string, status: "COMPLETED" | "FAILED" | "CANCELLED" | "INTERRUPTED", response?: string): Promise<MemoryTurnFinishReceipt> {
-    return this.request<MemoryTurnFinishReceipt>("/memory/turn/finish", { method: "POST", body: JSON.stringify({ user_id: userId, conv_id: convId, request_id: requestId, lease_token: leaseToken, status, response }) });
+    return this.retryMemory<MemoryTurnFinishReceipt>("/memory/turn/finish", { method: "POST", body: JSON.stringify({ user_id: userId, conv_id: convId, request_id: requestId, lease_token: leaseToken, status, response }) });
   }
 
   async flushMemory(userId: string, convId: string, requestId: string): Promise<MemoryOperationReceipt> {

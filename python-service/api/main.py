@@ -6,13 +6,15 @@ Agent 运行时已迁移到 TypeScript/Pi；本服务继续承载记忆、知识
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import os
 import pathlib
+import sqlite3
 import sys
 import uuid
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from typing import Any, Dict, List, Optional
 
 _ROOT = str(pathlib.Path(__file__).parent.parent.resolve())
@@ -29,7 +31,10 @@ from pydantic import BaseModel, Field
 from evaluation.contracts import EvalRunInput
 from business.api import router as business_router
 from business.store import database_path, initialize as initialize_business
+from memory.config import MemorySettings
+from memory.context_builder import ContextBudgetError
 from memory.repository import CapacityError, ConflictError, LeaseError, RepositoryError
+from memory.worker import MemoryWorker
 
 load_dotenv(pathlib.Path(_ROOT).parent / ".env")
 load_dotenv()
@@ -69,90 +74,97 @@ def _project_path(name: str, default: str) -> str:
     return str(value.resolve())
 
 
-def _memory_config() -> Dict[str, Any]:
-    return {
-        "db_path": _project_path("MEMORY_DB_PATH", "data/memory/memory.sqlite3"),
-        "namespace": os.getenv("MEMORY_NAMESPACE", "lumenmind").strip() or "lumenmind",
-        "long_term_enabled": os.getenv("MEMORY_LONG_TERM_ENABLED", "true").lower() not in {"0", "false", "no", "off"},
-        "context_max_chars": int(os.getenv("MEMORY_CONTEXT_MAX_CHARS", "24000")),
-    }
+def _memory_config() -> MemorySettings:
+    return MemorySettings.from_env(pathlib.Path(_ROOT).parent)
+
+
+def _initialize_optional_services(cfg: Dict[str, Any], chroma_host: str, chroma_port: int, chroma_path: str) -> None:
+    """Knowledge and embeddings are independent of SQLite memory availability."""
+    global _knowledge, _intent_index, _tool_manager, _evaluator
+    try:
+        from mcp.knowledge_base import KnowledgeBase
+        _knowledge = KnowledgeBase(chroma_host=chroma_host, chroma_port=chroma_port, chroma_path=chroma_path)
+    except Exception:
+        _knowledge = None
+        logger.exception("Knowledge service unavailable")
+    try:
+        from mcp.intent_index import IntentEmbeddingIndex
+        _intent_index = IntentEmbeddingIndex(chroma_host=chroma_host, chroma_port=chroma_port, chroma_path=chroma_path)
+    except Exception:
+        _intent_index = None
+        logger.exception("Intent embedding service unavailable")
+    try:
+        from mcp.tool_manager import MCPToolManager, Tool
+        _tool_manager = MCPToolManager(api_key=cfg["api_key"] or "not-configured", base_url=cfg["base_url"], model=cfg["model"])
+        if _knowledge is not None:
+            def fallback(params: Dict[str, Any], _context: Any, error: str):
+                return [{"title": "知识库降级结果", "content": f"知识库暂时不可用，未能检索“{params.get('query', '')}”。", "score": 0.0, "fallback": True, "error": error}]
+            _tool_manager.register(Tool(
+                name="knowledge_search", description="搜索 LumenMind ChromaDB 知识库",
+                handler=_knowledge.search_handler,
+                schema={"type": "object", "properties": {"query": {"type": "string"}, "top_k": {"type": "integer"}}, "required": ["query"]},
+                cache_ttl=300.0, supports_rerank=True, fallback=fallback,
+            ))
+    except Exception:
+        _tool_manager = None
+        logger.exception("Knowledge tool manager unavailable")
+    try:
+        from evaluation.pi_evaluator import PiServiceEvaluator
+        _evaluator = PiServiceEvaluator(
+            agent_service_url=_agent_url(), api_key=cfg["api_key"], model=cfg["model"], base_url=cfg["base_url"],
+            baseline_path=_project_path("EVAL_BASELINE_PATH", "data/eval/baseline.json"),
+        )
+    except Exception:
+        _evaluator = None
+        logger.exception("Evaluation service unavailable")
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    global _memory, _knowledge, _intent_index, _tool_manager, _evaluator
-    from evaluation.pi_evaluator import PiServiceEvaluator
-    from mcp.knowledge_base import KnowledgeBase
-    from mcp.intent_index import IntentEmbeddingIndex
-    from mcp.tool_manager import MCPToolManager, Tool
+    global _memory
     from memory.conversation_memory import MemoryManager
 
+    # Invalid settings fail startup; an unavailable database degrades only memory.
+    settings = _memory_config()
     initialize_business(database_path(), os.getenv("BUSINESS_SEED_DEMO", "false").lower() == "true")
     cfg = _llm_config()
-    chroma_host = os.getenv("CHROMA_HOST", "localhost")
-    chroma_port = int(os.getenv("CHROMA_PORT", "8001"))
-    chroma_path = _project_path("CHROMA_PERSIST_DIRECTORY", "data/chroma")
-
-    _memory = MemoryManager(
-        redis_url=os.getenv("REDIS_URL", "redis://localhost:6379/0"),
-        chroma_host=chroma_host,
-        chroma_port=chroma_port,
-        chroma_path=chroma_path,
-        api_key=cfg["api_key"],
-        base_url=cfg["base_url"],
-        model=cfg["model"],
-        **_memory_config(),
-    )
-    _knowledge = KnowledgeBase(
-        chroma_host=chroma_host,
-        chroma_port=chroma_port,
-        chroma_path=chroma_path,
-    )
-    _intent_index = IntentEmbeddingIndex(
-        chroma_host=chroma_host,
-        chroma_port=chroma_port,
-        chroma_path=chroma_path,
-    )
-    _tool_manager = MCPToolManager(
-        api_key=cfg["api_key"] or "not-configured",
-        base_url=cfg["base_url"],
-        model=cfg["model"],
-    )
-
-    def fallback(params: Dict[str, Any], _context: Any, error: str):
-        return [{
-            "title": "知识库降级结果",
-            "content": f"知识库暂时不可用，未能检索“{params.get('query', '')}”。",
-            "score": 0.0,
-            "fallback": True,
-            "error": error,
-        }]
-
-    _tool_manager.register(Tool(
-        name="knowledge_search",
-        description="搜索 LumenMind ChromaDB 知识库",
-        handler=_knowledge.search_handler,
-        schema={
-            "type": "object",
-            "properties": {"query": {"type": "string"}, "top_k": {"type": "integer"}},
-            "required": ["query"],
-        },
-        cache_ttl=300.0,
-        supports_rerank=True,
-        fallback=fallback,
-    ))
-    _evaluator = PiServiceEvaluator(
-        agent_service_url=_agent_url(),
-        api_key=cfg["api_key"],
-        model=cfg["model"],
-        base_url=cfg["base_url"],
-        baseline_path=_project_path("EVAL_BASELINE_PATH", "data/eval/baseline.json"),
-    )
-    logger.info("Python 基础设施已就绪：memory + knowledge + evaluation + management")
-    yield
+    worker = None
+    worker_task = None
+    try:
+        _memory = await asyncio.to_thread(
+            MemoryManager, db_path=settings.db_path, namespace=settings.namespace,
+            long_term_enabled=settings.long_term_enabled, context_max_chars=settings.context_max_chars,
+            lease_seconds=settings.lease_seconds,
+        )
+    except (sqlite3.Error, OSError, RepositoryError):
+        _memory = None
+        logger.exception("SQLite memory unavailable; memory endpoints will return 503")
     if _memory is not None:
-        await _memory.close()
-    logger.info("Python 基础设施已关闭")
+        worker = MemoryWorker(_memory._repo, settings.recovery_poll_seconds)
+        worker_task = asyncio.create_task(worker.run(), name="memory-lease-recovery")
+    _app.state.memory_worker = worker
+    _app.state.memory_worker_task = worker_task
+    try:
+        await asyncio.to_thread(
+            _initialize_optional_services, cfg, os.getenv("CHROMA_HOST", "localhost"),
+            int(os.getenv("CHROMA_PORT", "8001")), _project_path("CHROMA_PERSIST_DIRECTORY", "data/chroma"),
+        )
+        logger.info("Python infrastructure started; SQLite memory=%s", "ready" if _memory else "unavailable")
+        yield
+    finally:
+        if worker is not None:
+            worker.stop()
+        if worker_task is not None:
+            try:
+                await asyncio.wait_for(worker_task, timeout=10)
+            except asyncio.TimeoutError:
+                worker_task.cancel()
+                with suppress(asyncio.CancelledError):
+                    await worker_task
+        if _memory is not None:
+            await _memory.close()
+            _memory = None
+        logger.info("Python infrastructure stopped")
 
 
 app = FastAPI(
@@ -189,8 +201,8 @@ class MemoryTurnInput(BaseModel):
 
 class MemoryBeginInput(BaseModel):
     user_id: str = "anonymous"
-    conv_id: str
-    request_id: str = Field(min_length=1)
+    conv_id: Optional[str] = Field(default=None, min_length=1, max_length=256)
+    request_id: str = Field(min_length=1, max_length=256)
     message: str = Field(min_length=1, max_length=20000)
     idempotency_key: Optional[str] = None
 
@@ -207,7 +219,7 @@ class MemoryFinishInput(BaseModel):
     conv_id: str
     request_id: str
     lease_token: str
-    status: str = "COMPLETED"
+    status: str = Field(default="COMPLETED", pattern="^(COMPLETED|FAILED|CANCELLED)$")
     response: Optional[str] = None
 
 
@@ -321,170 +333,135 @@ async def recent_tool_traces_proxy(limit: int = 20):
     return await _proxy("GET", f"/trace/tools?limit={max(1, min(200, limit))}")
 
 
-@app.post("/memory/context")
-async def memory_context(body: MemoryContextInput):
-    if _memory is None:
-        raise HTTPException(503, "记忆服务未就绪")
-    context = await _memory.get_context(body.user_id, body.conv_id, query=body.query)
-    if getattr(_memory, "_repo", None) is not None:
-        snapshot = await _memory.get_snapshot(body.user_id, body.conv_id)
-        result = _memory.snapshot_to_dict(snapshot)
-        # 当前 request 的 user 原文由 begin 保存，但 prompt 只能在 agent.prompt()
-        # 中出现一次；调用方传 request_id 时从快照移除该轮。
-        if body.request_id:
-            result["recent_messages"] = [m for m in result["recent_messages"] if m.get("request_id") != body.request_id]
-        return result
-    return {
-        "prompt_text": context.to_prompt_text(),
-        "recent_messages": [
-            {
-                "role": message.role.value,
-                "content": message.content,
-                "timestamp": message.timestamp.isoformat(),
-                "metadata": message.metadata,
-            }
-            for message in context.recent_messages
-        ],
-        "relevant_history": context.relevant_history,
-        "user_profile": context.user_profile,
-        "summary": context.summary,
-    }
-
-
-@app.post("/memory/turn")
-async def memory_turn(body: MemoryTurnInput, background_tasks: BackgroundTasks):
-    if _memory is None:
-        raise HTTPException(503, "记忆服务未就绪")
-    if getattr(_memory, "_repo", None) is not None:
-        request_id = body.request_id or str(uuid.uuid4())
-        try:
-            begin = await _memory.begin_turn(body.user_id, body.conv_id, request_id, body.message, body.idempotency_key)
-            receipt = await _memory.finish_turn(body.user_id, body.conv_id, request_id, begin.lease_token, "COMPLETED", body.response)
-            MEMORY_TURNS.inc()
-            return {"status": "stored", "memory_status": "stored", "request_id": request_id, "conv_id": body.conv_id, "turn_seq": receipt.turn_seq, "source_seq": receipt.source_seq}
-        except LeaseError as error:
-            raise HTTPException(409, str(error)) from error
-        except ConflictError as error:
-            raise HTTPException(409, str(error)) from error
-    from memory.conversation_memory import MsgRole
-    await _memory.add_message(body.user_id, body.conv_id, MsgRole.USER, body.message)
-    await _memory.add_message(body.user_id, body.conv_id, MsgRole.ASSISTANT, body.response)
-    background_tasks.add_task(_memory.update_profile, body.user_id, body.conv_id)
-    MEMORY_TURNS.inc()
-    return {"status": "stored", "conv_id": body.conv_id, "memory_status": "stored"}
-
-
 def _memory_error(error: Exception) -> HTTPException:
+    if isinstance(error, HTTPException):
+        return error
     if isinstance(error, (ConflictError, LeaseError)):
         return HTTPException(409, str(error))
     if isinstance(error, CapacityError):
         return HTTPException(409, {"code": "CAPACITY_EXCEEDED", "detail": str(error)})
-    if isinstance(error, RepositoryError):
-        return HTTPException(503, str(error))
-    return HTTPException(500, str(error))
+    if isinstance(error, (sqlite3.Error, OSError, RepositoryError)):
+        logger.warning("Memory storage unavailable: %s", error)
+        return HTTPException(503, "SQLite 记忆主库暂时不可用")
+    if isinstance(error, ContextBudgetError):
+        return HTTPException(413, str(error))
+    if isinstance(error, (ValueError, TypeError)):
+        return HTTPException(422, str(error))
+    if isinstance(error, NotImplementedError):
+        return HTTPException(501, str(error))
+    logger.exception("Unexpected memory error", exc_info=error)
+    return HTTPException(500, "记忆服务内部错误")
+
+
+def _require_memory():
+    if _memory is None or getattr(_memory, "_repo", None) is None:
+        raise HTTPException(503, "SQLite 记忆主库未就绪")
+    return _memory
+
+
+async def _memory_call(method: str, *args, **kwargs):
+    manager = _require_memory()
+    try:
+        return await getattr(manager, method)(*args, **kwargs)
+    except Exception as error:
+        raise _memory_error(error) from error
+
+
+def _receipt_dict(receipt) -> Dict[str, Any]:
+    return {
+        "status": receipt.status, "memory_status": receipt.memory_status,
+        "request_id": receipt.request_id, "conv_id": receipt.conv_id,
+        "turn_seq": receipt.turn_seq, "source_seq": receipt.source_seq,
+        "lease_token": receipt.lease_token, "lease_until": receipt.lease_until,
+        "context_revision": receipt.context_revision, "response": receipt.response,
+        "replayed": getattr(receipt, "replayed", False),
+    }
+
+
+@app.post("/memory/context")
+async def memory_context(body: MemoryContextInput):
+    manager = _require_memory()
+    try:
+        snapshot = await manager.get_snapshot(body.user_id, body.conv_id, body.request_id)
+        return manager.snapshot_to_dict(snapshot)
+    except Exception as error:
+        raise _memory_error(error) from error
+
+
+@app.post("/memory/turn")
+async def memory_turn(body: MemoryTurnInput, background_tasks: BackgroundTasks):
+    """Compatibility writer; errors must never become a successful stored receipt."""
+    request_id = body.request_id or str(uuid.uuid4())
+    begin = await _memory_call("begin_turn", body.user_id, body.conv_id, request_id, body.message, body.idempotency_key)
+    receipt = await _memory_call("finish_turn", body.user_id, begin.conv_id, begin.request_id, begin.lease_token, "COMPLETED", body.response)
+    if not getattr(receipt, "replayed", False):
+        MEMORY_TURNS.inc()
+    return {**_receipt_dict(receipt), "status": "stored", "retry_deduplication": bool(body.request_id or body.idempotency_key)}
 
 
 @app.post("/memory/turn/begin")
 async def memory_turn_begin(body: MemoryBeginInput, idempotency_header: Optional[str] = Header(default=None, alias="Idempotency-Key")):
-    if _memory is None or getattr(_memory, "_repo", None) is None:
-        raise HTTPException(503, "SQLite 记忆主库未就绪")
-    try:
-        receipt = await _memory.begin_turn(body.user_id, body.conv_id, body.request_id, body.message, idempotency_header or body.idempotency_key)
-        return {"status": receipt.status, "request_id": receipt.request_id, "conv_id": receipt.conv_id, "turn_seq": receipt.turn_seq, "source_seq": receipt.source_seq, "lease_token": receipt.lease_token, "lease_until": receipt.lease_until, "context_revision": receipt.context_revision}
-    except Exception as error:
-        raise _memory_error(error) from error
+    if idempotency_header and body.idempotency_key and idempotency_header != body.idempotency_key:
+        raise HTTPException(422, "Idempotency-Key header and body must match")
+    receipt = await _memory_call("begin_turn", body.user_id, body.conv_id, body.request_id, body.message, idempotency_header or body.idempotency_key)
+    return _receipt_dict(receipt)
 
 
 @app.post("/memory/turn/renew")
 async def memory_turn_renew(body: MemoryRenewInput):
-    if _memory is None or getattr(_memory, "_repo", None) is None:
-        raise HTTPException(503, "SQLite 记忆主库未就绪")
-    try:
-        until = await _memory.renew_turn(body.user_id, body.conv_id, body.request_id, body.lease_token)
-        return {"status": "renewed", "lease_until": until}
-    except Exception as error:
-        raise _memory_error(error) from error
+    until = await _memory_call("renew_turn", body.user_id, body.conv_id, body.request_id, body.lease_token)
+    return {"status": "renewed", "lease_until": until}
 
 
 @app.post("/memory/turn/finish")
 async def memory_turn_finish(body: MemoryFinishInput):
-    if _memory is None or getattr(_memory, "_repo", None) is None:
-        raise HTTPException(503, "SQLite 记忆主库未就绪")
-    try:
-        receipt = await _memory.finish_turn(body.user_id, body.conv_id, body.request_id, body.lease_token, body.status, body.response)
-        return {"status": receipt.status, "memory_status": "stored", "request_id": receipt.request_id, "conv_id": receipt.conv_id, "turn_seq": receipt.turn_seq, "source_seq": receipt.source_seq, "response": receipt.response}
-    except Exception as error:
-        raise _memory_error(error) from error
+    receipt = await _memory_call("finish_turn", body.user_id, body.conv_id, body.request_id, body.lease_token, body.status, body.response)
+    if not getattr(receipt, "replayed", False):
+        MEMORY_TURNS.inc()
+    return _receipt_dict(receipt)
 
 
 @app.post("/memory/flush")
 async def memory_flush(body: MemoryFlushInput):
-    """显式 flush 的确定性首期实现：从当前 user 原文写入的事实由管理接口维护。
-
-    返回 PENDING/NOOP 等真实状态，绝不把后台任务排队描述成已记住。
-    """
-    if _memory is None or getattr(_memory, "_repo", None) is None:
-        raise HTTPException(503, "SQLite 记忆主库未就绪")
-    result = await _memory.flush(body.user_id, body.conv_id, body.request_id)
+    """Queue work without claiming that the unimplemented Judge has persisted facts."""
+    result = await _memory_call("flush", body.user_id, body.conv_id, body.request_id)
     return {"request_id": body.request_id or str(uuid.uuid4()), **result}
 
 
 @app.get("/memory/facts")
 async def memory_facts(user_id: str = "anonymous"):
-    if _memory is None or getattr(_memory, "_repo", None) is None:
-        raise HTTPException(503, "SQLite 记忆主库未就绪")
-    return await _memory.list_facts(user_id)
+    return await _memory_call("list_facts", user_id)
 
 
 @app.post("/memory/facts")
 async def memory_add_fact(body: MemoryFactInput):
-    if _memory is None or getattr(_memory, "_repo", None) is None:
-        raise HTTPException(503, "SQLite 记忆主库未就绪")
-    try:
-        return await _memory.add_explicit_fact(body.user_id, body.category, body.content, body.fact_key, body.source_seqs, body.evidence)
-    except Exception as error:
-        raise _memory_error(error) from error
+    _require_memory()
+    raise HTTPException(501, "Fact Judge is not implemented; direct ACTIVE fact writes are disabled")
 
 
 @app.delete("/memory/facts/{fact_id}")
-async def memory_retract_fact(fact_id: str, user_id: str = "anonymous"):
-    if _memory is None or getattr(_memory, "_repo", None) is None:
-        raise HTTPException(503, "SQLite 记忆主库未就绪")
-    try:
-        return await _memory.retract_fact(user_id, fact_id)
-    except Exception as error:
-        raise _memory_error(error) from error
+async def memory_retract_fact(fact_id: str, user_id: str = "anonymous", request_id: Optional[str] = None):
+    return await _memory_call("retract_fact", user_id, fact_id, request_id=request_id)
 
 
 @app.post("/memory/clear")
 async def memory_clear(body: MemoryFlushInput):
-    if _memory is None or getattr(_memory, "_repo", None) is None:
-        raise HTTPException(503, "SQLite 记忆主库未就绪")
-    return await _memory.clear_facts(body.user_id)
+    return await _memory_call("clear_facts", body.user_id, request_id=body.request_id)
 
 
 @app.post("/memory/settings")
 async def memory_settings(body: MemorySettingsInput):
-    if _memory is None or getattr(_memory, "_repo", None) is None:
-        raise HTTPException(503, "SQLite 记忆主库未就绪")
-    return await _memory.set_long_term_enabled(body.user_id, body.enabled)
+    return await _memory_call("set_long_term_enabled", body.user_id, body.enabled)
 
 
 @app.delete("/memory/conversations/{conv_id}")
 async def memory_delete_conversation(conv_id: str, user_id: str = "anonymous"):
-    if _memory is None or getattr(_memory, "_repo", None) is None:
-        raise HTTPException(503, "SQLite 记忆主库未就绪")
-    try:
-        return await _memory.delete_conversation(user_id, conv_id)
-    except Exception as error:
-        raise _memory_error(error) from error
+    return await _memory_call("delete_conversation", user_id, conv_id)
 
 
 @app.delete("/memory/all")
 async def memory_delete_all(user_id: str = "anonymous"):
-    if _memory is None or getattr(_memory, "_repo", None) is None:
-        raise HTTPException(503, "SQLite 记忆主库未就绪")
-    return await _memory.delete_all(user_id)
+    return await _memory_call("delete_all", user_id)
 
 
 async def _knowledge_search(query: str, top_k: int) -> Dict[str, Any]:

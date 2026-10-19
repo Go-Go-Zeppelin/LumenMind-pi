@@ -1,15 +1,8 @@
-"""
-亮点：多轮对话记忆管理
+"""Authoritative SQLite memory protocol and legacy Redis/Chroma adapters.
 
-三级记忆架构，模拟人类记忆机制：
-  1. 工作记忆（Redis）—— 当前会话的最近 N 条消息，毫秒级读写
-  2. 情景记忆（ChromaDB）—— 跨会话的历史对话，按语义相似度检索
-  3. 用户画像（ChromaDB）—— 从对话中提炼的长期偏好和实体
-
-关键设计：
-  - 上下文构建时三级记忆融合，按重要性 + 时效性排序
-  - 工作记忆超过阈值时自动压缩（LLM 摘要），防止 context 爆炸
-  - 所有 Embedding 通过 Anthropic API 生成，无本地模型
+New deployments save turns and durable jobs in SQLite. Model-driven fact
+extraction, rolling summaries and episodic synchronization are separate modules;
+this manager never substitutes keyword matches for an authoritative Judge.
 """
 import hashlib
 import asyncio
@@ -21,11 +14,10 @@ from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-import chromadb
-import redis.asyncio as redis
 from anthropic import AsyncAnthropic
 
 from core.llm_utils import extract_text_content
+from .context_builder import ContextBudget, build_context
 from .models import MemorySnapshot, TurnReceipt
 from .repository import CapacityError, ConflictError, LeaseError, MemoryRepository
 
@@ -76,11 +68,7 @@ class MemoryContext:
 
 
 class MemoryManager:
-    """
-    三级记忆管理器。
-
-    工作记忆存 Redis（TTL 24h），情景记忆和用户画像存 ChromaDB（持久化）。
-    """
+    """SQLite memory facade; optional legacy adapters are initialized without db_path."""
 
     WORKING_MAX   = 20    # 工作记忆最大条数，超过则触发压缩
     COMPRESS_AT   = 15    # 达到此条数时压缩，保留摘要 + 最近 5 条
@@ -107,17 +95,29 @@ class MemoryManager:
         namespace:    str = "lumenmind",
         long_term_enabled: bool = True,
         context_max_chars: int = 24000,
+        lease_seconds: int = 90,
     ):
         kwargs: Dict[str, Any] = {"api_key": api_key}
         if base_url:
             kwargs["base_url"] = base_url
-        self._client = AsyncAnthropic(**kwargs)
+        self._client = None
         self._model  = model
         self.namespace = namespace.strip() or "lumenmind"
         self.long_term_enabled = bool(long_term_enabled)
         self.context_max_chars = max(1000, int(context_max_chars))
-        self._repo = MemoryRepository(db_path, self.namespace) if db_path else None
+        self.lease_seconds = lease_seconds
+        self._repo = MemoryRepository(db_path, self.namespace, long_term_enabled=self.long_term_enabled) if db_path else None
+        self._redis = None
+        self._episodic = None
+        self._profile = None
+        # The authoritative SQLite path requires neither a model client nor
+        # Redis/Chroma packages, network connections or embedding initialization.
+        if self._repo is not None:
+            return
+        import chromadb
+        import redis.asyncio as redis
 
+        self._client = AsyncAnthropic(**kwargs)
         self._redis = redis.from_url(redis_url, decode_responses=True)
 
         # ChromaDB：优先连接独立服务（docker compose 模式），连不上则降级为本地嵌入式
@@ -145,32 +145,40 @@ class MemoryManager:
     # ── SQLite authority / begin-finish protocol ───────────────────────────
 
     async def begin_turn(
-        self, user_id: str, conv_id: str, request_id: str, message: str,
-        idempotency_key: Optional[str] = None, lease_seconds: int = 90,
+        self, user_id: str, conv_id: Optional[str], request_id: str, message: str,
+        idempotency_key: Optional[str] = None, lease_seconds: Optional[int] = None,
     ) -> TurnReceipt:
         """在一个 SQLite 短事务内分配 source_seq/turn_seq 并保存 user 原文。"""
         if self._repo is None:
             # 旧部署仍可使用 Redis 适配器；新部署始终传入 db_path。
             raise RuntimeError("SQLite memory repository is not configured")
         return await asyncio.to_thread(
-            self._repo.begin_turn, self._safe_text(user_id), self._safe_text(conv_id),
-            self._safe_text(request_id), self._safe_text(message), idempotency_key, lease_seconds,
+            self._repo.begin_turn, self._safe_text(user_id), self._safe_text(conv_id) if conv_id else None,
+            self._safe_text(request_id), self._safe_text(message), idempotency_key, lease_seconds or self.lease_seconds,
         )
 
-    async def renew_turn(self, user_id: str, conv_id: str, request_id: str, lease_token: str, lease_seconds: int = 90) -> str:
+    async def renew_turn(self, user_id: str, conv_id: str, request_id: str, lease_token: str, lease_seconds: Optional[int] = None) -> str:
         if self._repo is None:
             raise RuntimeError("SQLite memory repository is not configured")
-        return await asyncio.to_thread(self._repo.renew_turn, self._safe_text(user_id), self._safe_text(conv_id), self._safe_text(request_id), lease_token, lease_seconds)
+        return await asyncio.to_thread(self._repo.renew_turn, self._safe_text(user_id), self._safe_text(conv_id), self._safe_text(request_id), lease_token, lease_seconds or self.lease_seconds)
 
     async def finish_turn(self, user_id: str, conv_id: str, request_id: str, lease_token: str, status: str = "COMPLETED", response: Optional[str] = None) -> TurnReceipt:
         if self._repo is None:
             raise RuntimeError("SQLite memory repository is not configured")
         return await asyncio.to_thread(self._repo.finish_turn, self._safe_text(user_id), self._safe_text(conv_id), self._safe_text(request_id), lease_token, status, response)
 
-    async def get_snapshot(self, user_id: str, conv_id: str) -> MemorySnapshot:
+    async def get_snapshot(self, user_id: str, conv_id: str, request_id: Optional[str] = None) -> MemorySnapshot:
         if self._repo is None:
             raise RuntimeError("SQLite memory repository is not configured")
-        return await asyncio.to_thread(self._repo.get_snapshot, self._safe_text(user_id), self._safe_text(conv_id))
+        snapshot = await asyncio.to_thread(
+            self._repo.get_snapshot, self._safe_text(user_id), self._safe_text(conv_id),
+            exclude_request_id=request_id,
+        )
+        if self._safe_text(user_id) in {"anonymous", "demo", ""} or not self.long_term_enabled:
+            snapshot.facts = []
+            snapshot.episodes = []
+            snapshot.routing_context = ""
+        return snapshot
 
     async def list_facts(self, user_id: str) -> Dict[str, Any]:
         if self._safe_text(user_id) in {"anonymous", "demo", ""}:
@@ -179,29 +187,26 @@ class MemoryManager:
             return {"facts": [], "revision": 0, "enabled": False}
         return await asyncio.to_thread(self._repo.list_facts, self._safe_text(user_id))
 
-    async def add_explicit_fact(self, user_id: str, category: str, content: str, fact_key: Optional[str] = None, source_seqs: Optional[List[int]] = None, evidence: str = "") -> Dict[str, Any]:
-        if self._safe_text(user_id) in {"anonymous", "demo", ""}:
-            return {"status": "DISABLED", "mutated": False}
-        if self._repo is None:
-            raise RuntimeError("SQLite memory repository is not configured")
-        return await asyncio.to_thread(self._repo.add_fact, self._safe_text(user_id), category, self._safe_text(content), fact_key, source_seqs, evidence)
+    async def add_explicit_fact(self, *args, **kwargs) -> Dict[str, Any]:
+        """Active facts may only be committed by a validated source-backed Judge."""
+        raise NotImplementedError("Fact Judge is not implemented; direct ACTIVE fact writes are disabled")
 
-    async def retract_fact(self, user_id: str, fact_id: str) -> Dict[str, Any]:
+    async def retract_fact(self, user_id: str, fact_id: str, request_id: Optional[str] = None) -> Dict[str, Any]:
         if self._safe_text(user_id) in {"anonymous", "demo", ""}:
             return {"status": "DISABLED", "mutated": False}
         if self._repo is None:
             raise RuntimeError("SQLite memory repository is not configured")
-        return await asyncio.to_thread(self._repo.retract_fact, self._safe_text(user_id), self._safe_text(fact_id))
+        return await asyncio.to_thread(self._repo.retract_fact, self._safe_text(user_id), self._safe_text(fact_id), request_id=request_id)
 
-    async def clear_facts(self, user_id: str) -> Dict[str, Any]:
+    async def clear_facts(self, user_id: str, request_id: Optional[str] = None) -> Dict[str, Any]:
         if self._safe_text(user_id) in {"anonymous", "demo", ""}:
             return {"status": "DISABLED", "mutated": False}
         if self._repo is None:
             raise RuntimeError("SQLite memory repository is not configured")
-        return await asyncio.to_thread(self._repo.clear_facts, self._safe_text(user_id))
+        return await asyncio.to_thread(self._repo.clear_facts, self._safe_text(user_id), request_id=request_id)
 
     async def flush(self, user_id: str, conv_id: str = "", request_id: Optional[str] = None) -> Dict[str, Any]:
-        if self._safe_text(user_id) in {"anonymous", "demo", ""}:
+        if self._safe_text(user_id) in {"anonymous", "demo", ""} or not self.long_term_enabled:
             return {"status": "DISABLED", "covered_source_seq": 0, "revision": 0, "applied": 0, "mutated": False}
         if self._repo is None:
             return {"status": "UNAVAILABLE", "covered_source_seq": 0, "revision": 0, "applied": 0, "mutated": False}
@@ -210,7 +215,8 @@ class MemoryManager:
     async def set_long_term_enabled(self, user_id: str, enabled: bool) -> Dict[str, Any]:
         if self._repo is None:
             raise RuntimeError("SQLite memory repository is not configured")
-        self.long_term_enabled = bool(enabled)
+        if enabled and not self.long_term_enabled:
+            return {"status": "DISABLED", "enabled": False, "mutated": False}
         return await asyncio.to_thread(self._repo.set_long_term_enabled, self._safe_text(user_id), bool(enabled))
 
     async def delete_conversation(self, user_id: str, conv_id: str) -> Dict[str, Any]:
@@ -223,36 +229,29 @@ class MemoryManager:
             raise RuntimeError("SQLite memory repository is not configured")
         return await asyncio.to_thread(self._repo.delete_all, self._safe_text(user_id))
 
-    @staticmethod
-    def snapshot_to_dict(snapshot: MemorySnapshot) -> Dict[str, Any]:
-        """将一致性快照渲染为 v2 HTTP 结构；prompt_text 只作兼容字段。"""
-        blocks = {"facts": snapshot.facts, "episodes": snapshot.episodes, "summary": snapshot.summary}
-        parts: List[str] = []
-        if snapshot.summary:
-            parts.append(f"[会话摘要]\n{json.dumps(snapshot.summary, ensure_ascii=False) if isinstance(snapshot.summary, dict) else snapshot.summary}")
-        if snapshot.facts:
-            parts.append("[长期事实]\n" + "\n".join(f"- {item['content']}" for item in snapshot.facts))
-        if snapshot.episodes:
-            parts.append("[情景片段]\n" + "\n".join(f"- {item.get('summary', '')}" for item in snapshot.episodes))
-        if snapshot.recent_messages:
-            parts.append("[近期原文]\n" + "\n".join(f"{m['role']}: {m['content']}" for m in snapshot.recent_messages))
-        prompt = "\n\n".join(parts)
-        if len(prompt) > 24000:
-            prompt = prompt[-24000:]
-            snapshot.context_truncated = True
-        return {
+    def snapshot_to_dict(self, snapshot: MemorySnapshot) -> Dict[str, Any]:
+        """Render one filtered snapshot with the shared whole-turn budgeter."""
+        raw = {
             "schema_version": 2,
             "status": snapshot.status,
-            "snapshot": {"fact_revision": snapshot.fact_revision, "context_revision": snapshot.context_revision, "erase_epoch": snapshot.erase_epoch},
-            "blocks": blocks,
-            "routing_context": snapshot.routing_context[:2000],
+            "snapshot": {
+                "fact_revision": snapshot.fact_revision,
+                "context_revision": snapshot.context_revision,
+                "erase_epoch": snapshot.erase_epoch,
+                "summary_generation": snapshot.summary_generation,
+            },
+            "blocks": {"facts": snapshot.facts, "episodes": snapshot.episodes, "summary": snapshot.summary},
+            "routing_context": snapshot.routing_context,
             "recent_messages": snapshot.recent_messages,
-            "prompt_text": prompt,
-            "relevant_history": [item.get("summary", "") for item in snapshot.episodes],
-            "user_profile": {"preferences": [f["content"] for f in snapshot.facts if f.get("category") == "preference"], "entities": {}},
-            "summary": snapshot.summary,
-            "budget": {"rendered_chars": len(prompt), "context_truncated": snapshot.context_truncated},
         }
+        result = build_context(raw, ContextBudget(total_chars=self.context_max_chars))
+        result.update({"schema_version": 2, "status": snapshot.status, "snapshot": raw["snapshot"]})
+        result["relevant_history"] = [item.get("summary", "") for item in result["blocks"]["episodes"]]
+        result["user_profile"] = {
+            "preferences": [item["content"] for item in result["blocks"]["facts"] if item.get("category") == "preference"],
+            "entities": {},
+        }
+        return result
 
     # ── 写入 ──────────────────────────────────────────────────────────────────
 
@@ -665,8 +664,11 @@ class MemoryManager:
             return {}
 
     async def close(self) -> None:
-        """关闭异步 Redis 连接。"""
-        await self._redis.aclose()
+        """Close the configured authority and any optional legacy clients."""
+        if self._redis is not None:
+            await self._redis.aclose()
+        if self._client is not None:
+            await self._client.close()
         if self._repo is not None:
             self._repo.close()
 

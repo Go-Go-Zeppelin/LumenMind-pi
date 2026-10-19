@@ -50,6 +50,7 @@ export const config = {
   embeddingIntentTopK: Math.max(1, Math.floor(numberFromEnv("PI_EMBEDDING_INTENT_TOP_K", 3))),
   embeddingIntentThreshold: Math.max(0, Math.min(1, numberFromEnv("PI_EMBEDDING_INTENT_THRESHOLD", 0.55))),
   infrastructureUrl: (process.env.PYTHON_INFRA_URL ?? "http://localhost:8000").replace(/\/$/, ""),
+  memoryRenewIntervalMs: 20_000,
   infrastructureTimeoutMs: numberFromEnv("PYTHON_INFRA_TIMEOUT_MS", 10_000),
   skillsDir: path.isAbsolute(configuredSkillsDir) ? configuredSkillsDir : path.resolve(projectRoot, configuredSkillsDir),
   skillsMaxPromptChars: numberFromEnv("LUMENMIND_SKILLS_MAX_PROMPT_CHARS", 5000),
