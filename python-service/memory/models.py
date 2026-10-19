@@ -27,6 +27,7 @@ class TurnReceipt:
     memory_status: str = "stored"
     response: Optional[str] = None
     lease_until: Optional[str] = None
+    replayed: bool = False
 
 
 @dataclass

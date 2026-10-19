@@ -13,6 +13,7 @@ import re
 import secrets
 import sqlite3
 import threading
+import uuid
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -42,11 +43,12 @@ class CapacityError(RepositoryError):
 
 
 class MemoryRepository:
-    SCHEMA_VERSION = 1
+    SCHEMA_VERSION = 2
 
-    def __init__(self, path: str = "data/memory/memory.sqlite3", namespace: str = "lumenmind"):
+    def __init__(self, path: str = "data/memory/memory.sqlite3", namespace: str = "lumenmind", long_term_enabled: bool = True):
         self.path = str(Path(path).expanduser())
         self.namespace = namespace.strip() or "lumenmind"
+        self.long_term_enabled = bool(long_term_enabled)
         self._lock = threading.RLock()
         Path(self.path).parent.mkdir(parents=True, exist_ok=True)
         self.initialize()
@@ -65,94 +67,34 @@ class MemoryRepository:
 
     def initialize(self) -> None:
         with self._lock, self._connection() as db:
-            db.executescript(
-                """
-                CREATE TABLE IF NOT EXISTS memory_schema_version(version INTEGER NOT NULL);
-                INSERT INTO memory_schema_version(version)
-                    SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM memory_schema_version);
-                CREATE TABLE IF NOT EXISTS memory_scope(
-                    namespace TEXT NOT NULL, user_id TEXT NOT NULL,
-                    next_source_seq INTEGER NOT NULL DEFAULT 1,
-                    fact_revision INTEGER NOT NULL DEFAULT 0,
-                    extract_cursor INTEGER NOT NULL DEFAULT 0,
-                    erase_epoch INTEGER NOT NULL DEFAULT 0,
-                    context_floor_source_seq INTEGER NOT NULL DEFAULT 0,
-                    long_term_enabled INTEGER NOT NULL DEFAULT 1,
-                    migration_state TEXT NOT NULL DEFAULT 'READY',
-                    created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
-                    PRIMARY KEY(namespace,user_id)
-                );
-                CREATE TABLE IF NOT EXISTS memory_session(
-                    namespace TEXT NOT NULL, user_id TEXT NOT NULL, conv_id TEXT NOT NULL,
-                    next_turn_seq INTEGER NOT NULL DEFAULT 1,
-                    context_revision INTEGER NOT NULL DEFAULT 0,
-                    summary_generation INTEGER NOT NULL DEFAULT 0,
-                    current_summary TEXT NOT NULL DEFAULT '',
-                    lease_owner TEXT, lease_token TEXT, lease_until TEXT,
-                    deleted_at TEXT,
-                    PRIMARY KEY(namespace,user_id,conv_id),
-                    FOREIGN KEY(namespace,user_id) REFERENCES memory_scope(namespace,user_id)
-                );
-                CREATE TABLE IF NOT EXISTS memory_turn(
-                    namespace TEXT NOT NULL, user_id TEXT NOT NULL, request_id TEXT NOT NULL,
-                    idempotency_key TEXT, conv_id TEXT NOT NULL, turn_seq INTEGER NOT NULL,
-                    source_seq INTEGER NOT NULL, user_text TEXT NOT NULL, assistant_text TEXT,
-                    status TEXT NOT NULL, memory_eligible INTEGER NOT NULL DEFAULT 1,
-                    payload_hash TEXT NOT NULL, lease_token TEXT, received_at TEXT NOT NULL,
-                    finished_at TEXT,
-                    PRIMARY KEY(namespace,user_id,request_id),
-                    UNIQUE(namespace,user_id,conv_id,turn_seq),
-                    UNIQUE(namespace,user_id,source_seq)
-                );
-                CREATE UNIQUE INDEX IF NOT EXISTS memory_turn_idempotency
-                    ON memory_turn(namespace,user_id,idempotency_key)
-                    WHERE idempotency_key IS NOT NULL;
-                CREATE TABLE IF NOT EXISTS memory_summary(
-                    namespace TEXT NOT NULL, user_id TEXT NOT NULL, conv_id TEXT NOT NULL,
-                    generation INTEGER NOT NULL, covered_through_turn INTEGER NOT NULL,
-                    base_context_revision INTEGER NOT NULL, erase_epoch INTEGER NOT NULL,
-                    content TEXT NOT NULL, before_chars INTEGER NOT NULL DEFAULT 0,
-                    after_chars INTEGER NOT NULL DEFAULT 0, prompt_version TEXT,
-                    created_at TEXT NOT NULL,
-                    PRIMARY KEY(namespace,user_id,conv_id,generation)
-                );
-                CREATE TABLE IF NOT EXISTS memory_fact(
-                    namespace TEXT NOT NULL, user_id TEXT NOT NULL, fact_id TEXT NOT NULL,
-                    category TEXT NOT NULL, fact_key TEXT, content TEXT NOT NULL,
-                    normalized_hash TEXT NOT NULL, origin TEXT NOT NULL DEFAULT 'BACKGROUND',
-                    status TEXT NOT NULL DEFAULT 'CANDIDATE', provenance_state TEXT NOT NULL DEFAULT 'AVAILABLE',
-                    valid_from TEXT NOT NULL, invalid_at TEXT, superseded_by TEXT,
-                    revision INTEGER NOT NULL, erase_epoch INTEGER NOT NULL,
-                    PRIMARY KEY(namespace,user_id,fact_id)
-                );
-                CREATE UNIQUE INDEX IF NOT EXISTS memory_fact_active_key
-                    ON memory_fact(namespace,user_id,fact_key) WHERE status='ACTIVE' AND fact_key IS NOT NULL;
-                CREATE UNIQUE INDEX IF NOT EXISTS memory_fact_active_hash
-                    ON memory_fact(namespace,user_id,normalized_hash) WHERE status='ACTIVE';
-                CREATE TABLE IF NOT EXISTS memory_fact_source(
-                    namespace TEXT NOT NULL, user_id TEXT NOT NULL, fact_id TEXT NOT NULL,
-                    source_seq INTEGER NOT NULL, evidence_excerpt TEXT NOT NULL,
-                    PRIMARY KEY(namespace,user_id,fact_id,source_seq),
-                    FOREIGN KEY(namespace,user_id,fact_id) REFERENCES memory_fact(namespace,user_id,fact_id)
-                );
-                CREATE TABLE IF NOT EXISTS memory_episode(
-                    namespace TEXT NOT NULL, user_id TEXT NOT NULL, episode_id TEXT NOT NULL,
-                    conv_id TEXT NOT NULL, from_turn INTEGER NOT NULL, to_turn INTEGER NOT NULL,
-                    summary TEXT NOT NULL, source_generation INTEGER NOT NULL,
-                    invalid_at TEXT, erase_epoch INTEGER NOT NULL, index_version INTEGER NOT NULL DEFAULT 1,
-                    PRIMARY KEY(namespace,user_id,episode_id)
-                );
-                CREATE TABLE IF NOT EXISTS memory_job(
-                    namespace TEXT NOT NULL, user_id TEXT NOT NULL, job_id TEXT NOT NULL,
-                    kind TEXT NOT NULL, dedup_key TEXT NOT NULL, from_seq INTEGER,
-                    to_seq INTEGER, expected_revision INTEGER, expected_cursor INTEGER,
-                    expected_epoch INTEGER, claim_token TEXT, lease_until TEXT,
-                    status TEXT NOT NULL DEFAULT 'READY', attempt_count INTEGER NOT NULL DEFAULT 0,
-                    next_run_at TEXT NOT NULL, result TEXT, error_code TEXT, created_at TEXT NOT NULL,
-                    UNIQUE(namespace,user_id,dedup_key), PRIMARY KEY(namespace,user_id,job_id)
-                );
-                """
-            )
+            db.execute("BEGIN IMMEDIATE")
+            try:
+                db.execute("CREATE TABLE IF NOT EXISTS memory_schema_version(version INTEGER NOT NULL)")
+                row = db.execute("SELECT MAX(version) FROM memory_schema_version").fetchone()
+                current = int(row[0] or 0)
+                if current > self.SCHEMA_VERSION:
+                    raise RepositoryError("数据库版本高于当前服务，请使用兼容版本")
+                for migration in sorted(Path(__file__).with_name("migrations").glob("[0-9]*_*.sql")):
+                    version = int(migration.name.split("_", 1)[0])
+                    if version <= current:
+                        continue
+                    # execute() preserves the single transaction; executescript() commits early.
+                    statement = ""
+                    for line in migration.read_text(encoding="utf-8").splitlines(True):
+                        statement += line
+                        if sqlite3.complete_statement(statement):
+                            db.execute(statement)
+                            statement = ""
+                    db.execute("DELETE FROM memory_schema_version")
+                    db.execute("INSERT INTO memory_schema_version VALUES(?)", (version,))
+                db.commit()
+            except Exception:
+                db.rollback()
+                raise
+
+    @staticmethod
+    def _db_now(db: sqlite3.Connection, seconds: int = 0) -> str:
+        return str(db.execute("SELECT strftime('%Y-%m-%dT%H:%M:%f+00:00','now',?)", (f"{seconds:+d} seconds",)).fetchone()[0])
 
     def _ensure_scope(self, db: sqlite3.Connection, user_id: str) -> None:
         now = utc_now()
@@ -180,111 +122,111 @@ class MemoryRepository:
     def _payload_hash(conv_id: str, message: str) -> str:
         return hashlib.sha256(f"{conv_id}\0{message}".encode("utf-8")).hexdigest()
 
-    def begin_turn(
-        self, user_id: str, conv_id: str, request_id: str, message: str,
-        idempotency_key: Optional[str] = None, lease_seconds: int = 90,
-    ) -> TurnReceipt:
-        if not user_id.strip() or not conv_id.strip() or not request_id.strip():
-            raise ValueError("user_id、conv_id、request_id 不能为空")
-        payload_hash = self._payload_hash(conv_id, message)
-        now = datetime.now(timezone.utc)
-        until = (now + timedelta(seconds=max(1, lease_seconds))).isoformat()
+    def _receipt(self, db: sqlite3.Connection, row: sqlite3.Row, replayed: bool = False) -> TurnReceipt:
+        session = db.execute("SELECT context_revision,lease_until,lease_owner FROM memory_session WHERE namespace=? AND user_id=? AND conv_id=?", (self.namespace,row["user_id"],row["conv_id"])).fetchone()
+        revision = row["terminal_context_revision"]
+        return TurnReceipt(row["request_id"], self.namespace, row["user_id"], row["conv_id"], row["turn_seq"], row["source_seq"], row["status"], row["lease_token"] or "", int(revision if revision is not None else session["context_revision"] if session else 0), response=row["assistant_text"], lease_until=session["lease_until"] if session and session["lease_owner"] == row["request_id"] else None, replayed=replayed)
+
+    def _enqueue_turn(self, db: sqlite3.Connection, row: sqlite3.Row) -> None:
+        if not row["memory_eligible"] or row["deleted_at"]:
+            return
+        scope = db.execute("SELECT * FROM memory_scope WHERE namespace=? AND user_id=?", (self.namespace,row["user_id"])).fetchone()
+        if not self.long_term_enabled or not scope["long_term_enabled"] or row["source_seq"] <= scope["extract_cursor"]:
+            return
+        now = self._db_now(db)
+        db.execute("""INSERT OR IGNORE INTO memory_job(namespace,user_id,job_id,kind,dedup_key,from_seq,to_seq,expected_revision,expected_cursor,expected_epoch,next_run_at,created_at)
+                      VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""", (self.namespace,row["user_id"],secrets.token_hex(16),"fact_extract",f"fact:{row['source_seq']}:{scope['erase_epoch']}",row["source_seq"],row["source_seq"],scope["fact_revision"],scope["extract_cursor"],scope["erase_epoch"],now,now))
+
+    def _interrupt_expired(self, db: sqlite3.Connection, user_id: Optional[str] = None, conv_id: Optional[str] = None) -> int:
+        query = """SELECT t.* FROM memory_turn t JOIN memory_session s ON s.namespace=t.namespace AND s.user_id=t.user_id AND s.conv_id=t.conv_id
+                   WHERE t.namespace=? AND t.status='RECEIVED' AND (s.lease_until IS NULL OR julianday(s.lease_until)<=julianday('now') OR s.lease_owner!=t.request_id OR s.lease_token!=t.lease_token)"""
+        params: List[Any] = [self.namespace]
+        if user_id is not None:
+            query += " AND t.user_id=?"; params.append(user_id)
+        if conv_id is not None:
+            query += " AND t.conv_id=?"; params.append(conv_id)
+        rows = db.execute(query,params).fetchall()
+        for row in rows:
+            db.execute("UPDATE memory_session SET context_revision=context_revision+1,lease_owner=CASE WHEN lease_owner=? THEN NULL ELSE lease_owner END,lease_token=CASE WHEN lease_owner=? THEN NULL ELSE lease_token END,lease_until=CASE WHEN lease_owner=? THEN NULL ELSE lease_until END WHERE namespace=? AND user_id=? AND conv_id=?", (row["request_id"],row["request_id"],row["request_id"],self.namespace,row["user_id"],row["conv_id"]))
+            db.execute("UPDATE memory_turn SET status='INTERRUPTED',finished_at=?,terminal_context_revision=(SELECT context_revision FROM memory_session WHERE namespace=? AND user_id=? AND conv_id=?) WHERE namespace=? AND user_id=? AND request_id=?", (self._db_now(db),self.namespace,row["user_id"],row["conv_id"],self.namespace,row["user_id"],row["request_id"]))
+            self._enqueue_turn(db,row)
+        return len(rows)
+
+    def begin_turn(self, user_id: str, conv_id: Optional[str], request_id: str, message: str,
+                   idempotency_key: Optional[str] = None, lease_seconds: int = 90) -> TurnReceipt:
+        if not user_id.strip() or not request_id.strip() or (conv_id is not None and not conv_id.strip()):
+            raise ValueError("user_id、request_id 及显式 conv_id 不能为空")
         with self._lock, self._connection() as db:
             db.execute("BEGIN IMMEDIATE")
-            existing = db.execute(
-                "SELECT * FROM memory_turn WHERE namespace=? AND user_id=? AND request_id=?",
-                (self.namespace, user_id, request_id),
-            ).fetchone()
+            existing = db.execute("SELECT * FROM memory_turn WHERE namespace=? AND user_id=? AND request_id=?", (self.namespace,user_id,request_id)).fetchone()
+            idem = db.execute("SELECT * FROM memory_turn WHERE namespace=? AND user_id=? AND idempotency_key=?", (self.namespace,user_id,idempotency_key)).fetchone() if idempotency_key else None
+            if existing and idem and existing["request_id"] != idem["request_id"]:
+                raise ConflictError("request_id 和 Idempotency-Key 指向不同请求")
+            existing = existing or idem
             if existing:
-                if existing["payload_hash"] != payload_hash or existing["conv_id"] != conv_id:
-                    db.rollback()
-                    raise ConflictError("request_id 已用于不同会话或正文")
-                session = self._ensure_session(db, user_id, conv_id)
-                db.commit()
-                return TurnReceipt(request_id, self.namespace, user_id, conv_id, existing["turn_seq"], existing["source_seq"], existing["status"], existing["lease_token"] or "", session["context_revision"], lease_until=session["lease_until"])
-            if idempotency_key:
-                idem = db.execute(
-                    "SELECT * FROM memory_turn WHERE namespace=? AND user_id=? AND idempotency_key=?",
-                    (self.namespace, user_id, idempotency_key),
-                ).fetchone()
-                if idem:
-                    if idem["payload_hash"] != payload_hash or idem["conv_id"] != conv_id:
-                        db.rollback()
-                        raise ConflictError("Idempotency-Key 已用于不同会话或正文")
-                    db.commit()
-                    session = self._ensure_session(db, user_id, conv_id)
-                    return TurnReceipt(idem["request_id"], self.namespace, user_id, conv_id, idem["turn_seq"], idem["source_seq"], idem["status"], idem["lease_token"] or "", int(session["context_revision"]), lease_until=session["lease_until"])
-            session = self._ensure_session(db, user_id, conv_id)
+                mapped_conv = existing["conv_id"]
+                if (conv_id is not None and conv_id != mapped_conv) or existing["payload_hash"] != self._payload_hash(mapped_conv,message):
+                    raise ConflictError("幂等键已用于不同会话或正文")
+                self._interrupt_expired(db,user_id,mapped_conv)
+                existing = db.execute("SELECT * FROM memory_turn WHERE namespace=? AND user_id=? AND request_id=?", (self.namespace,user_id,existing["request_id"])).fetchone()
+                receipt = self._receipt(db,existing,True); db.commit(); return receipt
+            conv_id = conv_id or str(uuid.uuid4())
+            session = self._ensure_session(db,user_id,conv_id)
+            scope = db.execute("SELECT * FROM memory_scope WHERE namespace=? AND user_id=?", (self.namespace,user_id)).fetchone()
             if session["deleted_at"]:
-                db.rollback()
                 raise ConflictError("会话已删除，请使用新的 conv_id")
-            if session["lease_until"] and session["lease_until"] > now.isoformat():
-                db.rollback()
+            if scope["migration_state"] == "IMPORTING":
+                raise ConflictError("记忆迁移中，暂时不能创建新轮次")
+            active = db.execute("SELECT 1 FROM memory_session WHERE namespace=? AND user_id=? AND conv_id=? AND julianday(lease_until)>julianday('now')", (self.namespace,user_id,conv_id)).fetchone()
+            if active:
                 raise LeaseError("会话正在由另一个请求处理")
-            scope = db.execute(
-                "SELECT next_source_seq FROM memory_scope WHERE namespace=? AND user_id=?",
-                (self.namespace, user_id),
-            ).fetchone()
-            source_seq = int(scope[0])
-            turn_seq = int(session["next_turn_seq"])
-            token = secrets.token_urlsafe(24)
-            db.execute(
-                """INSERT INTO memory_turn(namespace,user_id,request_id,idempotency_key,conv_id,turn_seq,source_seq,user_text,status,payload_hash,lease_token,received_at)
-                   VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""",
-                (self.namespace, user_id, request_id, idempotency_key, conv_id, turn_seq, source_seq, message, "RECEIVED", payload_hash, token, now.isoformat()),
-            )
-            db.execute("UPDATE memory_scope SET next_source_seq=next_source_seq+1,updated_at=? WHERE namespace=? AND user_id=?", (now.isoformat(), self.namespace, user_id))
-            db.execute("UPDATE memory_session SET next_turn_seq=next_turn_seq+1,lease_owner=?,lease_token=?,lease_until=? WHERE namespace=? AND user_id=? AND conv_id=?", (request_id, token, until, self.namespace, user_id, conv_id))
-            db.commit()
-            return TurnReceipt(request_id, self.namespace, user_id, conv_id, turn_seq, source_seq, "RECEIVED", token, int(session["context_revision"]), lease_until=until)
+            self._interrupt_expired(db,user_id,conv_id)
+            session = db.execute("SELECT * FROM memory_session WHERE namespace=? AND user_id=? AND conv_id=?", (self.namespace,user_id,conv_id)).fetchone()
+            token = f"{session['lease_generation']+1}:{secrets.token_urlsafe(24)}"
+            now = self._db_now(db); until = self._db_now(db,max(1,lease_seconds))
+            eligible = int(self.long_term_enabled and bool(scope["long_term_enabled"]) and user_id.strip().casefold() not in {"anonymous","demo"})
+            db.execute("""INSERT INTO memory_turn(namespace,user_id,request_id,idempotency_key,conv_id,turn_seq,source_seq,user_text,status,payload_hash,lease_token,received_at,memory_eligible)
+                          VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)""", (self.namespace,user_id,request_id,idempotency_key,conv_id,session["next_turn_seq"],scope["next_source_seq"],message,"RECEIVED",self._payload_hash(conv_id,message),token,now,eligible))
+            db.execute("UPDATE memory_scope SET next_source_seq=next_source_seq+1,updated_at=? WHERE namespace=? AND user_id=?", (now,self.namespace,user_id))
+            db.execute("UPDATE memory_session SET next_turn_seq=next_turn_seq+1,lease_generation=lease_generation+1,lease_owner=?,lease_token=?,lease_until=? WHERE namespace=? AND user_id=? AND conv_id=?", (request_id,token,until,self.namespace,user_id,conv_id))
+            row = db.execute("SELECT * FROM memory_turn WHERE namespace=? AND user_id=? AND request_id=?", (self.namespace,user_id,request_id)).fetchone()
+            receipt = self._receipt(db,row); db.commit(); return receipt
+
+    def _valid_lease(self, db: sqlite3.Connection, user_id: str, conv_id: str, request_id: str, lease_token: str) -> sqlite3.Row:
+        row = db.execute("""SELECT s.* FROM memory_session s JOIN memory_turn t ON t.namespace=s.namespace AND t.user_id=s.user_id AND t.conv_id=s.conv_id
+                            WHERE s.namespace=? AND s.user_id=? AND s.conv_id=? AND s.lease_owner=? AND s.lease_token=? AND t.request_id=? AND t.lease_token=? AND t.status='RECEIVED' AND s.deleted_at IS NULL AND t.deleted_at IS NULL AND julianday(s.lease_until)>julianday('now')""", (self.namespace,user_id,conv_id,request_id,lease_token,request_id,lease_token)).fetchone()
+        if not row:
+            raise LeaseError("会话租约无效或已过期")
+        return row
 
     def renew_turn(self, user_id: str, conv_id: str, request_id: str, lease_token: str, lease_seconds: int = 90) -> str:
-        until = (datetime.now(timezone.utc) + timedelta(seconds=max(1, lease_seconds))).isoformat()
         with self._lock, self._connection() as db:
             db.execute("BEGIN IMMEDIATE")
-            row = db.execute("SELECT lease_token,lease_until FROM memory_session WHERE namespace=? AND user_id=? AND conv_id=?", (self.namespace,user_id,conv_id)).fetchone()
-            if not row or row["lease_token"] != lease_token or row["lease_until"] <= utc_now():
-                db.rollback(); raise LeaseError("会话租约无效或已过期")
-            turn = db.execute("SELECT status FROM memory_turn WHERE namespace=? AND user_id=? AND request_id=?", (self.namespace,user_id,request_id)).fetchone()
-            if not turn or turn["status"] != "RECEIVED":
-                db.rollback(); raise LeaseError("轮次已结束")
-            db.execute("UPDATE memory_session SET lease_until=? WHERE namespace=? AND user_id=? AND conv_id=?", (until,self.namespace,user_id,conv_id)); db.commit(); return until
+            self._valid_lease(db,user_id,conv_id,request_id,lease_token)
+            until = self._db_now(db,max(1,lease_seconds))
+            db.execute("UPDATE memory_session SET lease_until=? WHERE namespace=? AND user_id=? AND conv_id=?", (until,self.namespace,user_id,conv_id))
+            db.commit(); return until
 
     def finish_turn(self, user_id: str, conv_id: str, request_id: str, lease_token: str, status: str = "COMPLETED", response: Optional[str] = None) -> TurnReceipt:
-        if status not in {"COMPLETED", "FAILED", "CANCELLED", "INTERRUPTED"}:
+        if status not in {"COMPLETED","FAILED","CANCELLED","INTERRUPTED"}:
             raise ValueError("非法轮次终态")
         with self._lock, self._connection() as db:
             db.execute("BEGIN IMMEDIATE")
             row = db.execute("SELECT * FROM memory_turn WHERE namespace=? AND user_id=? AND request_id=?", (self.namespace,user_id,request_id)).fetchone()
             if not row or row["conv_id"] != conv_id:
-                db.rollback(); raise ConflictError("未找到请求轮次")
+                raise ConflictError("未找到请求轮次")
             if row["status"] != "RECEIVED":
-                db.commit(); return TurnReceipt(request_id,self.namespace,user_id,conv_id,row["turn_seq"],row["source_seq"],row["status"],row["lease_token"] or "",0,response=row["assistant_text"])
-            session = db.execute("SELECT * FROM memory_session WHERE namespace=? AND user_id=? AND conv_id=?", (self.namespace,user_id,conv_id)).fetchone()
-            if not session or session["lease_token"] != lease_token or session["lease_until"] <= utc_now():
-                db.rollback(); raise LeaseError("会话租约无效或已过期")
-            finished = utc_now()
-            db.execute("UPDATE memory_turn SET status=?,assistant_text=?,finished_at=? WHERE namespace=? AND user_id=? AND request_id=?", (status,response,self._now_or_none(finished),self.namespace,user_id,request_id))
+                receipt = self._receipt(db,row,True); db.commit(); return receipt
+            session = self._valid_lease(db,user_id,conv_id,request_id,lease_token)
+            db.execute("UPDATE memory_turn SET status=?,assistant_text=?,finished_at=?,terminal_context_revision=? WHERE namespace=? AND user_id=? AND request_id=?", (status,response if status == "COMPLETED" else None,self._db_now(db),session["context_revision"]+1,self.namespace,user_id,request_id))
             db.execute("UPDATE memory_session SET context_revision=context_revision+1,lease_owner=NULL,lease_token=NULL,lease_until=NULL WHERE namespace=? AND user_id=? AND conv_id=?", (self.namespace,user_id,conv_id))
-            scope = db.execute("SELECT fact_revision,extract_cursor,erase_epoch FROM memory_scope WHERE namespace=? AND user_id=?", (self.namespace,user_id)).fetchone()
-            db.execute(
-                """INSERT OR IGNORE INTO memory_job(
-                    namespace,user_id,job_id,kind,dedup_key,from_seq,to_seq,
-                    expected_revision,expected_cursor,expected_epoch,next_run_at,created_at
-                ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""",
-                (self.namespace, user_id, secrets.token_hex(16), "fact_extract",
-                 f"fact:{self.namespace}:{user_id}:{row['source_seq']}", row["source_seq"], row["source_seq"],
-                 scope["fact_revision"], scope["extract_cursor"], scope["erase_epoch"], utc_now(), utc_now()),
-            )
-            db.commit()
-            return TurnReceipt(request_id,self.namespace,user_id,conv_id,row["turn_seq"],row["source_seq"],status,row["lease_token"] or "",int(session["context_revision"])+1,response=response)
+            self._enqueue_turn(db,row)
+            row = db.execute("SELECT * FROM memory_turn WHERE namespace=? AND user_id=? AND request_id=?", (self.namespace,user_id,request_id)).fetchone()
+            receipt = self._receipt(db,row); db.commit(); return receipt
 
-    @staticmethod
-    def _now_or_none(value: str) -> str:
-        return value
-
-    def get_snapshot(self, user_id: str, conv_id: str, max_recent: int = 20, max_facts: int = 50) -> MemorySnapshot:
+    def get_snapshot(self, user_id: str, conv_id: str, max_recent: int = 20, max_facts: int = 50, exclude_request_id: Optional[str] = None) -> MemorySnapshot:
         with self._connection() as db:
+            db.execute("BEGIN")
             scope = db.execute("SELECT * FROM memory_scope WHERE namespace=? AND user_id=?", (self.namespace,user_id)).fetchone()
             session = db.execute("SELECT * FROM memory_session WHERE namespace=? AND user_id=? AND conv_id=?", (self.namespace,user_id,conv_id)).fetchone()
             if not scope or not session or session["deleted_at"]:
@@ -292,15 +234,15 @@ class MemoryRepository:
             floor = int(scope["context_floor_source_seq"])
             # RECEIVED 轮次属于当前尚未完成的请求：原文已经持久化，但不能
             # 再注入 prompt，避免 agent.prompt() 看到当前 user 两次。
-            turns = db.execute("SELECT * FROM memory_turn WHERE namespace=? AND user_id=? AND conv_id=? AND source_seq>? AND status='COMPLETED' ORDER BY turn_seq DESC LIMIT ?", (self.namespace,user_id,conv_id,floor,max_recent)).fetchall()
+            turns = db.execute("SELECT * FROM memory_turn WHERE namespace=? AND user_id=? AND conv_id=? AND source_seq>? AND status IN ('COMPLETED','FAILED','CANCELLED','INTERRUPTED') AND deleted_at IS NULL AND (? IS NULL OR request_id!=?) ORDER BY turn_seq DESC LIMIT ?", (self.namespace,user_id,conv_id,floor,exclude_request_id,exclude_request_id,max_recent)).fetchall()
             messages: List[Dict[str, Any]] = []
             for turn in reversed(turns):
                 messages.append({"role":"user","content":turn["user_text"],"source_seq":turn["source_seq"],"turn_seq":turn["turn_seq"],"request_id":turn["request_id"]})
-                if turn["assistant_text"] is not None:
+                if turn["status"] == "COMPLETED" and turn["assistant_text"] is not None:
                     messages.append({"role":"assistant","content":turn["assistant_text"],"turn_seq":turn["turn_seq"]})
-            facts = [] if not scope["long_term_enabled"] else [dict(x) for x in db.execute("SELECT fact_id,category,fact_key,content,revision FROM memory_fact WHERE namespace=? AND user_id=? AND status='ACTIVE' AND erase_epoch<=? ORDER BY revision DESC LIMIT ?", (self.namespace,user_id,scope["erase_epoch"],max_facts)).fetchall()]
+            facts = [] if not self.long_term_enabled or not scope["long_term_enabled"] or user_id.strip().casefold() in {"anonymous","demo"} else [dict(x) for x in db.execute("SELECT fact_id,category,fact_key,content,revision FROM memory_fact WHERE namespace=? AND user_id=? AND status='ACTIVE' AND erase_epoch<=? ORDER BY revision DESC LIMIT ?", (self.namespace,user_id,scope["erase_epoch"],max_facts)).fetchall()]
             summary: Dict[str, Any] | str = {}
-            if session["current_summary"]:
+            if session["current_summary"] and not floor:
                 try: summary = json.loads(session["current_summary"])
                 except json.JSONDecodeError: summary = session["current_summary"]
             routing = ""
@@ -311,9 +253,11 @@ class MemoryRepository:
     def list_facts(self, user_id: str) -> Dict[str, Any]:
         with self._connection() as db:
             scope = db.execute("SELECT fact_revision,erase_epoch,long_term_enabled FROM memory_scope WHERE namespace=? AND user_id=?", (self.namespace,user_id)).fetchone()
-            if not scope: return {"facts": [], "revision": 0, "enabled": True}
+            if not scope: return {"facts": [], "revision": 0, "enabled": self.long_term_enabled}
+            if user_id.strip().casefold() in {"anonymous", "demo"}:
+                return {"facts": [], "revision": scope["fact_revision"], "enabled": False}
             facts = [dict(x) for x in db.execute("SELECT fact_id,category,fact_key,content,origin,status,provenance_state,revision FROM memory_fact WHERE namespace=? AND user_id=? AND status='ACTIVE' ORDER BY revision", (self.namespace,user_id)).fetchall()]
-            return {"facts": facts, "revision": scope["fact_revision"], "erase_epoch": scope["erase_epoch"], "enabled": bool(scope["long_term_enabled"])}
+            return {"facts": facts, "revision": scope["fact_revision"], "erase_epoch": scope["erase_epoch"], "enabled": self.long_term_enabled and bool(scope["long_term_enabled"])}
 
     def add_fact(self, user_id: str, category: str, content: str, fact_key: Optional[str] = None, source_seqs: Optional[List[int]] = None, evidence: str = "", origin: str = "EXPLICIT") -> Dict[str, Any]:
         if category not in {"preference", "stable_context"}: raise ValueError("不支持的事实类别")
@@ -335,109 +279,152 @@ class MemoryRepository:
             return {"status":"WRITTEN","fact_id":fact_id,"revision":rev,"mutated":True}
 
     def flush_user_messages(self, user_id: str, max_messages: int = 20) -> Dict[str, Any]:
-        """处理明确的“记住”偏好；游标与事实在同一事务推进。
+        """Do not interpret keywords as confirmed facts or advance an unjudged cursor.
 
-        这是首期无模型环境的保守 judge：无法识别的 user 素材结算为 NOOP，
-        助手消息永远不进入素材集合。生产环境可用同一事务协议替换 Judge。
+        The model Judge is not wired yet. Recovery can enqueue terminal user input,
+        but explicit callers must receive an honest pending outcome.
         """
+        with self._connection() as db:
+            db.execute("BEGIN")
+            scope = db.execute("SELECT * FROM memory_scope WHERE namespace=? AND user_id=?", (self.namespace,user_id)).fetchone()
+            enabled = self.long_term_enabled and bool(scope and scope["long_term_enabled"]) and user_id.strip().casefold() not in {"anonymous","demo"}
+            return {"status":"PENDING" if enabled else "DISABLED", "covered_source_seq":scope["extract_cursor"] if scope else 0,"revision":scope["fact_revision"] if scope else 0,"applied":0,"mutated":False,"queued":False}
+
+    def _operation_replay(self, db: sqlite3.Connection, user_id: str, request_id: Optional[str], operation: str) -> Optional[Dict[str,Any]]:
+        if not request_id:
+            return None
+        row = db.execute("SELECT kind,result FROM memory_job WHERE namespace=? AND user_id=? AND dedup_key=?", (self.namespace,user_id,f"operation:{request_id}")).fetchone()
+        if not row:
+            return None
+        if row["kind"] != operation:
+            raise ConflictError("记忆操作 request_id 已用于另一操作")
+        return json.loads(row["result"])
+
+    def _audit_operation(self, db: sqlite3.Connection, user_id: str, request_id: Optional[str], operation: str, result: Dict[str,Any]) -> None:
+        now = self._db_now(db)
+        db.execute("INSERT INTO memory_job(namespace,user_id,job_id,kind,dedup_key,status,next_run_at,result,created_at) VALUES(?,?,?,?,?,'WRITTEN',?,?,?)", (self.namespace,user_id,secrets.token_hex(16),operation,f"operation:{request_id or secrets.token_hex(16)}",now,json.dumps(result),now))
+
+    def _erase_barrier(self, db: sqlite3.Connection, user_id: str, reason: str) -> None:
+        """Fence stale workers and every subsequent context read in one commit."""
+        now = self._db_now(db)
+        db.execute("UPDATE memory_scope SET erase_epoch=erase_epoch+1,context_floor_source_seq=next_source_seq-1,extract_cursor=MAX(extract_cursor,next_source_seq-1),updated_at=? WHERE namespace=? AND user_id=?", (now,self.namespace,user_id))
+        db.execute("UPDATE memory_session SET current_summary='',summary_generation=0,context_revision=context_revision+1 WHERE namespace=? AND user_id=?", (self.namespace,user_id))
+        db.execute("UPDATE memory_episode SET invalid_at=? WHERE namespace=? AND user_id=? AND invalid_at IS NULL", (now,self.namespace,user_id))
+        db.execute("UPDATE memory_job SET status='CANCELLED',claim_token=NULL,lease_until=NULL,error_code=? WHERE namespace=? AND user_id=? AND status IN ('READY','PROCESSING','RETRY_WAIT','QUARANTINED') AND kind!='index_delete'", (reason,self.namespace,user_id))
+
+    def retract_fact(self, user_id: str, fact_id: str, request_id: Optional[str] = None) -> Dict[str, Any]:
         with self._lock, self._connection() as db:
             db.execute("BEGIN IMMEDIATE")
-            scope = db.execute("SELECT * FROM memory_scope WHERE namespace=? AND user_id=?", (self.namespace,user_id)).fetchone()
-            if not scope or not scope["long_term_enabled"]:
-                db.rollback(); return {"status":"DISABLED","covered_source_seq":scope["extract_cursor"] if scope else 0,"revision":scope["fact_revision"] if scope else 0,"applied":0,"mutated":False}
-            rows = db.execute("SELECT source_seq,user_text FROM memory_turn WHERE namespace=? AND user_id=? AND source_seq>? AND memory_eligible=1 ORDER BY source_seq LIMIT ?", (self.namespace,user_id,scope["extract_cursor"],max(1,max_messages))).fetchall()
-            if not rows:
-                db.commit(); return {"status":"NOOP","covered_source_seq":scope["extract_cursor"],"revision":scope["fact_revision"],"applied":0,"mutated":False}
-            revision = scope["fact_revision"]; applied=0; covered = scope["extract_cursor"]
-            for row in rows:
-                covered = max(covered, row["source_seq"]); text = row["user_text"]
-                match = re.search(r"(?:记住|记下来|以后|今后).*?(邮件|电话|短信|简短|详细)", text, re.I)
-                if not match: continue
-                token = match.group(1)
-                if token in {"邮件","电话","短信"}: key, category, content = "contact.channel", "preference", f"优先通过{token}联系"
-                else: key, category, content = "response.detail", "preference", f"解释时尽量{token}"
-                digest = hashlib.sha256(" ".join(content.split()).casefold().encode()).hexdigest()
-                exists = db.execute("SELECT fact_id FROM memory_fact WHERE namespace=? AND user_id=? AND status='ACTIVE' AND (normalized_hash=? OR fact_key=?)", (self.namespace,user_id,digest,key)).fetchone()
-                if exists: continue
-                count = db.execute("SELECT COUNT(*) FROM memory_fact WHERE namespace=? AND user_id=? AND status='ACTIVE'", (self.namespace,user_id)).fetchone()[0]
-                if count >= 50: db.rollback(); return {"status":"CAPACITY_EXCEEDED","covered_source_seq":scope["extract_cursor"],"revision":scope["fact_revision"],"applied":0,"mutated":False}
-                revision += 1; fact_id=f"fact-{secrets.token_hex(10)}"
-                db.execute("INSERT INTO memory_fact(namespace,user_id,fact_id,category,fact_key,content,normalized_hash,origin,status,valid_from,revision,erase_epoch) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)", (self.namespace,user_id,fact_id,category,key,content,digest,"EXPLICIT","ACTIVE",utc_now(),revision,scope["erase_epoch"]))
-                db.execute("INSERT INTO memory_fact_source VALUES(?,?,?,?,?)", (self.namespace,user_id,fact_id,row["source_seq"],text[:500])); applied += 1
-            db.execute("UPDATE memory_scope SET extract_cursor=?,fact_revision=?,updated_at=? WHERE namespace=? AND user_id=?", (covered,revision,utc_now(),self.namespace,user_id)); db.commit()
-            return {"status":"WRITTEN" if applied else "NOOP","covered_source_seq":covered,"revision":revision,"applied":applied,"mutated":bool(applied)}
+            operation = f"retract:{fact_id}"
+            replay = self._operation_replay(db,user_id,request_id,operation)
+            if replay is not None:
+                db.commit(); return replay
+            row = db.execute("SELECT status FROM memory_fact WHERE namespace=? AND user_id=? AND fact_id=?", (self.namespace,user_id,fact_id)).fetchone()
+            if not row:
+                raise ConflictError("事实不存在")
+            mutated = row["status"] == "ACTIVE"
+            db.execute("UPDATE memory_scope SET fact_revision=fact_revision+? WHERE namespace=? AND user_id=?", (int(mutated),self.namespace,user_id))
+            rev = db.execute("SELECT fact_revision FROM memory_scope WHERE namespace=? AND user_id=?", (self.namespace,user_id)).fetchone()[0]
+            db.execute("UPDATE memory_fact SET status='INVALID',invalid_at=COALESCE(invalid_at,?),revision=? WHERE namespace=? AND user_id=? AND fact_id=?", (self._db_now(db),rev,self.namespace,user_id,fact_id))
+            self._erase_barrier(db,user_id,"FACT_RETRACTED")
+            result = {"status":"WRITTEN","revision":rev,"mutated":mutated}
+            self._audit_operation(db,user_id,request_id,operation,result)
+            db.commit(); return result
 
-    def retract_fact(self, user_id: str, fact_id: str) -> Dict[str, Any]:
+    def clear_facts(self, user_id: str, request_id: Optional[str] = None) -> Dict[str, Any]:
         with self._lock, self._connection() as db:
-            db.execute("BEGIN IMMEDIATE"); row = db.execute("SELECT status FROM memory_fact WHERE namespace=? AND user_id=? AND fact_id=?", (self.namespace,user_id,fact_id)).fetchone()
-            if not row: db.rollback(); raise ConflictError("事实不存在")
-            scope = db.execute("SELECT fact_revision,erase_epoch,next_source_seq FROM memory_scope WHERE namespace=? AND user_id=?", (self.namespace,user_id)).fetchone(); rev=scope["fact_revision"]+1
-            db.execute("UPDATE memory_fact SET status='INVALID',invalid_at=?,revision=? WHERE namespace=? AND user_id=? AND fact_id=?", (utc_now(),rev,self.namespace,user_id,fact_id))
-            db.execute("UPDATE memory_episode SET invalid_at=? WHERE namespace=? AND user_id=? AND invalid_at IS NULL", (utc_now(),self.namespace,user_id))
-            db.execute("UPDATE memory_scope SET fact_revision=?,erase_epoch=erase_epoch+1,context_floor_source_seq=next_source_seq-1,extract_cursor=MAX(extract_cursor,next_source_seq-1),updated_at=? WHERE namespace=? AND user_id=?", (rev,utc_now(),self.namespace,user_id)); db.commit()
-            return {"status":"WRITTEN","revision":rev,"mutated":row["status"]=="ACTIVE"}
-
-    def clear_facts(self, user_id: str) -> Dict[str, Any]:
-        with self._lock, self._connection() as db:
-            db.execute("BEGIN IMMEDIATE"); self._ensure_scope(db,user_id); scope=db.execute("SELECT fact_revision,next_source_seq FROM memory_scope WHERE namespace=? AND user_id=?", (self.namespace,user_id)).fetchone(); rev=scope["fact_revision"]+1
-            db.execute("UPDATE memory_fact SET status='INVALID',invalid_at=?,revision=? WHERE namespace=? AND user_id=? AND status='ACTIVE'", (utc_now(),rev,self.namespace,user_id)); db.execute("UPDATE memory_episode SET invalid_at=? WHERE namespace=? AND user_id=? AND invalid_at IS NULL", (utc_now(),self.namespace,user_id)); db.execute("UPDATE memory_scope SET fact_revision=?,erase_epoch=erase_epoch+1,context_floor_source_seq=next_source_seq-1,extract_cursor=MAX(extract_cursor,next_source_seq-1),updated_at=? WHERE namespace=? AND user_id=?", (rev,utc_now(),self.namespace,user_id)); db.commit(); return {"status":"WRITTEN","revision":rev,"mutated":True}
+            db.execute("BEGIN IMMEDIATE"); self._ensure_scope(db,user_id)
+            replay = self._operation_replay(db,user_id,request_id,"clear")
+            if replay is not None:
+                db.commit(); return replay
+            db.execute("UPDATE memory_scope SET fact_revision=fact_revision+1 WHERE namespace=? AND user_id=?", (self.namespace,user_id))
+            rev = db.execute("SELECT fact_revision FROM memory_scope WHERE namespace=? AND user_id=?", (self.namespace,user_id)).fetchone()[0]
+            changed = db.execute("UPDATE memory_fact SET status='INVALID',invalid_at=?,revision=? WHERE namespace=? AND user_id=? AND status='ACTIVE'", (self._db_now(db),rev,self.namespace,user_id)).rowcount
+            self._erase_barrier(db,user_id,"FACTS_CLEARED")
+            result = {"status":"WRITTEN","revision":rev,"mutated":bool(changed)}
+            self._audit_operation(db,user_id,request_id,"clear",result)
+            db.commit(); return result
 
     def set_long_term_enabled(self, user_id: str, enabled: bool) -> Dict[str, Any]:
         with self._lock, self._connection() as db:
-            db.execute("BEGIN IMMEDIATE"); self._ensure_scope(db,user_id); db.execute("UPDATE memory_scope SET long_term_enabled=?,erase_epoch=erase_epoch+?,updated_at=? WHERE namespace=? AND user_id=?", (1 if enabled else 0,0 if enabled else 1,utc_now(),self.namespace,user_id))
-            if not enabled:
-                db.execute("UPDATE memory_job SET status='CANCELLED',error_code='LONG_TERM_DISABLED' WHERE namespace=? AND user_id=? AND status IN ('READY','PROCESSING','RETRY_WAIT')", (self.namespace,user_id))
+            db.execute("BEGIN IMMEDIATE"); self._ensure_scope(db,user_id)
+            previous = db.execute("SELECT long_term_enabled FROM memory_scope WHERE namespace=? AND user_id=?", (self.namespace,user_id)).fetchone()[0]
+            if not enabled and previous:
+                # Keep conversation context, but fence all prior extraction material.
+                db.execute("UPDATE memory_scope SET erase_epoch=erase_epoch+1,extract_cursor=next_source_seq-1 WHERE namespace=? AND user_id=?", (self.namespace,user_id))
+                db.execute("UPDATE memory_turn SET memory_eligible=0 WHERE namespace=? AND user_id=? AND source_seq>(SELECT extract_cursor FROM memory_scope WHERE namespace=? AND user_id=?)", (self.namespace,user_id,self.namespace,user_id))
+                db.execute("UPDATE memory_job SET status='CANCELLED',claim_token=NULL,lease_until=NULL,error_code='LONG_TERM_DISABLED' WHERE namespace=? AND user_id=? AND kind IN ('fact_extract','index_upsert') AND status IN ('READY','PROCESSING','RETRY_WAIT','QUARANTINED')", (self.namespace,user_id))
+            db.execute("UPDATE memory_scope SET long_term_enabled=?,updated_at=? WHERE namespace=? AND user_id=?", (int(enabled),self._db_now(db),self.namespace,user_id))
             db.commit(); return {"status":"WRITTEN","enabled":enabled}
 
     def delete_conversation(self, user_id: str, conv_id: str) -> Dict[str, Any]:
         with self._lock, self._connection() as db:
-            db.execute("BEGIN IMMEDIATE"); row=db.execute("SELECT 1 FROM memory_session WHERE namespace=? AND user_id=? AND conv_id=?", (self.namespace,user_id,conv_id)).fetchone();
-            if not row: db.rollback(); raise ConflictError("会话不存在")
-            db.execute("UPDATE memory_session SET deleted_at=?,lease_owner=NULL,lease_token=NULL,lease_until=NULL,context_revision=context_revision+1 WHERE namespace=? AND user_id=? AND conv_id=?", (utc_now(),self.namespace,user_id,conv_id)); db.execute("DELETE FROM memory_summary WHERE namespace=? AND user_id=? AND conv_id=?", (self.namespace,user_id,conv_id)); db.execute("UPDATE memory_scope SET erase_epoch=erase_epoch+1,updated_at=? WHERE namespace=? AND user_id=?", (utc_now(),self.namespace,user_id)); db.commit(); return {"status":"WRITTEN","conv_id":conv_id}
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute("SELECT deleted_at FROM memory_session WHERE namespace=? AND user_id=? AND conv_id=?", (self.namespace,user_id,conv_id)).fetchone()
+            if not row:
+                raise ConflictError("会话不存在")
+            if row["deleted_at"]:
+                db.commit(); return {"status":"WRITTEN","conv_id":conv_id}
+            now = self._db_now(db)
+            db.execute("UPDATE memory_fact SET provenance_state='SOURCE_DELETED' WHERE namespace=? AND user_id=? AND fact_id IN (SELECT fs.fact_id FROM memory_fact_source fs JOIN memory_turn t ON fs.namespace=t.namespace AND fs.user_id=t.user_id AND fs.source_seq=t.source_seq WHERE t.namespace=? AND t.user_id=? AND t.conv_id=?)", (self.namespace,user_id,self.namespace,user_id,conv_id))
+            db.execute("DELETE FROM memory_fact_source WHERE namespace=? AND user_id=? AND source_seq IN (SELECT source_seq FROM memory_turn WHERE namespace=? AND user_id=? AND conv_id=?)", (self.namespace,user_id,self.namespace,user_id,conv_id))
+            db.execute("UPDATE memory_turn SET user_text='',assistant_text=NULL,status='DELETED',memory_eligible=0,deleted_at=?,finished_at=COALESCE(finished_at,?) WHERE namespace=? AND user_id=? AND conv_id=?", (now,now,self.namespace,user_id,conv_id))
+            db.execute("DELETE FROM memory_summary WHERE namespace=? AND user_id=? AND conv_id=?", (self.namespace,user_id,conv_id))
+            db.execute("DELETE FROM memory_episode WHERE namespace=? AND user_id=? AND conv_id=?", (self.namespace,user_id,conv_id))
+            self._erase_barrier(db,user_id,"CONVERSATION_DELETED")
+            db.execute("UPDATE memory_session SET deleted_at=?,lease_owner=NULL,lease_token=NULL,lease_until=NULL WHERE namespace=? AND user_id=? AND conv_id=?", (now,self.namespace,user_id,conv_id))
+            db.execute("UPDATE memory_job SET result=NULL WHERE namespace=? AND user_id=? AND status='CANCELLED'", (self.namespace,user_id))
+            db.commit(); return {"status":"WRITTEN","conv_id":conv_id}
 
     def delete_all(self, user_id: str) -> Dict[str, Any]:
         with self._lock, self._connection() as db:
-            db.execute("BEGIN IMMEDIATE")
-            for table in ("memory_fact_source","memory_fact","memory_episode","memory_summary","memory_turn","memory_job","memory_session"): db.execute(f"DELETE FROM {table} WHERE namespace=? AND user_id=?", (self.namespace,user_id))
-            db.execute("DELETE FROM memory_scope WHERE namespace=? AND user_id=?", (self.namespace,user_id)); db.commit(); return {"status":"WRITTEN","user_id":user_id,"index_cleanup":"PENDING"}
+            db.execute("BEGIN IMMEDIATE"); self._ensure_scope(db,user_id)
+            self._erase_barrier(db,user_id,"ALL_MEMORY_DELETED")
+            now = self._db_now(db)
+            for table in ("memory_fact_source","memory_fact","memory_episode","memory_summary","memory_job"):
+                db.execute(f"DELETE FROM {table} WHERE namespace=? AND user_id=?", (self.namespace,user_id))
+            # Retain only body-free request/session tombstones to fence old retries.
+            db.execute("UPDATE memory_turn SET user_text='',assistant_text=NULL,status='DELETED',memory_eligible=0,deleted_at=?,finished_at=COALESCE(finished_at,?) WHERE namespace=? AND user_id=?", (now,now,self.namespace,user_id))
+            db.execute("UPDATE memory_session SET deleted_at=?,current_summary='',lease_owner=NULL,lease_token=NULL,lease_until=NULL WHERE namespace=? AND user_id=?", (now,self.namespace,user_id))
+            db.execute("UPDATE memory_scope SET fact_revision=fact_revision+1,migration_state='ERASED' WHERE namespace=? AND user_id=?", (self.namespace,user_id))
+            # Cleanup is honest durable work even before the vector worker is enabled.
+            epoch = db.execute("SELECT erase_epoch FROM memory_scope WHERE namespace=? AND user_id=?", (self.namespace,user_id)).fetchone()[0]
+            db.execute("INSERT INTO memory_job(namespace,user_id,job_id,kind,dedup_key,expected_epoch,next_run_at,created_at) VALUES(?,?,?,?,?,?,?,?)", (self.namespace,user_id,secrets.token_hex(16),'index_delete',f'delete-all:{epoch}',epoch,now,now))
+            db.commit(); return {"status":"WRITTEN","user_id":user_id,"index_cleanup":"PENDING"}
 
     def claim_due_jobs(self, limit: int = 10, lease_seconds: int = 180) -> List[Dict[str, Any]]:
         """领取到期任务；PROCESSING 超时后可被新 token 重新领取。"""
-        now = utc_now(); until = (datetime.now(timezone.utc) + timedelta(seconds=max(1, lease_seconds))).isoformat(); claimed: List[Dict[str, Any]] = []
+        claimed: List[Dict[str, Any]] = []
         with self._lock, self._connection() as db:
             db.execute("BEGIN IMMEDIATE")
+            now = self._db_now(db); until = self._db_now(db,max(1,lease_seconds))
             rows = db.execute("SELECT * FROM memory_job WHERE namespace=? AND status IN ('READY','RETRY_WAIT','PROCESSING') AND next_run_at<=? AND (status!='PROCESSING' OR lease_until IS NULL OR lease_until<=?) ORDER BY created_at LIMIT ?", (self.namespace,now,now,max(1,limit))).fetchall()
             for row in rows:
                 token = secrets.token_urlsafe(18)
                 db.execute("UPDATE memory_job SET status='PROCESSING',claim_token=?,lease_until=?,attempt_count=attempt_count+1 WHERE namespace=? AND user_id=? AND job_id=?", (token,until,self.namespace,row["user_id"],row["job_id"]))
-                item = dict(row); item.update({"claim_token": token, "attempt_count": row["attempt_count"] + 1, "status": "PROCESSING"}); claimed.append(item)
+                item = dict(row); item.update({"claim_token": token, "lease_until": until, "attempt_count": row["attempt_count"] + 1, "status": "PROCESSING"}); claimed.append(item)
             db.commit()
         return claimed
 
     def recover_interrupted_turns(self) -> int:
-        """启动/轮询时把租约已过期且没有 assistant 的轮次标为 INTERRUPTED。"""
-        now = utc_now(); changed = 0
+        """Recover user input without inventing an assistant success."""
         with self._lock, self._connection() as db:
             db.execute("BEGIN IMMEDIATE")
-            rows = db.execute("SELECT t.namespace,t.user_id,t.request_id,t.source_seq,s.conv_id FROM memory_turn t JOIN memory_session s ON s.namespace=t.namespace AND s.user_id=t.user_id AND s.conv_id=t.conv_id WHERE t.namespace=? AND t.status='RECEIVED' AND (s.lease_until IS NULL OR s.lease_until<=?)", (self.namespace,now)).fetchall()
-            for row in rows:
-                changed += db.execute("UPDATE memory_turn SET status='INTERRUPTED',finished_at=? WHERE namespace=? AND user_id=? AND request_id=? AND status='RECEIVED'", (now,row["namespace"],row["user_id"],row["request_id"])).rowcount
-                db.execute("UPDATE memory_session SET lease_owner=NULL,lease_token=NULL,lease_until=NULL,context_revision=context_revision+1 WHERE namespace=? AND user_id=? AND conv_id=?", (self.namespace,row["user_id"],row["conv_id"]))
-            db.commit()
-        return changed
+            changed = self._interrupt_expired(db)
+            db.commit(); return changed
 
     def complete_job(self, job_id: str, claim_token: str, result: Optional[Dict[str, Any]] = None) -> bool:
         with self._lock, self._connection() as db:
             db.execute("BEGIN IMMEDIATE")
-            changed = db.execute("UPDATE memory_job SET status='WRITTEN',result=?,lease_until=NULL WHERE namespace=? AND job_id=? AND claim_token=? AND status='PROCESSING'", (json.dumps(result or {}, ensure_ascii=False),self.namespace,job_id,claim_token)).rowcount
+            changed = db.execute("UPDATE memory_job SET status='WRITTEN',result=?,lease_until=NULL WHERE namespace=? AND job_id=? AND claim_token=? AND status='PROCESSING' AND julianday(lease_until)>julianday('now')", (json.dumps(result or {}, ensure_ascii=False),self.namespace,job_id,claim_token)).rowcount
             db.commit(); return changed == 1
 
     def retry_job(self, job_id: str, claim_token: str, error: str, max_attempts: int = 3) -> str:
         with self._lock, self._connection() as db:
-            db.execute("BEGIN IMMEDIATE"); row=db.execute("SELECT attempt_count FROM memory_job WHERE namespace=? AND job_id=? AND claim_token=? AND status='PROCESSING'", (self.namespace,job_id,claim_token)).fetchone()
+            db.execute("BEGIN IMMEDIATE"); row=db.execute("SELECT attempt_count FROM memory_job WHERE namespace=? AND job_id=? AND claim_token=? AND status='PROCESSING' AND julianday(lease_until)>julianday('now')", (self.namespace,job_id,claim_token)).fetchone()
             if not row: db.rollback(); return "STALE"
             status = "QUARANTINED" if row["attempt_count"] >= max_attempts else "RETRY_WAIT"
-            db.execute("UPDATE memory_job SET status=?,error_code=?,next_run_at=?,lease_until=NULL WHERE namespace=? AND job_id=? AND claim_token=?", (status,error[:200],utc_now(),self.namespace,job_id,claim_token)); db.commit(); return status
+            db.execute("UPDATE memory_job SET status=?,error_code=?,next_run_at=?,lease_until=NULL WHERE namespace=? AND job_id=? AND claim_token=?", (status,error[:200],self._db_now(db,min(300,2 ** row["attempt_count"])),self.namespace,job_id,claim_token)); db.commit(); return status
 
     def close(self) -> None:
         return None
