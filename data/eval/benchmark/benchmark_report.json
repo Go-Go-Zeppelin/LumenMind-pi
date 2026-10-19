@@ -1,0 +1,4634 @@
+{
+  "timestamp": "2026-09-07T13:14:00.274674",
+  "methodology": {
+    "intent_dataset": "500 template-generated synthetic cases; not human reviewed",
+    "intent_chain": "POST /intent with use_llm=true (rule -> embedding candidates -> LLM)",
+    "rag_retrieval": "60 manually derived questions over six built-in knowledge documents",
+    "rag_answer": "30 questions; deterministic required-fact coverage + LLM-as-Judge + business rules",
+    "warning": "Do not present these results as production performance or a human Gold benchmark."
+  },
+  "intent": {
+    "total": 500,
+    "correct": 425,
+    "accuracy": 0.85,
+    "macro_f1": 0.8492,
+    "per_class": {
+      "account": {
+        "precision": 0.95,
+        "recall": 0.7308,
+        "f1": 0.8261,
+        "support": 26
+      },
+      "account_security": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 26
+      },
+      "billing": {
+        "precision": 0.6842,
+        "recall": 1.0,
+        "f1": 0.8125,
+        "support": 26
+      },
+      "complaint": {
+        "precision": 1.0,
+        "recall": 0.8889,
+        "f1": 0.9412,
+        "support": 27
+      },
+      "escalation": {
+        "precision": 1.0,
+        "recall": 0.4074,
+        "f1": 0.5789,
+        "support": 27
+      },
+      "feedback": {
+        "precision": 1.0,
+        "recall": 0.8462,
+        "f1": 0.9167,
+        "support": 26
+      },
+      "greeting": {
+        "precision": 1.0,
+        "recall": 0.8148,
+        "f1": 0.898,
+        "support": 27
+      },
+      "human_handoff": {
+        "precision": 0.5778,
+        "recall": 1.0,
+        "f1": 0.7324,
+        "support": 26
+      },
+      "invoice": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 26
+      },
+      "logistics": {
+        "precision": 0.8125,
+        "recall": 1.0,
+        "f1": 0.8966,
+        "support": 26
+      },
+      "order_status": {
+        "precision": 0.8846,
+        "recall": 0.8846,
+        "f1": 0.8846,
+        "support": 26
+      },
+      "other": {
+        "precision": 0.84,
+        "recall": 0.8077,
+        "f1": 0.8235,
+        "support": 26
+      },
+      "payment_issue": {
+        "precision": 1.0,
+        "recall": 0.5385,
+        "f1": 0.7,
+        "support": 26
+      },
+      "query": {
+        "precision": 0.6207,
+        "recall": 0.6667,
+        "f1": 0.6429,
+        "support": 27
+      },
+      "refund": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 26
+      },
+      "request": {
+        "precision": 0.6286,
+        "recall": 0.8148,
+        "f1": 0.7097,
+        "support": 27
+      },
+      "technical": {
+        "precision": 0.92,
+        "recall": 0.8519,
+        "f1": 0.8846,
+        "support": 27
+      },
+      "technical_crash": {
+        "precision": 0.8889,
+        "recall": 0.9231,
+        "f1": 0.9057,
+        "support": 26
+      },
+      "technical_login": {
+        "precision": 0.963,
+        "recall": 1.0,
+        "f1": 0.9811,
+        "support": 26
+      }
+    },
+    "confusion_matrix": {
+      "account": {
+        "account": 19,
+        "request": 3,
+        "query": 4
+      },
+      "account_security": {
+        "account_security": 26
+      },
+      "billing": {
+        "billing": 26
+      },
+      "complaint": {
+        "complaint": 24,
+        "human_handoff": 3
+      },
+      "escalation": {
+        "human_handoff": 16,
+        "escalation": 11
+      },
+      "feedback": {
+        "feedback": 22,
+        "query": 1,
+        "request": 3
+      },
+      "greeting": {
+        "greeting": 22,
+        "other": 4,
+        "query": 1
+      },
+      "human_handoff": {
+        "human_handoff": 26
+      },
+      "invoice": {
+        "invoice": 26
+      },
+      "logistics": {
+        "logistics": 26
+      },
+      "order_status": {
+        "order_status": 23,
+        "logistics": 3
+      },
+      "other": {
+        "other": 21,
+        "query": 4,
+        "request": 1
+      },
+      "payment_issue": {
+        "billing": 12,
+        "payment_issue": 14
+      },
+      "query": {
+        "logistics": 3,
+        "request": 6,
+        "query": 18
+      },
+      "refund": {
+        "refund": 26
+      },
+      "request": {
+        "request": 22,
+        "query": 1,
+        "account": 1,
+        "order_status": 3
+      },
+      "technical": {
+        "technical": 23,
+        "technical_crash": 3,
+        "technical_login": 1
+      },
+      "technical_crash": {
+        "technical_crash": 24,
+        "technical": 2
+      },
+      "technical_login": {
+        "technical_login": 26
+      }
+    },
+    "duration_s": 45.89,
+    "latency_ms_mean": 23779.17,
+    "latency_ms_p95": 43516.1,
+    "errors": 0,
+    "source_usage": {
+      "pattern_high_confidence": 145,
+      "embedding_available": 353,
+      "llm_used": 355
+    },
+    "failures": [
+      {
+        "id": "intent-05-002",
+        "message": "最近遇到一个情况，让你们负责人跟进。",
+        "expected_intent": "escalation",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "human_handoff",
+        "confidence": 0.9,
+        "source_scores": {
+          "llm": 0.9,
+          "embedding": 0.6231,
+          "pattern": 0.3
+        },
+        "reasoning": "用户明确要求负责人跟进，属于转人工场景",
+        "latency_ms": 704.5,
+        "error": null
+      },
+      {
+        "id": "intent-14-005",
+        "message": "最近遇到一个情况，扣款金额和订单不一致，谢谢。",
+        "expected_intent": "payment_issue",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "billing",
+        "confidence": 0.91,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.91
+        },
+        "reasoning": "规则命中: 扣款",
+        "latency_ms": 1696.6,
+        "error": null
+      },
+      {
+        "id": "intent-14-020",
+        "message": "钱扣了但订单仍未支付。",
+        "expected_intent": "payment_issue",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "billing",
+        "confidence": 0.91,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.91
+        },
+        "reasoning": "规则命中: 支付",
+        "latency_ms": 1701.6,
+        "error": null
+      },
+      {
+        "id": "intent-17-015",
+        "message": "请问，服务端出现内部错误，该怎么处理？",
+        "expected_intent": "technical_crash",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "technical",
+        "confidence": 0.9,
+        "source_scores": {
+          "llm": 0.9,
+          "embedding": 0.4128,
+          "pattern": 0.74
+        },
+        "reasoning": "用户报告服务端内部错误，属于技术问题",
+        "latency_ms": 2505.9,
+        "error": null
+      },
+      {
+        "id": "intent-01-025",
+        "message": "请问，标准配送需要多长时间。",
+        "expected_intent": "query",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "logistics",
+        "confidence": 0.94,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.94
+        },
+        "reasoning": "规则命中: 配送",
+        "latency_ms": 3115.8,
+        "error": null
+      },
+      {
+        "id": "intent-19-020",
+        "message": "想咨询一下，我遇到了一个说不清的情况，谢谢。",
+        "expected_intent": "other",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "query",
+        "confidence": 0.6,
+        "source_scores": {
+          "llm": 0.6,
+          "embedding": 0.71,
+          "pattern": 0.3
+        },
+        "reasoning": "用户表示想咨询，但描述模糊，倾向咨询类意图",
+        "latency_ms": 4078.8,
+        "error": null
+      },
+      {
+        "id": "intent-08-022",
+        "message": "请问，如何变更个人资料，该怎么处理？",
+        "expected_intent": "account",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "request",
+        "confidence": 0.9,
+        "source_scores": {
+          "llm": 0.9,
+          "embedding": 0.7449,
+          "pattern": 0.74
+        },
+        "reasoning": "用户询问如何变更个人资料，属于操作指引请求",
+        "latency_ms": 4780.7,
+        "error": null
+      },
+      {
+        "id": "intent-01-026",
+        "message": "麻烦帮我看看，怎样查看帮助中心，能帮忙确认吗？",
+        "expected_intent": "query",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "request",
+        "confidence": 0.85,
+        "source_scores": {
+          "llm": 0.85,
+          "embedding": 0.3478,
+          "pattern": 0.78
+        },
+        "reasoning": "用户询问如何查看帮助中心，属于一般请求帮助",
+        "latency_ms": 5161.7,
+        "error": null
+      },
+      {
+        "id": "intent-14-008",
+        "message": "最近遇到一个情况，钱扣了但订单仍未支付，已经有一会儿了。",
+        "expected_intent": "payment_issue",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "billing",
+        "confidence": 0.91,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.91
+        },
+        "reasoning": "规则命中: 支付",
+        "latency_ms": 4616.4,
+        "error": null
+      },
+      {
+        "id": "intent-06-004",
+        "message": "麻烦帮我看看，程序运行时出现未知错误",
+        "expected_intent": "technical",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "technical_crash",
+        "confidence": 0.85,
+        "source_scores": {
+          "llm": 0.85,
+          "embedding": 0.7276,
+          "pattern": 0.78
+        },
+        "reasoning": "用户报告程序运行时出现未知错误，属于崩溃类技术问题",
+        "latency_ms": 5612.6,
+        "error": null
+      },
+      {
+        "id": "intent-01-011",
+        "message": "想咨询一下，这个功能在哪里设置，已经有一会儿了。",
+        "expected_intent": "query",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "request",
+        "confidence": 0.75,
+        "source_scores": {
+          "llm": 0.75,
+          "embedding": 0.4455,
+          "pattern": 0.72
+        },
+        "reasoning": "用户询问功能设置位置，属于操作指导请求",
+        "latency_ms": 5875.0,
+        "error": null
+      },
+      {
+        "id": "intent-09-010",
+        "message": "最近遇到一个情况，客服回复很及时，能帮忙确认吗？",
+        "expected_intent": "feedback",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "query",
+        "confidence": 0.6,
+        "source_scores": {
+          "llm": 0.6,
+          "embedding": 0.6595,
+          "pattern": 0.72
+        },
+        "reasoning": "用户表达咨询意图，但内容模糊，未明确具体问题",
+        "latency_ms": 6178.9,
+        "error": null
+      },
+      {
+        "id": "intent-05-008",
+        "message": "麻烦帮我看看，我要向上级反映",
+        "expected_intent": "escalation",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "human_handoff",
+        "confidence": 0.9,
+        "source_scores": {
+          "llm": 0.9,
+          "embedding": 0.6418,
+          "pattern": 0.78
+        },
+        "reasoning": "用户明确要求向上级反映，属于转人工或升级处理",
+        "latency_ms": 6903.6,
+        "error": null
+      },
+      {
+        "id": "intent-08-004",
+        "message": "麻烦帮我看看，如何变更个人资料，谢谢。",
+        "expected_intent": "account",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "request",
+        "confidence": 0.9,
+        "source_scores": {
+          "llm": 0.9,
+          "embedding": 0.8043,
+          "pattern": 0.78
+        },
+        "reasoning": "用户询问如何变更个人资料，属于操作指导请求。",
+        "latency_ms": 7551.8,
+        "error": null
+      },
+      {
+        "id": "intent-04-025",
+        "message": "您好，已经有一会儿了。",
+        "expected_intent": "greeting",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.3,
+        "source_scores": {
+          "llm": 0.3,
+          "embedding": 0.5286,
+          "pattern": 0.3
+        },
+        "reasoning": "消息不完整，无法判断具体意图",
+        "latency_ms": 7572.1,
+        "error": null
+      },
+      {
+        "id": "intent-05-005",
+        "message": "我要联系更高级别客服，谢谢。",
+        "expected_intent": "escalation",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "human_handoff",
+        "confidence": 0.95,
+        "source_scores": {
+          "llm": 0.95,
+          "embedding": 0.925,
+          "pattern": 0.3
+        },
+        "reasoning": "用户明确要求联系更高级别客服，属于转人工意图",
+        "latency_ms": 9400.5,
+        "error": null
+      },
+      {
+        "id": "intent-09-006",
+        "message": "想咨询一下，整体体验不错，能帮忙确认吗？",
+        "expected_intent": "feedback",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "request",
+        "confidence": 0.6,
+        "source_scores": {
+          "llm": 0.6,
+          "embedding": 0.5054,
+          "pattern": 0.72
+        },
+        "reasoning": "用户表达咨询和确认请求，意图不明确，偏向一般请求",
+        "latency_ms": 11250.3,
+        "error": null
+      },
+      {
+        "id": "intent-14-023",
+        "message": "钱扣了但订单仍未支付，已经有一会儿了。",
+        "expected_intent": "payment_issue",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "billing",
+        "confidence": 0.91,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.91
+        },
+        "reasoning": "规则命中: 支付",
+        "latency_ms": 11565.6,
+        "error": null
+      },
+      {
+        "id": "intent-05-026",
+        "message": "最近遇到一个情况，请交给管理人员，谢谢。",
+        "expected_intent": "escalation",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "human_handoff",
+        "confidence": 0.9,
+        "source_scores": {
+          "llm": 0.9,
+          "embedding": 0.5784,
+          "pattern": 0.3
+        },
+        "reasoning": "用户明确要求转交管理人员处理",
+        "latency_ms": 12440.8,
+        "error": null
+      },
+      {
+        "id": "intent-03-003",
+        "message": "最近遇到一个情况，我需要你们协助处理。",
+        "expected_intent": "request",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "query",
+        "confidence": 0.6,
+        "source_scores": {
+          "llm": 0.6,
+          "embedding": 0.8155,
+          "pattern": 0.3
+        },
+        "reasoning": "消息模糊，仅表达需要协助，未指明具体问题类型",
+        "latency_ms": 12927.3,
+        "error": null
+      },
+      {
+        "id": "intent-05-004",
+        "message": "我要向上级反映，已经有一会儿了。",
+        "expected_intent": "escalation",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "human_handoff",
+        "confidence": 0.85,
+        "source_scores": {
+          "llm": 0.85,
+          "embedding": 0.5799,
+          "pattern": 0.3
+        },
+        "reasoning": "用户明确要求向上级反映，表达不满并希望转人工处理",
+        "latency_ms": 13440.7,
+        "error": null
+      },
+      {
+        "id": "intent-04-013",
+        "message": "麻烦帮我看看，hello，已经有一会儿了。",
+        "expected_intent": "greeting",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.3,
+        "source_scores": {
+          "llm": 0.3,
+          "embedding": 0.5099,
+          "pattern": 0.78
+        },
+        "reasoning": "消息含糊，仅问候且无明确问题",
+        "latency_ms": 14911.7,
+        "error": null
+      },
+      {
+        "id": "intent-05-025",
+        "message": "麻烦帮我看看，让你们负责人跟进，能帮忙确认吗？",
+        "expected_intent": "escalation",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "human_handoff",
+        "confidence": 0.9,
+        "source_scores": {
+          "llm": 0.9,
+          "embedding": 0.7283,
+          "pattern": 0.78
+        },
+        "reasoning": "用户明确要求负责人跟进，属于转人工诉求",
+        "latency_ms": 15279.6,
+        "error": null
+      },
+      {
+        "id": "intent-05-007",
+        "message": "我要联系更高级别客服，该怎么处理？",
+        "expected_intent": "escalation",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "human_handoff",
+        "confidence": 0.95,
+        "source_scores": {
+          "llm": 0.95,
+          "embedding": 0.8954,
+          "pattern": 0.74
+        },
+        "reasoning": "用户明确要求联系更高级别客服，属于转人工意图",
+        "latency_ms": 16116.0,
+        "error": null
+      },
+      {
+        "id": "intent-19-019",
+        "message": "有件事情想说一下，能帮忙确认吗？",
+        "expected_intent": "other",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "request",
+        "confidence": 0.7,
+        "source_scores": {
+          "llm": 0.7,
+          "embedding": 0.5398,
+          "pattern": 0.72
+        },
+        "reasoning": "用户表达请求确认，意图模糊但偏向请求",
+        "latency_ms": 17838.6,
+        "error": null
+      },
+      {
+        "id": "intent-08-011",
+        "message": "最近遇到一个情况，如何变更个人资料，已经有一会儿了。",
+        "expected_intent": "account",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "query",
+        "confidence": 0.85,
+        "source_scores": {
+          "llm": 0.85,
+          "embedding": 0.4164,
+          "pattern": 0.3
+        },
+        "reasoning": "用户询问如何变更个人资料，属于一般咨询类问题",
+        "latency_ms": 17798.1,
+        "error": null
+      },
+      {
+        "id": "intent-08-008",
+        "message": "请问，账户昵称在哪里修改",
+        "expected_intent": "account",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "query",
+        "confidence": 0.95,
+        "source_scores": {
+          "llm": 0.95,
+          "embedding": 0.924,
+          "pattern": 0.72
+        },
+        "reasoning": "用户询问功能位置，属于一般咨询",
+        "latency_ms": 18267.8,
+        "error": null
+      },
+      {
+        "id": "intent-04-008",
+        "message": "麻烦帮我看看，您好，能帮忙确认吗？",
+        "expected_intent": "greeting",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.3,
+        "source_scores": {
+          "llm": 0.3,
+          "embedding": 0.6142,
+          "pattern": 0.78
+        },
+        "reasoning": "消息模糊，无明确意图，需进一步澄清",
+        "latency_ms": 18264.5,
+        "error": null
+      },
+      {
+        "id": "intent-05-001",
+        "message": "想咨询一下，我要向上级反映，能帮忙确认吗？",
+        "expected_intent": "escalation",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "human_handoff",
+        "confidence": 0.85,
+        "source_scores": {
+          "llm": 0.85,
+          "embedding": 0.6811,
+          "pattern": 0.72
+        },
+        "reasoning": "用户明确要求向上级反映，需转人工处理",
+        "latency_ms": 18700.6,
+        "error": null
+      },
+      {
+        "id": "intent-05-013",
+        "message": "我要联系更高级别客服，能帮忙确认吗？",
+        "expected_intent": "escalation",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "human_handoff",
+        "confidence": 0.95,
+        "source_scores": {
+          "llm": 0.95,
+          "embedding": 0.8918,
+          "pattern": 0.72
+        },
+        "reasoning": "用户明确要求联系更高级别客服，属于转人工意图",
+        "latency_ms": 20459.2,
+        "error": null
+      },
+      {
+        "id": "intent-14-019",
+        "message": "麻烦帮我看看，钱扣了但订单仍未支付，该怎么处理？",
+        "expected_intent": "payment_issue",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "billing",
+        "confidence": 0.91,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.91
+        },
+        "reasoning": "规则命中: 支付",
+        "latency_ms": 20467.4,
+        "error": null
+      },
+      {
+        "id": "intent-19-012",
+        "message": "我想先说明一个情况，该怎么处理？",
+        "expected_intent": "other",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "query",
+        "confidence": 0.6,
+        "source_scores": {
+          "llm": 0.6,
+          "embedding": 0.6424,
+          "pattern": 0.74
+        },
+        "reasoning": "用户表达咨询意图，但内容模糊，未明确具体问题或诉求。",
+        "latency_ms": 21459.2,
+        "error": null
+      },
+      {
+        "id": "intent-10-016",
+        "message": "想咨询一下，我的商品发出来了吗，能帮忙确认吗？",
+        "expected_intent": "order_status",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "logistics",
+        "confidence": 0.92,
+        "source_scores": {
+          "llm": 0.92,
+          "embedding": 0.6331,
+          "pattern": 0.72
+        },
+        "reasoning": "用户询问商品是否发出，属于物流查询",
+        "latency_ms": 21499.7,
+        "error": null
+      },
+      {
+        "id": "intent-14-024",
+        "message": "最近遇到一个情况，钱扣了但订单仍未支付。",
+        "expected_intent": "payment_issue",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "billing",
+        "confidence": 0.91,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.91
+        },
+        "reasoning": "规则命中: 支付",
+        "latency_ms": 20600.1,
+        "error": null
+      },
+      {
+        "id": "intent-01-007",
+        "message": "想咨询一下，怎样查看帮助中心",
+        "expected_intent": "query",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "request",
+        "confidence": 0.9,
+        "source_scores": {
+          "llm": 0.9,
+          "embedding": 0.3661,
+          "pattern": 0.3
+        },
+        "reasoning": "用户询问如何查看帮助中心，属于一般性请求",
+        "latency_ms": 21982.9,
+        "error": null
+      },
+      {
+        "id": "intent-03-007",
+        "message": "请问，帮我更新联系信息，已经有一会儿了。",
+        "expected_intent": "request",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "account",
+        "confidence": 0.85,
+        "source_scores": {
+          "llm": 0.85,
+          "embedding": 0.6842,
+          "pattern": 0.78
+        },
+        "reasoning": "用户请求更新联系信息，属于账户管理类操作",
+        "latency_ms": 22850.2,
+        "error": null
+      },
+      {
+        "id": "intent-10-005",
+        "message": "最近遇到一个情况，我的商品发出来了吗",
+        "expected_intent": "order_status",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "logistics",
+        "confidence": 0.92,
+        "source_scores": {
+          "llm": 0.92,
+          "embedding": 0.6133,
+          "pattern": 0.3
+        },
+        "reasoning": "用户询问商品是否发出，属于物流查询",
+        "latency_ms": 23477.0,
+        "error": null
+      },
+      {
+        "id": "intent-14-013",
+        "message": "支付后显示没有成功，该怎么处理？",
+        "expected_intent": "payment_issue",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "billing",
+        "confidence": 0.91,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.91
+        },
+        "reasoning": "规则命中: 支付",
+        "latency_ms": 23554.7,
+        "error": null
+      },
+      {
+        "id": "intent-14-003",
+        "message": "最近遇到一个情况，支付后显示没有成功，能帮忙确认吗？",
+        "expected_intent": "payment_issue",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "billing",
+        "confidence": 0.91,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.91
+        },
+        "reasoning": "规则命中: 支付",
+        "latency_ms": 24077.1,
+        "error": null
+      },
+      {
+        "id": "intent-06-025",
+        "message": "麻烦帮我看看，程序运行时出现未知错误，该怎么处理？",
+        "expected_intent": "technical",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "technical_crash",
+        "confidence": 0.9,
+        "source_scores": {
+          "llm": 0.9,
+          "embedding": 0.627,
+          "pattern": 0.78
+        },
+        "reasoning": "用户报告程序运行时出现未知错误，属于技术崩溃类问题",
+        "latency_ms": 25595.9,
+        "error": null
+      },
+      {
+        "id": "intent-19-016",
+        "message": "想咨询一下，我想先说明一个情况",
+        "expected_intent": "other",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "query",
+        "confidence": 0.7,
+        "source_scores": {
+          "llm": 0.7,
+          "embedding": 0.8167,
+          "pattern": 0.3
+        },
+        "reasoning": "用户表示想咨询并先说明情况，属于一般咨询意图",
+        "latency_ms": 27276.8,
+        "error": null
+      },
+      {
+        "id": "intent-09-025",
+        "message": "麻烦帮我看看，你们服务很好，该怎么处理？",
+        "expected_intent": "feedback",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "request",
+        "confidence": 0.6,
+        "source_scores": {
+          "llm": 0.6,
+          "embedding": 0.6461,
+          "pattern": 0.78
+        },
+        "reasoning": "用户表达模糊，提及服务好并询问处理方式，偏向请求帮助",
+        "latency_ms": 27806.6,
+        "error": null
+      },
+      {
+        "id": "intent-06-007",
+        "message": "麻烦帮我看看，程序运行时出现未知错误，谢谢。",
+        "expected_intent": "technical",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "technical_crash",
+        "confidence": 0.9,
+        "source_scores": {
+          "llm": 0.9,
+          "embedding": 0.6537,
+          "pattern": 0.78
+        },
+        "reasoning": "用户报告程序运行时出现未知错误，属于技术崩溃类问题",
+        "latency_ms": 28316.7,
+        "error": null
+      },
+      {
+        "id": "intent-01-016",
+        "message": "麻烦帮我看看，标准配送需要多长时间，谢谢。",
+        "expected_intent": "query",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "logistics",
+        "confidence": 0.94,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.94
+        },
+        "reasoning": "规则命中: 配送",
+        "latency_ms": 27677.4,
+        "error": null
+      },
+      {
+        "id": "intent-19-026",
+        "message": "请问，我想先说明一个情况，该怎么处理？",
+        "expected_intent": "other",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "query",
+        "confidence": 0.6,
+        "source_scores": {
+          "llm": 0.6,
+          "embedding": 0.5741,
+          "pattern": 0.74
+        },
+        "reasoning": "用户表达咨询意图，但内容模糊，未明确具体问题类型",
+        "latency_ms": 29430.9,
+        "error": null
+      },
+      {
+        "id": "intent-14-010",
+        "message": "最近遇到一个情况，支付后显示没有成功，已经有一会儿了。",
+        "expected_intent": "payment_issue",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "billing",
+        "confidence": 0.91,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.91
+        },
+        "reasoning": "规则命中: 支付",
+        "latency_ms": 29575.3,
+        "error": null
+      },
+      {
+        "id": "intent-01-013",
+        "message": "最近遇到一个情况，标准配送需要多长时间。",
+        "expected_intent": "query",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "logistics",
+        "confidence": 0.94,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.94
+        },
+        "reasoning": "规则命中: 配送",
+        "latency_ms": 29757.1,
+        "error": null
+      },
+      {
+        "id": "intent-14-026",
+        "message": "麻烦帮我看看，支付后显示没有成功，已经有一会儿了。",
+        "expected_intent": "payment_issue",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "billing",
+        "confidence": 0.91,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.91
+        },
+        "reasoning": "规则命中: 支付",
+        "latency_ms": 32180.4,
+        "error": null
+      },
+      {
+        "id": "intent-05-009",
+        "message": "最近遇到一个情况，这个事情需要升级给负责人，能帮忙确认吗？",
+        "expected_intent": "escalation",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "human_handoff",
+        "confidence": 0.9,
+        "source_scores": {
+          "llm": 0.9,
+          "embedding": 0.4241,
+          "pattern": 0.72
+        },
+        "reasoning": "用户明确要求升级给负责人，属于转人工场景",
+        "latency_ms": 33459.3,
+        "error": null
+      },
+      {
+        "id": "intent-14-025",
+        "message": "扣款金额和订单不一致，能帮忙确认吗？",
+        "expected_intent": "payment_issue",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "billing",
+        "confidence": 0.91,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.91
+        },
+        "reasoning": "规则命中: 扣款",
+        "latency_ms": 32845.0,
+        "error": null
+      },
+      {
+        "id": "intent-03-022",
+        "message": "帮我调整订单信息，谢谢。",
+        "expected_intent": "request",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "order_status",
+        "confidence": 0.7,
+        "source_scores": {
+          "llm": 0.7,
+          "embedding": 0.5258,
+          "pattern": 0.78
+        },
+        "reasoning": "用户请求调整订单信息，属于订单相关操作",
+        "latency_ms": 33585.5,
+        "error": null
+      },
+      {
+        "id": "intent-05-016",
+        "message": "麻烦帮我看看，我要联系更高级别客服，能帮忙确认吗？",
+        "expected_intent": "escalation",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "human_handoff",
+        "confidence": 0.95,
+        "source_scores": {
+          "llm": 0.95,
+          "embedding": 0.8622,
+          "pattern": 0.78
+        },
+        "reasoning": "用户明确要求联系更高级别客服，属于转人工意图",
+        "latency_ms": 33812.5,
+        "error": null
+      },
+      {
+        "id": "intent-05-010",
+        "message": "麻烦帮我看看，请让主管来处理，能帮忙确认吗？",
+        "expected_intent": "escalation",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "human_handoff",
+        "confidence": 0.85,
+        "source_scores": {
+          "llm": 0.85,
+          "embedding": 0.6244,
+          "pattern": 0.78
+        },
+        "reasoning": "用户明确要求主管处理，属于转人工请求",
+        "latency_ms": 34636.9,
+        "error": null
+      },
+      {
+        "id": "intent-17-011",
+        "message": "最近遇到一个情况，服务端出现内部错误，能帮忙确认吗？",
+        "expected_intent": "technical_crash",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "technical",
+        "confidence": 0.85,
+        "source_scores": {
+          "llm": 0.85,
+          "embedding": 0.3655,
+          "pattern": 0.72
+        },
+        "reasoning": "用户报告服务端内部错误，属于技术问题，但未明确崩溃或登录故障。",
+        "latency_ms": 35741.4,
+        "error": null
+      },
+      {
+        "id": "intent-02-018",
+        "message": "最近遇到一个情况，客服一直没有回应。",
+        "expected_intent": "complaint",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "human_handoff",
+        "confidence": 0.85,
+        "source_scores": {
+          "llm": 0.85,
+          "embedding": 0.6618,
+          "pattern": 0.3
+        },
+        "reasoning": "用户抱怨客服无回应，期望转人工处理",
+        "latency_ms": 36421.5,
+        "error": null
+      },
+      {
+        "id": "intent-02-005",
+        "message": "请问，客服一直没有回应，能帮忙确认吗？",
+        "expected_intent": "complaint",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "human_handoff",
+        "confidence": 0.85,
+        "source_scores": {
+          "llm": 0.85,
+          "embedding": 0.5565,
+          "pattern": 0.72
+        },
+        "reasoning": "用户要求客服回应，需转人工处理",
+        "latency_ms": 36985.6,
+        "error": null
+      },
+      {
+        "id": "intent-10-018",
+        "message": "我的商品发出来了吗",
+        "expected_intent": "order_status",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "logistics",
+        "confidence": 0.95,
+        "source_scores": {
+          "llm": 0.95,
+          "embedding": 0.7252,
+          "pattern": 0.3
+        },
+        "reasoning": "用户询问商品是否发出，属于物流查询",
+        "latency_ms": 37890.5,
+        "error": null
+      },
+      {
+        "id": "intent-05-020",
+        "message": "最近遇到一个情况，请交给管理人员",
+        "expected_intent": "escalation",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "human_handoff",
+        "confidence": 0.95,
+        "source_scores": {
+          "llm": 0.95,
+          "embedding": 0.6717,
+          "pattern": 0.3
+        },
+        "reasoning": "用户明确要求交给管理人员处理",
+        "latency_ms": 37634.6,
+        "error": null
+      },
+      {
+        "id": "intent-08-023",
+        "message": "最近遇到一个情况，账户昵称在哪里修改，能帮忙确认吗？",
+        "expected_intent": "account",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "query",
+        "confidence": 0.9,
+        "source_scores": {
+          "llm": 0.9,
+          "embedding": 0.5328,
+          "pattern": 0.74
+        },
+        "reasoning": "用户询问功能位置，属于一般查询",
+        "latency_ms": 38541.0,
+        "error": null
+      },
+      {
+        "id": "intent-03-008",
+        "message": "麻烦帮我看看，帮我取消这张订单。",
+        "expected_intent": "request",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "order_status",
+        "confidence": 0.85,
+        "source_scores": {
+          "llm": 0.85,
+          "embedding": 0.7987,
+          "pattern": 0.78
+        },
+        "reasoning": "用户请求取消订单，属于订单相关操作，但更接近订单状态管理而非退款或物流。",
+        "latency_ms": 40525.5,
+        "error": null
+      },
+      {
+        "id": "intent-01-003",
+        "message": "最近遇到一个情况，怎样查看帮助中心，能帮忙确认吗？",
+        "expected_intent": "query",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "request",
+        "confidence": 0.7,
+        "source_scores": {
+          "llm": 0.7,
+          "embedding": 0.2633,
+          "pattern": 0.72
+        },
+        "reasoning": "用户询问如何查看帮助中心，属于一般性请求帮助信息",
+        "latency_ms": 40920.3,
+        "error": null
+      },
+      {
+        "id": "intent-03-019",
+        "message": "最近遇到一个情况，帮我取消这张订单，谢谢。",
+        "expected_intent": "request",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "order_status",
+        "confidence": 0.72,
+        "source_scores": {
+          "llm": 0.72,
+          "embedding": 0.7654,
+          "pattern": 0.78
+        },
+        "reasoning": "用户请求取消订单，属于订单相关操作，但未明确退款或物流，归为订单状态类。",
+        "latency_ms": 41784.0,
+        "error": null
+      },
+      {
+        "id": "intent-05-011",
+        "message": "请问，我要向上级反映",
+        "expected_intent": "escalation",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "human_handoff",
+        "confidence": 0.9,
+        "source_scores": {
+          "llm": 0.9,
+          "embedding": 0.6484,
+          "pattern": 0.3
+        },
+        "reasoning": "用户明确要求向上级反映，属于转人工或升级处理意图",
+        "latency_ms": 42681.0,
+        "error": null
+      },
+      {
+        "id": "intent-05-015",
+        "message": "请问，我要联系更高级别客服，已经有一会儿了。",
+        "expected_intent": "escalation",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "human_handoff",
+        "confidence": 0.95,
+        "source_scores": {
+          "llm": 0.95,
+          "embedding": 0.7279,
+          "pattern": 0.3
+        },
+        "reasoning": "用户明确要求联系更高级别客服，属于转人工意图",
+        "latency_ms": 42125.0,
+        "error": null
+      },
+      {
+        "id": "intent-08-006",
+        "message": "麻烦帮我看看，账户昵称在哪里修改，已经有一会儿了。",
+        "expected_intent": "account",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "query",
+        "confidence": 0.9,
+        "source_scores": {
+          "llm": 0.9,
+          "embedding": 0.4757,
+          "pattern": 0.78
+        },
+        "reasoning": "用户询问账户昵称修改位置，属于一般咨询",
+        "latency_ms": 42468.4,
+        "error": null
+      },
+      {
+        "id": "intent-09-016",
+        "message": "麻烦帮我看看，客服回复很及时，该怎么处理？",
+        "expected_intent": "feedback",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "request",
+        "confidence": 0.6,
+        "source_scores": {
+          "llm": 0.6,
+          "embedding": 0.6279,
+          "pattern": 0.78
+        },
+        "reasoning": "用户询问处理方式，但未明确具体问题，偏向一般请求",
+        "latency_ms": 43334.9,
+        "error": null
+      },
+      {
+        "id": "intent-06-027",
+        "message": "请问，回调一直收不到，能帮忙确认吗？",
+        "expected_intent": "technical",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "technical_login",
+        "confidence": 0.82,
+        "source_scores": {
+          "llm": 0.82,
+          "embedding": 0.5623,
+          "pattern": 0.72
+        },
+        "reasoning": "回调收不到属于技术故障，与登录验证码场景相关",
+        "latency_ms": 43547.9,
+        "error": null
+      },
+      {
+        "id": "intent-01-019",
+        "message": "想咨询一下，怎样查看帮助中心，能帮忙确认吗？",
+        "expected_intent": "query",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "request",
+        "confidence": 0.85,
+        "source_scores": {
+          "llm": 0.85,
+          "embedding": 0.3325,
+          "pattern": 0.72
+        },
+        "reasoning": "用户询问如何查看帮助中心，属于请求指引类问题",
+        "latency_ms": 43516.1,
+        "error": null
+      },
+      {
+        "id": "intent-01-005",
+        "message": "请问，怎样查看帮助中心，能帮忙确认吗？",
+        "expected_intent": "query",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "request",
+        "confidence": 0.85,
+        "source_scores": {
+          "llm": 0.85,
+          "embedding": 0.173,
+          "pattern": 0.72
+        },
+        "reasoning": "用户询问查看帮助中心的方法，属于一般请求",
+        "latency_ms": 43710.3,
+        "error": null
+      },
+      {
+        "id": "intent-14-002",
+        "message": "请问，扣款金额和订单不一致。",
+        "expected_intent": "payment_issue",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "billing",
+        "confidence": 0.91,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.91
+        },
+        "reasoning": "规则命中: 扣款",
+        "latency_ms": 43289.4,
+        "error": null
+      },
+      {
+        "id": "intent-05-019",
+        "message": "请问，让你们负责人跟进，谢谢。",
+        "expected_intent": "escalation",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "human_handoff",
+        "confidence": 0.9,
+        "source_scores": {
+          "llm": 0.9,
+          "embedding": 0.7571,
+          "pattern": 0.3
+        },
+        "reasoning": "用户明确要求负责人跟进，属于转人工请求",
+        "latency_ms": 44870.8,
+        "error": null
+      },
+      {
+        "id": "intent-04-004",
+        "message": "最近遇到一个情况，您好，已经有一会儿了。",
+        "expected_intent": "greeting",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.6,
+        "source_scores": {
+          "llm": 0.6,
+          "embedding": 0.4975,
+          "pattern": 0.3
+        },
+        "reasoning": "消息不完整，仅表达问候和模糊情况，无法确定具体意图",
+        "latency_ms": 45344.7,
+        "error": null
+      },
+      {
+        "id": "intent-02-006",
+        "message": "最近遇到一个情况，客服一直没有回应，该怎么处理？",
+        "expected_intent": "complaint",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "human_handoff",
+        "confidence": 0.85,
+        "source_scores": {
+          "llm": 0.85,
+          "embedding": 0.5734,
+          "pattern": 0.74
+        },
+        "reasoning": "用户明确提到客服无回应，希望转人工处理",
+        "latency_ms": 45410.2,
+        "error": null
+      },
+      {
+        "id": "intent-08-003",
+        "message": "请问，如何变更个人资料，能帮忙确认吗？",
+        "expected_intent": "account",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "request",
+        "confidence": 0.85,
+        "source_scores": {
+          "llm": 0.85,
+          "embedding": 0.7503,
+          "pattern": 0.72
+        },
+        "reasoning": "用户询问如何变更个人资料，属于一般操作请求",
+        "latency_ms": 45864.0,
+        "error": null
+      },
+      {
+        "id": "intent-04-016",
+        "message": "最近遇到一个情况，嗨，该怎么处理？",
+        "expected_intent": "greeting",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "query",
+        "confidence": 0.6,
+        "source_scores": {
+          "llm": 0.6,
+          "embedding": 0.6613,
+          "pattern": 0.74
+        },
+        "reasoning": "消息模糊，无明确问题指向，仅表达咨询意图",
+        "latency_ms": 45561.3,
+        "error": null
+      }
+    ]
+  },
+  "rag_retrieval": {
+    "total": 120,
+    "multi_label_cases": 43,
+    "k": {
+      "1": {
+        "hit_at_k": 0.425,
+        "recall_at_k": 0.3375,
+        "all_relevant_at_k": 0.2583,
+        "errors": 0,
+        "failures": [
+          {
+            "id": "rag-retrieval-001",
+            "question": "购买后多少天内可以无理由退款？",
+            "relevant_titles": [
+              "退款政策"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "订单查询"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-002",
+            "question": "退款申请提交后审核需要多久？",
+            "relevant_titles": [
+              "退款政策"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "配送说明"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-003",
+            "question": "审核通过后钱多久退回？",
+            "relevant_titles": [
+              "退款政策"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "配送说明"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-004",
+            "question": "退款会退到哪里？",
+            "relevant_titles": [
+              "退款政策"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-005",
+            "question": "商品已经发货还能直接退款吗？",
+            "relevant_titles": [
+              "退款政策",
+              "订单修改与取消"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-006",
+            "question": "质量问题退货运费谁承担？",
+            "relevant_titles": [
+              "退款政策"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-007",
+            "question": "超过七天还能申请退款吗？",
+            "relevant_titles": [
+              "退款政策"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "订单查询"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-010",
+            "question": "三十天以内出现质量问题能否退款？",
+            "relevant_titles": [
+              "退款政策"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "配送说明"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-011",
+            "question": "在哪里查询订单状态？",
+            "relevant_titles": [
+              "订单查询"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-012",
+            "question": "订单有哪些状态？",
+            "relevant_titles": [
+              "订单查询"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-014",
+            "question": "物流多久会更新？",
+            "relevant_titles": [
+              "订单查询"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "退款政策"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-015",
+            "question": "订单状态异常需要提供什么？",
+            "relevant_titles": [
+              "订单查询"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-017",
+            "question": "怎么知道订单是否发货？",
+            "relevant_titles": [
+              "订单查询"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-019",
+            "question": "已签收之后是什么状态？",
+            "relevant_titles": [
+              "订单查询"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "退款政策"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-027",
+            "question": "可以通过什么方式找回密码？",
+            "relevant_titles": [
+              "账户安全"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "订单查询"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-031",
+            "question": "应用崩溃应该先做什么？",
+            "relevant_titles": [
+              "技术故障排查"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-034",
+            "question": "支付失败时需要检查什么？",
+            "relevant_titles": [
+              "技术故障排查",
+              "支付异常处理"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-036",
+            "question": "清除缓存后还是崩溃怎么办？",
+            "relevant_titles": [
+              "技术故障排查"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-040",
+            "question": "银行卡余额不足会导致什么问题？",
+            "relevant_titles": [
+              "技术故障排查",
+              "支付异常处理"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-043",
+            "question": "银卡会员需要消费多少？",
+            "relevant_titles": [
+              "会员与积分"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-045",
+            "question": "银卡会员享受几折？",
+            "relevant_titles": [
+              "会员与积分"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-047",
+            "question": "积分多久过期？",
+            "relevant_titles": [
+              "会员与积分"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "配送说明"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-048",
+            "question": "生日月积分有什么优惠？",
+            "relevant_titles": [
+              "会员与积分"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "配送说明"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-049",
+            "question": "会员分为哪些等级？",
+            "relevant_titles": [
+              "会员与积分"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-051",
+            "question": "标准配送需要几天？",
+            "relevant_titles": [
+              "配送说明"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "订单查询"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-052",
+            "question": "订单满多少钱标准配送免运费？",
+            "relevant_titles": [
+              "配送说明"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-054",
+            "question": "加急配送运费是多少？",
+            "relevant_titles": [
+              "配送说明"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "技术故障排查"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-062",
+            "question": "个人发票的抬头一般怎么填写？",
+            "relevant_titles": [
+              "发票与开票说明"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-063",
+            "question": "企业开票为什么需要纳税人识别号？",
+            "relevant_titles": [
+              "发票与开票说明"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-065",
+            "question": "发票抬头写错了如何申请重开？",
+            "relevant_titles": [
+              "发票与开票说明"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-069",
+            "question": "开票信息修改完成前客服可以直接承诺吗？",
+            "relevant_titles": [
+              "发票与开票说明",
+              "人工客服与升级处理"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "订单查询"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-070",
+            "question": "申请发票时需要提供订单号吗？",
+            "relevant_titles": [
+              "发票与开票说明",
+              "订单查询"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-071",
+            "question": "在哪里查看当前订阅套餐？",
+            "relevant_titles": [
+              "订阅与账单说明"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-072",
+            "question": "如何查询下一次自动续费日期？",
+            "relevant_titles": [
+              "订阅与账单说明"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "配送说明"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-073",
+            "question": "账单金额通常由哪些项目组成？",
+            "relevant_titles": [
+              "订阅与账单说明"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "会员与积分"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-074",
+            "question": "取消自动续费会让当前服务立即失效吗？",
+            "relevant_titles": [
+              "订阅与账单说明"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-075",
+            "question": "账单金额不对需要记录什么信息？",
+            "relevant_titles": [
+              "订阅与账单说明"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "会员与积分"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-076",
+            "question": "查看历史消费账单应该去哪里？",
+            "relevant_titles": [
+              "订阅与账单说明"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "技术故障排查"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-077",
+            "question": "订阅套餐变更需要后台核验吗？",
+            "relevant_titles": [
+              "订阅与账单说明",
+              "人工客服与升级处理"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-078",
+            "question": "自动续费后发生重复扣款怎么办？",
+            "relevant_titles": [
+              "订阅与账单说明",
+              "支付异常处理"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-079",
+            "question": "核对订阅扣款时可以提供支付密码吗？",
+            "relevant_titles": [
+              "订阅与账单说明",
+              "支付异常处理",
+              "人工客服与升级处理"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "技术故障排查"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-080",
+            "question": "退款状态能不能只根据账单页面直接确认？",
+            "relevant_titles": [
+              "订阅与账单说明",
+              "退款政策"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-082",
+            "question": "显示支付失败但银行卡已扣款怎么办？",
+            "relevant_titles": [
+              "支付异常处理"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "技术故障排查"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-083",
+            "question": "支付结果不确定时为什么不要连续付款？",
+            "relevant_titles": [
+              "支付异常处理"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-084",
+            "question": "同一订单扣了两笔钱需要记录什么？",
+            "relevant_titles": [
+              "支付异常处理",
+              "订阅与账单说明"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-085",
+            "question": "钱扣了但订单还是待支付怎么处理？",
+            "relevant_titles": [
+              "支付异常处理",
+              "订单查询"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "技术故障排查"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-086",
+            "question": "支付异常持续存在应该联系谁核对流水？",
+            "relevant_titles": [
+              "支付异常处理",
+              "人工客服与升级处理"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "订单查询"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-087",
+            "question": "支付限额会不会导致付款失败？",
+            "relevant_titles": [
+              "支付异常处理"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-088",
+            "question": "排查支付问题时能向客服发送验证码吗？",
+            "relevant_titles": [
+              "支付异常处理",
+              "人工客服与升级处理"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "技术故障排查"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-089",
+            "question": "客服能否仅凭截图认定发生了重复扣款？",
+            "relevant_titles": [
+              "支付异常处理"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-093",
+            "question": "收不到短信验证码需要检查哪些地方？",
+            "relevant_titles": [
+              "登录与验证码排查"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "配送说明"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-094",
+            "question": "收不到邮箱验证码应该查看垃圾邮件吗？",
+            "relevant_titles": [
+              "登录与验证码排查"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-095",
+            "question": "为什么不能频繁点击发送验证码？",
+            "relevant_titles": [
+              "登录与验证码排查"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-096",
+            "question": "收到多个验证码时应该使用哪一条？",
+            "relevant_titles": [
+              "登录与验证码排查"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "退款政策"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-101",
+            "question": "订单是否能取消取决于什么？",
+            "relevant_titles": [
+              "订单修改与取消",
+              "订单查询"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-102",
+            "question": "待支付订单通常可以直接取消吗？",
+            "relevant_titles": [
+              "订单修改与取消",
+              "订单查询"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-103",
+            "question": "商品已经发货还能直接修改订单吗？",
+            "relevant_titles": [
+              "订单修改与取消",
+              "配送说明"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "技术故障排查"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-106",
+            "question": "取消已支付订单是否等于退款到账？",
+            "relevant_titles": [
+              "订单修改与取消",
+              "退款政策"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "技术故障排查"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-107",
+            "question": "已支付订单取消后还要走退款流程吗？",
+            "relevant_titles": [
+              "订单修改与取消",
+              "退款政策"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "技术故障排查"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-108",
+            "question": "没有订单后台时客服能说地址已修改吗？",
+            "relevant_titles": [
+              "订单修改与取消",
+              "人工客服与升级处理"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "配送说明"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-109",
+            "question": "备货中的订单是否一定可以修改？",
+            "relevant_titles": [
+              "订单修改与取消"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-110",
+            "question": "订单状态和修改地址应该同时查哪些说明？",
+            "relevant_titles": [
+              "订单修改与取消",
+              "订单查询",
+              "配送说明"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-111",
+            "question": "用户明确要求真人客服时应该怎么处理？",
+            "relevant_titles": [
+              "人工客服与升级处理"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-112",
+            "question": "升级人工时需要记录哪些已知信息？",
+            "relevant_titles": [
+              "人工客服与升级处理"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-113",
+            "question": "什么情况需要转人工核验？",
+            "relevant_titles": [
+              "人工客服与升级处理"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-115",
+            "question": "需要后台日志和管理员权限时该怎么办？",
+            "relevant_titles": [
+              "人工客服与升级处理",
+              "技术故障排查"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "退款政策"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-116",
+            "question": "人工交接摘要里可以记录错误码吗？",
+            "relevant_titles": [
+              "人工客服与升级处理",
+              "技术故障排查"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-118",
+            "question": "智能客服可以假装已经创建工单吗？",
+            "relevant_titles": [
+              "人工客服与升级处理"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-119",
+            "question": "大范围紧急故障的交接摘要要记录什么？",
+            "relevant_titles": [
+              "人工客服与升级处理",
+              "技术故障排查"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "退款政策"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          }
+        ]
+      },
+      "3": {
+        "hit_at_k": 0.6917,
+        "recall_at_k": 0.5847,
+        "all_relevant_at_k": 0.4833,
+        "errors": 0,
+        "failures": [
+          {
+            "id": "rag-retrieval-005",
+            "question": "商品已经发货还能直接退款吗？",
+            "relevant_titles": [
+              "退款政策",
+              "订单修改与取消"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全",
+              "技术故障排查",
+              "订单查询"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-006",
+            "question": "质量问题退货运费谁承担？",
+            "relevant_titles": [
+              "退款政策"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全",
+              "订单查询",
+              "技术故障排查"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-014",
+            "question": "物流多久会更新？",
+            "relevant_titles": [
+              "订单查询"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "退款政策",
+              "会员与积分",
+              "配送说明"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-040",
+            "question": "银行卡余额不足会导致什么问题？",
+            "relevant_titles": [
+              "技术故障排查",
+              "支付异常处理"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全",
+              "退款政策",
+              "订单查询"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-047",
+            "question": "积分多久过期？",
+            "relevant_titles": [
+              "会员与积分"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "配送说明",
+              "退款政策",
+              "订单查询"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-052",
+            "question": "订单满多少钱标准配送免运费？",
+            "relevant_titles": [
+              "配送说明"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全",
+              "技术故障排查",
+              "订单查询"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-054",
+            "question": "加急配送运费是多少？",
+            "relevant_titles": [
+              "配送说明"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "技术故障排查",
+              "账户安全",
+              "订单查询"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-062",
+            "question": "个人发票的抬头一般怎么填写？",
+            "relevant_titles": [
+              "发票与开票说明"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全",
+              "退款政策",
+              "订单查询"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-063",
+            "question": "企业开票为什么需要纳税人识别号？",
+            "relevant_titles": [
+              "发票与开票说明"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全",
+              "订单查询",
+              "退款政策"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-065",
+            "question": "发票抬头写错了如何申请重开？",
+            "relevant_titles": [
+              "发票与开票说明"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全",
+              "技术故障排查",
+              "订单查询"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-071",
+            "question": "在哪里查看当前订阅套餐？",
+            "relevant_titles": [
+              "订阅与账单说明"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全",
+              "技术故障排查",
+              "配送说明"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-072",
+            "question": "如何查询下一次自动续费日期？",
+            "relevant_titles": [
+              "订阅与账单说明"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "配送说明",
+              "退款政策",
+              "订单查询"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-074",
+            "question": "取消自动续费会让当前服务立即失效吗？",
+            "relevant_titles": [
+              "订阅与账单说明"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全",
+              "退款政策",
+              "订单查询"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-076",
+            "question": "查看历史消费账单应该去哪里？",
+            "relevant_titles": [
+              "订阅与账单说明"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "技术故障排查",
+              "退款政策",
+              "订单查询"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-077",
+            "question": "订阅套餐变更需要后台核验吗？",
+            "relevant_titles": [
+              "订阅与账单说明",
+              "人工客服与升级处理"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全",
+              "技术故障排查",
+              "订单查询"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-078",
+            "question": "自动续费后发生重复扣款怎么办？",
+            "relevant_titles": [
+              "订阅与账单说明",
+              "支付异常处理"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全",
+              "订单查询",
+              "技术故障排查"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-079",
+            "question": "核对订阅扣款时可以提供支付密码吗？",
+            "relevant_titles": [
+              "订阅与账单说明",
+              "支付异常处理",
+              "人工客服与升级处理"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "技术故障排查",
+              "账户安全",
+              "订单查询"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-082",
+            "question": "显示支付失败但银行卡已扣款怎么办？",
+            "relevant_titles": [
+              "支付异常处理"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "技术故障排查",
+              "订单查询",
+              "账户安全"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-083",
+            "question": "支付结果不确定时为什么不要连续付款？",
+            "relevant_titles": [
+              "支付异常处理"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全",
+              "退款政策",
+              "订单查询"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-084",
+            "question": "同一订单扣了两笔钱需要记录什么？",
+            "relevant_titles": [
+              "支付异常处理",
+              "订阅与账单说明"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全",
+              "订单查询",
+              "技术故障排查"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-087",
+            "question": "支付限额会不会导致付款失败？",
+            "relevant_titles": [
+              "支付异常处理"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全",
+              "退款政策",
+              "会员与积分"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-088",
+            "question": "排查支付问题时能向客服发送验证码吗？",
+            "relevant_titles": [
+              "支付异常处理",
+              "人工客服与升级处理"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "技术故障排查",
+              "账户安全",
+              "订单查询"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-089",
+            "question": "客服能否仅凭截图认定发生了重复扣款？",
+            "relevant_titles": [
+              "支付异常处理"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全",
+              "订单查询",
+              "退款政策"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-093",
+            "question": "收不到短信验证码需要检查哪些地方？",
+            "relevant_titles": [
+              "登录与验证码排查"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "配送说明",
+              "账户安全",
+              "订单查询"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-094",
+            "question": "收不到邮箱验证码应该查看垃圾邮件吗？",
+            "relevant_titles": [
+              "登录与验证码排查"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全",
+              "订单查询",
+              "退款政策"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-095",
+            "question": "为什么不能频繁点击发送验证码？",
+            "relevant_titles": [
+              "登录与验证码排查"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全",
+              "订单查询",
+              "退款政策"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-096",
+            "question": "收到多个验证码时应该使用哪一条？",
+            "relevant_titles": [
+              "登录与验证码排查"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "退款政策",
+              "账户安全",
+              "技术故障排查"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-103",
+            "question": "商品已经发货还能直接修改订单吗？",
+            "relevant_titles": [
+              "订单修改与取消",
+              "配送说明"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "技术故障排查",
+              "账户安全",
+              "订单查询"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-106",
+            "question": "取消已支付订单是否等于退款到账？",
+            "relevant_titles": [
+              "订单修改与取消",
+              "退款政策"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "技术故障排查",
+              "账户安全",
+              "订单查询"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-107",
+            "question": "已支付订单取消后还要走退款流程吗？",
+            "relevant_titles": [
+              "订单修改与取消",
+              "退款政策"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "技术故障排查",
+              "账户安全",
+              "订单查询"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-109",
+            "question": "备货中的订单是否一定可以修改？",
+            "relevant_titles": [
+              "订单修改与取消"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全",
+              "退款政策",
+              "订单查询"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-111",
+            "question": "用户明确要求真人客服时应该怎么处理？",
+            "relevant_titles": [
+              "人工客服与升级处理"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全",
+              "订单查询",
+              "退款政策"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-112",
+            "question": "升级人工时需要记录哪些已知信息？",
+            "relevant_titles": [
+              "人工客服与升级处理"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全",
+              "发票与开票说明",
+              "订单查询"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-113",
+            "question": "什么情况需要转人工核验？",
+            "relevant_titles": [
+              "人工客服与升级处理"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全",
+              "退款政策",
+              "订单查询"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-115",
+            "question": "需要后台日志和管理员权限时该怎么办？",
+            "relevant_titles": [
+              "人工客服与升级处理",
+              "技术故障排查"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "退款政策",
+              "配送说明",
+              "账户安全"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-116",
+            "question": "人工交接摘要里可以记录错误码吗？",
+            "relevant_titles": [
+              "人工客服与升级处理",
+              "技术故障排查"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全",
+              "订单查询",
+              "退款政策"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-119",
+            "question": "大范围紧急故障的交接摘要要记录什么？",
+            "relevant_titles": [
+              "人工客服与升级处理",
+              "技术故障排查"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "退款政策",
+              "订单查询",
+              "账户安全"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          }
+        ]
+      },
+      "5": {
+        "hit_at_k": 0.8167,
+        "recall_at_k": 0.7028,
+        "all_relevant_at_k": 0.5917,
+        "errors": 0,
+        "failures": [
+          {
+            "id": "rag-retrieval-052",
+            "question": "订单满多少钱标准配送免运费？",
+            "relevant_titles": [
+              "配送说明"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全",
+              "技术故障排查",
+              "订单查询",
+              "退款政策",
+              "发票与开票说明"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-071",
+            "question": "在哪里查看当前订阅套餐？",
+            "relevant_titles": [
+              "订阅与账单说明"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全",
+              "技术故障排查",
+              "配送说明",
+              "订单查询",
+              "退款政策"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-072",
+            "question": "如何查询下一次自动续费日期？",
+            "relevant_titles": [
+              "订阅与账单说明"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "配送说明",
+              "退款政策",
+              "订单查询",
+              "技术故障排查",
+              "会员与积分"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-074",
+            "question": "取消自动续费会让当前服务立即失效吗？",
+            "relevant_titles": [
+              "订阅与账单说明"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全",
+              "退款政策",
+              "订单查询",
+              "技术故障排查",
+              "配送说明"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-076",
+            "question": "查看历史消费账单应该去哪里？",
+            "relevant_titles": [
+              "订阅与账单说明"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "技术故障排查",
+              "退款政策",
+              "订单查询",
+              "配送说明",
+              "账户安全"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-077",
+            "question": "订阅套餐变更需要后台核验吗？",
+            "relevant_titles": [
+              "订阅与账单说明",
+              "人工客服与升级处理"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全",
+              "技术故障排查",
+              "订单查询",
+              "退款政策",
+              "发票与开票说明"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-078",
+            "question": "自动续费后发生重复扣款怎么办？",
+            "relevant_titles": [
+              "订阅与账单说明",
+              "支付异常处理"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全",
+              "订单查询",
+              "技术故障排查",
+              "发票与开票说明",
+              "退款政策"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-079",
+            "question": "核对订阅扣款时可以提供支付密码吗？",
+            "relevant_titles": [
+              "订阅与账单说明",
+              "支付异常处理",
+              "人工客服与升级处理"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "技术故障排查",
+              "账户安全",
+              "订单查询",
+              "发票与开票说明",
+              "退款政策"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-082",
+            "question": "显示支付失败但银行卡已扣款怎么办？",
+            "relevant_titles": [
+              "支付异常处理"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "技术故障排查",
+              "订单查询",
+              "账户安全",
+              "退款政策",
+              "发票与开票说明"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-083",
+            "question": "支付结果不确定时为什么不要连续付款？",
+            "relevant_titles": [
+              "支付异常处理"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全",
+              "退款政策",
+              "订单查询",
+              "配送说明",
+              "技术故障排查"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-084",
+            "question": "同一订单扣了两笔钱需要记录什么？",
+            "relevant_titles": [
+              "支付异常处理",
+              "订阅与账单说明"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全",
+              "订单查询",
+              "技术故障排查",
+              "退款政策",
+              "配送说明"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-087",
+            "question": "支付限额会不会导致付款失败？",
+            "relevant_titles": [
+              "支付异常处理"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全",
+              "退款政策",
+              "会员与积分",
+              "订单查询",
+              "配送说明"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-088",
+            "question": "排查支付问题时能向客服发送验证码吗？",
+            "relevant_titles": [
+              "支付异常处理",
+              "人工客服与升级处理"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "技术故障排查",
+              "账户安全",
+              "订单查询",
+              "发票与开票说明",
+              "退款政策"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-089",
+            "question": "客服能否仅凭截图认定发生了重复扣款？",
+            "relevant_titles": [
+              "支付异常处理"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全",
+              "订单查询",
+              "退款政策",
+              "技术故障排查",
+              "登录与验证码排查"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-093",
+            "question": "收不到短信验证码需要检查哪些地方？",
+            "relevant_titles": [
+              "登录与验证码排查"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "配送说明",
+              "账户安全",
+              "订单查询",
+              "订单修改与取消",
+              "技术故障排查"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-094",
+            "question": "收不到邮箱验证码应该查看垃圾邮件吗？",
+            "relevant_titles": [
+              "登录与验证码排查"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全",
+              "订单查询",
+              "退款政策",
+              "配送说明",
+              "技术故障排查"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-095",
+            "question": "为什么不能频繁点击发送验证码？",
+            "relevant_titles": [
+              "登录与验证码排查"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全",
+              "订单查询",
+              "退款政策",
+              "配送说明",
+              "技术故障排查"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-096",
+            "question": "收到多个验证码时应该使用哪一条？",
+            "relevant_titles": [
+              "登录与验证码排查"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "退款政策",
+              "账户安全",
+              "技术故障排查",
+              "订单查询",
+              "配送说明"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-103",
+            "question": "商品已经发货还能直接修改订单吗？",
+            "relevant_titles": [
+              "订单修改与取消",
+              "配送说明"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "技术故障排查",
+              "账户安全",
+              "订单查询",
+              "发票与开票说明",
+              "退款政策"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-109",
+            "question": "备货中的订单是否一定可以修改？",
+            "relevant_titles": [
+              "订单修改与取消"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全",
+              "退款政策",
+              "订单查询",
+              "技术故障排查",
+              "配送说明"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-111",
+            "question": "用户明确要求真人客服时应该怎么处理？",
+            "relevant_titles": [
+              "人工客服与升级处理"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全",
+              "订单查询",
+              "退款政策",
+              "技术故障排查",
+              "发票与开票说明"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          },
+          {
+            "id": "rag-retrieval-113",
+            "question": "什么情况需要转人工核验？",
+            "relevant_titles": [
+              "人工客服与升级处理"
+            ],
+            "source": "manual_from_default_knowledge",
+            "dataset_version": "rag-retrieval-v2",
+            "retrieved_titles": [
+              "账户安全",
+              "退款政策",
+              "订单查询",
+              "发票与开票说明",
+              "技术故障排查"
+            ],
+            "hit": false,
+            "all_relevant_hit": false,
+            "recall": 0.0,
+            "error": null
+          }
+        ]
+      }
+    }
+  },
+  "rag_answer": {
+    "total": 30,
+    "fact_pass_rate": 0.9333,
+    "judge_pass_rate": 0.9667,
+    "strict_answer_pass_rate": 0.8667,
+    "knowledge_used_rate": 0.9333,
+    "intent_accuracy": 0.8667,
+    "average_scores": {
+      "relevance": 0.9667,
+      "accuracy": 0.9667,
+      "completeness": 0.965,
+      "helpfulness": 0.9667,
+      "overall": 0.9663
+    },
+    "judge_failures": 0,
+    "failures": [
+      {
+        "id": "rag-answer-002",
+        "question": "退款申请提交后审核需要多久？",
+        "answer": "我来为你说明退款审核的时效情况。\n\n退款申请审核时效说明如下：\n\n**审核阶段**\n- 退款申请提交后，系统**通常会在 1-3 个工作日内完成审核**。\n- 审核完成后，您会收到审核结果通知。\n\n**到账阶段**\n- 审核通过后，款项**通常会在 5-7 个工作日内原路退回**至您的原支付账户。\n\n**需要注意的几点**\n- 以上时限为**通常情况**，最终以支付渠道和平台的**实际处理进度为准**，不构成硬性承诺。\n- 如果订单**已发货**，通常需要先完成退货流程才能退款。\n- 如果您的退款涉及**已使用服务、虚拟商品、企业合同、部分退款或较大金额**，审核和到账时间可能延长，且需要**人工审核**。\n- 若商品已超过 7 天但未满 30 天，需要提供**商品质量问题证据**才能退款，这类审核也更严格。\n\n**下一步建议**\n如果您已经提交了退款申请，可以留意以下几点：\n1. 保留好**订单号和支付凭证**，便于后续跟进。\n2. 留意平台的审核结果通知，同时可查看订单状态是否更新。\n3. 若超过常规时间内仍未收到审核结果或退款到账，可以提供**订单号**，我很乐意帮助您进一步核实或转人工处理。\n\n请问您的退款申请是针对哪笔订单呢？如果您能提供订单号和支付时间，我可以给出更有针对性的说明。",
+        "expected_intent": "refund",
+        "predicted_intent": "refund",
+        "knowledge_used": true,
+        "scores": {
+          "relevance": 1.0,
+          "accuracy": 1.0,
+          "completeness": 1.0,
+          "helpfulness": 1.0,
+          "overall": 1.0
+        },
+        "missing_facts": [],
+        "fact_pass": true,
+        "judge_pass": true,
+        "rules_pass": false,
+        "strict_pass": false,
+        "judge_failed": false,
+        "judge_error": null
+      },
+      {
+        "id": "rag-answer-015",
+        "question": "客服人员会向我索取密码吗？",
+        "answer": "根据 LumenMind 的账户安全政策，我可以明确回答您：\n\n**不会。LumenMind 客服人员绝不会向您索取密码。**\n\n为了保护您的账户安全，请您务必记住以下几点：\n\n1. **客服绝不索取密码、验证码**：也不应索取支付密码、完整银行卡号、私钥或完整 API Key 等敏感信息。\n\n2. **如果您遇到有人自称客服并向您索要这些信息**，请警惕，这很可能是**诈骗**行为。请立即挂断或停止对话，通过官方渠道核实。\n\n3. **如何重置密码**：如果您忘记了密码，可以通过绑定的手机号或邮箱自行重置，无需客服介入。\n\n4. **建议开启两步验证**：在安全设置中开启两步验证，可进一步增强账户安全性。\n\n如果您遇到任何可疑情况，或者对账户安全有其他疑问，可以随时告诉我，我很乐意协助您核实处理。",
+        "expected_intent": "account_security",
+        "predicted_intent": "account_security",
+        "knowledge_used": true,
+        "scores": {
+          "relevance": 1.0,
+          "accuracy": 1.0,
+          "completeness": 1.0,
+          "helpfulness": 1.0,
+          "overall": 1.0
+        },
+        "missing_facts": [],
+        "fact_pass": true,
+        "judge_pass": true,
+        "rules_pass": false,
+        "strict_pass": false,
+        "judge_failed": false,
+        "judge_error": null
+      },
+      {
+        "id": "rag-answer-020",
+        "question": "接口持续返回500应该怎么办？",
+        "answer": "我先确认一下你的使用场景，这样能给出更准确的排查方向。\n\n在邮件或对接中常遇到的返回 500 有几类不同原因。为了帮你精准定位，请先补充以下关键信息：\n\n1. **返回体或错误码**：500 响应里通常会带 `request_id`、错误信息或子错误码，方便定位是平台还是参数触发的问题。\n2. **请求信息**：接口路径、请求方法（GET/POST）、发生时间。\n3. **是否稳定复现**：是每次必现，还是偶发（例如高峰时段）？影响单个接口还是多个接口？\n4. **最近变更**：是否刚升级版本、改参数格式、换环境、改密钥或签名方式？\n\n在此之前，可以先按这个顺序低成本自查第一轮：\n\n**可能原因 / 排查步骤**\n\n1. **参数或签名问题（最常见）**——500 表面是服务端异常，但很多其实是参数格式不符、必填字段缺失、签名未含正确时间戳/参数顺序触发。建议用文档里的示例请求逐字段比对。若响应里有参数校验信息，可按提示修正后重试一次。\n\n2. **请求体编码或 JSON 格式**——确认 `Content-Type` 与请求体格式一致，中文或特殊字符是否被转义错误。\n\n3. **网络代理 / 环境差异**——同一请求在**本地（curl / Postman）**与**生产服务**分别测试，若本地正常而线上偶发 500，多为网络抖动、限流或超时重试策略问题。\n\n4. **依赖服务或限流**——如果是偶发，确认是否接近接口 QPS 上限；重试请加**退避策略**（如递增间隔），不要无限快速重试。\n\n---\n\n为了不再泛泛而谈，**麻烦把第一轮排查的一条实际失败请求的 `request_id`、接口路径、发生时间和响应体摘要发我**，我就能判断是平台服务端异常、还是参数/配置层面的问题，并给出下一步具体动作。\n\n如果这是**生产环境持续 500 且影响多名用户**，或涉及**支付、下单等核心链路**，建议你先保留失败请求的 `request_id` 和日志时间点，我会帮你判断是否立即转二线技术支持。",
+        "expected_intent": "technical_crash",
+        "predicted_intent": "technical_crash",
+        "knowledge_used": false,
+        "scores": {
+          "relevance": 1.0,
+          "accuracy": 1.0,
+          "completeness": 0.95,
+          "helpfulness": 1.0,
+          "overall": 0.9875
+        },
+        "missing_facts": [
+          "稍后重试"
+        ],
+        "fact_pass": false,
+        "judge_pass": true,
+        "rules_pass": true,
+        "strict_pass": false,
+        "judge_failed": false,
+        "judge_error": null
+      },
+      {
+        "id": "rag-answer-027",
+        "question": "标准配送满多少钱免运费？",
+        "answer": "抱歉，我在当前知识库中没有找到标准配送免运费门槛的具体金额信息。\n\n为了不误导您，我不会用常识去猜测这个规则。建议您可前往 App/网站的**运费说明**页面查看，或咨询一下人工客服获取准确的免运费门槛。\n\n请问还有其他可以帮您的吗？😊",
+        "expected_intent": "logistics",
+        "predicted_intent": "logistics",
+        "knowledge_used": true,
+        "scores": {
+          "relevance": 0.0,
+          "accuracy": 0.0,
+          "completeness": 0.0,
+          "helpfulness": 0.0,
+          "overall": 0.0
+        },
+        "missing_facts": [
+          "99元"
+        ],
+        "fact_pass": false,
+        "judge_pass": false,
+        "rules_pass": true,
+        "strict_pass": false,
+        "judge_failed": false,
+        "judge_error": null
+      }
+    ],
+    "details": [
+      {
+        "id": "rag-answer-001",
+        "question": "购买后多少天内可以无理由退款？",
+        "answer": "根据 LumenMind 的退款政策，我来为您说明无理由退款的期限和相关细则：\n\n## 无理由退款规则说明\n\n**核心期限**\n- 您在**购买后 7 天内**可以申请无理由退款。\n\n**重要注意点**\n- **7 天内的订单**可申请无理由退款；\n- **超过 7 天但未超过 30 天**的订单，则需要提供**商品质量问题的证据**才能申请退款；\n- 如果**商品已发货**，需要先完成退货流程才能退款，退货运费通常由用户承担（除非属于商品质量问题）。\n\n**关于到账时间（保守说明）**\n- 退款申请提交后，系统预计会在 1-3 个工作日内审核；\n- 审核通过后，款项预计在 5-7 个工作日内退回原支付账户，具体以支付渠道实际处理为准。\n\n---\n\n如果您需要申请退款，为了帮您进一步核实是否符合条件，建议提供以下信息：\n1. **订单号或交易号**\n2. **支付时间和支付渠道**（如微信、支付宝、银行卡等）\n3. 对应的**购买金额**及是否使用过优惠券\n\n请问您是刚购买的商品准备办理无理由退款，还是有其他疑问呢？",
+        "expected_intent": "refund",
+        "predicted_intent": "refund",
+        "knowledge_used": true,
+        "scores": {
+          "relevance": 1.0,
+          "accuracy": 1.0,
+          "completeness": 1.0,
+          "helpfulness": 1.0,
+          "overall": 1.0
+        },
+        "missing_facts": [],
+        "fact_pass": true,
+        "judge_pass": true,
+        "rules_pass": true,
+        "strict_pass": true,
+        "judge_failed": false,
+        "judge_error": null
+      },
+      {
+        "id": "rag-answer-002",
+        "question": "退款申请提交后审核需要多久？",
+        "answer": "我来为你说明退款审核的时效情况。\n\n退款申请审核时效说明如下：\n\n**审核阶段**\n- 退款申请提交后，系统**通常会在 1-3 个工作日内完成审核**。\n- 审核完成后，您会收到审核结果通知。\n\n**到账阶段**\n- 审核通过后，款项**通常会在 5-7 个工作日内原路退回**至您的原支付账户。\n\n**需要注意的几点**\n- 以上时限为**通常情况**，最终以支付渠道和平台的**实际处理进度为准**，不构成硬性承诺。\n- 如果订单**已发货**，通常需要先完成退货流程才能退款。\n- 如果您的退款涉及**已使用服务、虚拟商品、企业合同、部分退款或较大金额**，审核和到账时间可能延长，且需要**人工审核**。\n- 若商品已超过 7 天但未满 30 天，需要提供**商品质量问题证据**才能退款，这类审核也更严格。\n\n**下一步建议**\n如果您已经提交了退款申请，可以留意以下几点：\n1. 保留好**订单号和支付凭证**，便于后续跟进。\n2. 留意平台的审核结果通知，同时可查看订单状态是否更新。\n3. 若超过常规时间内仍未收到审核结果或退款到账，可以提供**订单号**，我很乐意帮助您进一步核实或转人工处理。\n\n请问您的退款申请是针对哪笔订单呢？如果您能提供订单号和支付时间，我可以给出更有针对性的说明。",
+        "expected_intent": "refund",
+        "predicted_intent": "refund",
+        "knowledge_used": true,
+        "scores": {
+          "relevance": 1.0,
+          "accuracy": 1.0,
+          "completeness": 1.0,
+          "helpfulness": 1.0,
+          "overall": 1.0
+        },
+        "missing_facts": [],
+        "fact_pass": true,
+        "judge_pass": true,
+        "rules_pass": false,
+        "strict_pass": false,
+        "judge_failed": false,
+        "judge_error": null
+      },
+      {
+        "id": "rag-answer-003",
+        "question": "退款审核通过后多久退回？",
+        "answer": "根据知识库中的退款政策，我来为您说明退款审核通过后的到账情况。\n\n## 退款到账时间说明\n\n**需要核验的信息**\n- 退款审核是否已通过（可在订单详情中查看审核状态）\n- 您的原支付渠道（微信、支付宝、银行卡等）\n\n**当前说明**\n\n根据 LumenMind 的退款政策：\n- **审核时效**：退款申请提交后，系统会在 **1-3 个工作日内**审核。\n- **到账时效**：审核通过后，款项通常在 **5-7 个工作日内**退回原支付账户（预计时间，以支付渠道实际处理为准）。\n\n**关于原路退回**\n退款通常按您实际支付时使用的渠道原路退回。不同支付渠道的处理时间可能有差异，建议到账期间留意原支付账户或银行卡入账记录。\n\n**下一步处理建议**\n1. 首先请在订单详情中确认审核状态是否为「已通过」。\n2. 若显示已通过但仍未到账，可先检查原支付账户/银行的入账记录。\n3. 若已超过常规时效仍未到账，建议转人工核实退款流水号。\n\n请问您当前的退款审核状态是已通过吗？如有订单号，也可以一并提供，以便我更好地协助您跟进。",
+        "expected_intent": "refund",
+        "predicted_intent": "refund",
+        "knowledge_used": true,
+        "scores": {
+          "relevance": 1.0,
+          "accuracy": 1.0,
+          "completeness": 1.0,
+          "helpfulness": 1.0,
+          "overall": 1.0
+        },
+        "missing_facts": [],
+        "fact_pass": true,
+        "judge_pass": true,
+        "rules_pass": true,
+        "strict_pass": true,
+        "judge_failed": false,
+        "judge_error": null
+      },
+      {
+        "id": "rag-answer-004",
+        "question": "商品发货后申请退款需要先做什么？",
+        "answer": "根据 LumenMind 的退款政策，我来为您说明**商品发货后申请退款的处理流程**：\n\n---\n\n**需要注意的情况**\n\n您提到的场景是**商品已发货**状态下申请退款，这与未发货订单的处理略有不同。\n\n根据 LumenMind 政策，**如果商品已经发货，需要先完成退货流程才能退款**。结合您之前关注的退款相关问题，具体的操作顺序一般为：\n\n1. **先完成退货**——需要将收到的商品寄回，退货是否通过需按订单状态和退货规则核验。\n2. **再申请/等待退款**——退货审核通过后，退款才会进入处理流程。\n\n**需要您注意的几点：**\n\n- **运费承担**：退货运费通常由您承担，除非是商品本身存在质量问题。\n- **审核时效**：退款申请提交后，系统通常会在 1-3 个工作日内审核；审核通过后，款项预计在 5-7 个工作日内退回原支付账户（以支付渠道实际处理为准）。\n- **无理由退款的期限**：退货及退款需在 7 天无理由期限内进行；若已超过时长，可能需按订单状态单独核验。\n\n---\n\n为了帮助您准确操作，能否提供以下信息以便进一步判断？\n\n- **订单号** 或订单状态\n- **发货／收货情况**（是否已收到商品）\n- **申请退款的原因**（无理由 / 质量问题等）\n- 收货时间是否在 7 天无理由期限内\n\n拿到订单信息后，我可以帮您进一步判断该走的流程。由于涉及实际退货和资金处理，最终结果仍需以订单核验和审核为准。",
+        "expected_intent": "refund",
+        "predicted_intent": "refund",
+        "knowledge_used": true,
+        "scores": {
+          "relevance": 1.0,
+          "accuracy": 1.0,
+          "completeness": 1.0,
+          "helpfulness": 1.0,
+          "overall": 1.0
+        },
+        "missing_facts": [],
+        "fact_pass": true,
+        "judge_pass": true,
+        "rules_pass": true,
+        "strict_pass": true,
+        "judge_failed": false,
+        "judge_error": null
+      },
+      {
+        "id": "rag-answer-005",
+        "question": "质量问题退货的运费由谁承担？",
+        "answer": "我根据 LumenMind 的退款政策为您解答：\n\n根据平台的退款政策，**退货运费由谁承担，取决于退货原因**：\n\n- **如果是商品质量问题**导致的退货，退货运费**由平台/商家承担**（即无需您自付运费）。\n- 如果是**无理由退货**（如个人原因不想要了），则退货运费由**用户自行承担**。\n\n另外补充几个相关要点：\n- 购买后 **7 天内**可申请无理由退款。\n- 超过 7 天但未超过 30 天的订单，需要提供商品质量问题的证据才能退款。\n\n我的查询主要基于知识库的通用规则说明。如果您当前有具体的订单需要处理质量问题退货，建议您联系客服并提供订单号，客服会核验订单情况后为您安排相应流程。\n\n请问还有其他可以帮您的吗？",
+        "expected_intent": "refund",
+        "predicted_intent": "refund",
+        "knowledge_used": true,
+        "scores": {
+          "relevance": 1.0,
+          "accuracy": 1.0,
+          "completeness": 1.0,
+          "helpfulness": 1.0,
+          "overall": 1.0
+        },
+        "missing_facts": [],
+        "fact_pass": true,
+        "judge_pass": true,
+        "rules_pass": true,
+        "strict_pass": true,
+        "judge_failed": false,
+        "judge_error": null
+      },
+      {
+        "id": "rag-answer-006",
+        "question": "订单状态通常有哪些？",
+        "answer": "根据我们的订单查询说明，订单状态通常包括以下几种：\n\n1. **待支付** — 订单已生成，但尚未完成付款\n2. **已支付** — 付款已完成，订单正在处理中\n3. **已发货** — 商品已交由物流发出\n4. **运输中** — 包裹正在物流配送途中\n5. **已签收** — 您或他人已确认收到包裹\n6. **已完成** — 订单流程全部结束\n\n**几点补充说明：**\n- 物流信息通常在发货后 24 小时内更新\n- 如果订单显示已发货但超过 7 天仍未收到，可以联系我们申请查件\n- 如果订单状态显示异常，请提供订单号，我们会帮您进一步核实处理\n\n请问您的订单目前处于哪个状态，是否有需要我帮助确认的地方？",
+        "expected_intent": "order_status",
+        "predicted_intent": "order_status",
+        "knowledge_used": true,
+        "scores": {
+          "relevance": 1.0,
+          "accuracy": 1.0,
+          "completeness": 1.0,
+          "helpfulness": 1.0,
+          "overall": 1.0
+        },
+        "missing_facts": [],
+        "fact_pass": true,
+        "judge_pass": true,
+        "rules_pass": true,
+        "strict_pass": true,
+        "judge_failed": false,
+        "judge_error": null
+      },
+      {
+        "id": "rag-answer-007",
+        "question": "订单已发货七天还没收到怎么办？",
+        "answer": "我帮你梳理一下，通常遇到\"订单显示已发货但一直没收到\"的情况，可以按以下步骤处理：\n\n**先自己核实一下**\n1. 在订单详情里查看**物流单号**，确认包裹目前的运输状态（是否长时间静止、是否有异常退回）。\n2. 检查收货地址是否填错，或留意是否有快递柜、驿站代收未通知。\n\n**如果确实超过7天仍未收到**\n- 这种情况可以联系客服**申请查件**，客服会帮你向承运方核实包裹去向。\n- 申请查件通常需要提供**订单号**和**快递单号**，方便定位问题。\n\n为了帮你更精准地跟进，能否提供以下信息？\n- 订单号（或完整的物流单号）\n- 下单时间\n- 包裹最后更新的物流状态显示什么\n\n你把这些发给我，我可以根据你的描述帮你判断下一步该走查件还是换货/退款流程。需要我先帮你确认当前应该怎么做吗？",
+        "expected_intent": "logistics",
+        "predicted_intent": "logistics",
+        "knowledge_used": true,
+        "scores": {
+          "relevance": 1.0,
+          "accuracy": 1.0,
+          "completeness": 1.0,
+          "helpfulness": 1.0,
+          "overall": 1.0
+        },
+        "missing_facts": [],
+        "fact_pass": true,
+        "judge_pass": true,
+        "rules_pass": true,
+        "strict_pass": true,
+        "judge_failed": false,
+        "judge_error": null
+      },
+      {
+        "id": "rag-answer-008",
+        "question": "发货后物流信息通常多久更新？",
+        "answer": "根据 LumenMind 的配送与订单查询规则，给您说明如下：\n\n**物流信息更新规律**\n- 一般情况下，**发货后 24 小时内**物流信息会更新第一条揽件/运输记录。\n- 您可以在订单状态为\"运输中\"后，在订单详情页随时查看最新物流轨迹。\n\n**几点提醒**\n- 物流轨迹的刷新由承运方（快递公司）同步，偶尔可能出现短暂延迟，属正常现象。\n- 如果订单显示**已发货但超过 7 天仍未收到**，或物流信息长期不更新，可以联系客服申请查件。\n\n如果您有具体订单号需要查询状态，可以提供给我，我帮您核对更新情况（但我无法直接访问真实后台数据，会引导您走正确的查询渠道）。请问还有其他需要帮助的吗？😊",
+        "expected_intent": "logistics",
+        "predicted_intent": "logistics",
+        "knowledge_used": true,
+        "scores": {
+          "relevance": 1.0,
+          "accuracy": 1.0,
+          "completeness": 1.0,
+          "helpfulness": 1.0,
+          "overall": 1.0
+        },
+        "missing_facts": [],
+        "fact_pass": true,
+        "judge_pass": true,
+        "rules_pass": true,
+        "strict_pass": true,
+        "judge_failed": false,
+        "judge_error": null
+      },
+      {
+        "id": "rag-answer-009",
+        "question": "订单状态异常联系客服要提供什么？",
+        "answer": "根据我们客服的接待流程，当你遇到订单状态异常需要联系人工处理时，建议提前准备好以下信息，可以加快核实进度：\n\n**常见需要提供的信息：**\n- **订单号**：这是最关键的标识，方便快速定位订单\n- **下单时间**：大概的下单日期\n- **商品或服务名称**\n- **问题描述与发生时间**：例如订单卡在哪个状态、异常开始的时间点\n\n**进一步核实身份时可能用到：**\n- 绑定手机号或登录账号（用于身份核验，不要发送完整密码、验证码等敏感信息）\n\n这里补充说明一下：订单状态一般包括待支付、已支付、已发货、运输中、已签收、已完成。如果显示\"已发货\"但超过 7 天仍未收到，可以凭订单号申请查件。\n\n请问你具体遇到的是哪种异常情况？如果有订单号，也可以直接提供，我帮你判断下一步该怎么做。",
+        "expected_intent": "order_status",
+        "predicted_intent": "order_status",
+        "knowledge_used": true,
+        "scores": {
+          "relevance": 1.0,
+          "accuracy": 1.0,
+          "completeness": 1.0,
+          "helpfulness": 1.0,
+          "overall": 1.0
+        },
+        "missing_facts": [],
+        "fact_pass": true,
+        "judge_pass": true,
+        "rules_pass": true,
+        "strict_pass": true,
+        "judge_failed": false,
+        "judge_error": null
+      },
+      {
+        "id": "rag-answer-010",
+        "question": "怎么确认商品是否已经发货？",
+        "answer": "根据知识库的信息，我为您整理了几种确认商品是否发货的方法：\n\n**方法一：查看订单状态**\n在订单详情页面中查看当前状态，订单会有以下几种状态：\n- **待支付**、**已支付** → 说明还没有发货\n- **已发货**、**运输中** → 说明商品已经在路上了\n- **已签收**、**已完成** → 说明已经送达\n\n**方法二：查看物流信息**\n- 商品发货后，物流信息通常会在 **24 小时内更新**\n- 您可以通过订单详情中的物流单号，在快递平台或我们的小程序中实时追踪包裹位置\n\n**温馨提示**：如果订单显示「已发货」但 **超过 7 天** 仍未收到商品，可以联系客服申请查件。\n\n---\n\n如果您需要帮您核实具体某个订单的发货情况，可以告诉我您的**订单号**，我这边也可以为您进一步核实确认～不过需要说明的是，我无法直接访问后端数据，具体订单状态的最终核实建议以订单页面显示为准。",
+        "expected_intent": "order_status",
+        "predicted_intent": "logistics",
+        "knowledge_used": true,
+        "scores": {
+          "relevance": 1.0,
+          "accuracy": 1.0,
+          "completeness": 1.0,
+          "helpfulness": 1.0,
+          "overall": 1.0
+        },
+        "missing_facts": [],
+        "fact_pass": true,
+        "judge_pass": true,
+        "rules_pass": true,
+        "strict_pass": true,
+        "judge_failed": false,
+        "judge_error": null
+      },
+      {
+        "id": "rag-answer-011",
+        "question": "账户密码至少需要多少位？",
+        "answer": "根据 LumenMind 的账户安全规则，账户密码的设置要求如下：\n\n**密码长度至少为 8 位**，并且建议**同时包含字母和数字**，以增强账户安全性。\n\n此外，也给您几点账户安全的补充建议：\n\n- **定期修改密码**，避免长期使用同一个密码。\n- 如果忘记密码，可以通过**绑定的手机号或邮箱**进行重置。\n- 建议在安全设置中开启**两步验证**，进一步保护账户。\n- 请勿将密码分享给他人——**客服人员绝不会索要您的密码**，如有陌生来电索取请提高警惕。\n\n如果您在设置密码时还有其他问题，随时可以告诉我。",
+        "expected_intent": "account_security",
+        "predicted_intent": "account",
+        "knowledge_used": true,
+        "scores": {
+          "relevance": 1.0,
+          "accuracy": 1.0,
+          "completeness": 1.0,
+          "helpfulness": 1.0,
+          "overall": 1.0
+        },
+        "missing_facts": [],
+        "fact_pass": true,
+        "judge_pass": true,
+        "rules_pass": true,
+        "strict_pass": true,
+        "judge_failed": false,
+        "judge_error": null
+      },
+      {
+        "id": "rag-answer-012",
+        "question": "忘记密码可以通过哪些方式重置？",
+        "answer": "根据 LumenMind 的知识库，我为您整理如下：\n\n## 忘记密码的重置方式\n\n如果您忘记了登录密码，可以通过以下**两种方式**重置：\n\n1. **通过绑定的手机号重置** — 在登录页面选择\"忘记密码\"，输入绑定的手机号，按照提示接收验证短信后即可设置新密码。\n\n2. **通过绑定的邮箱重置** — 同样入口选择，输入绑定邮箱后，系统会发送一封重置邮件到您的邮箱，通过邮件中的链接即可完成密码重置。\n\n## 补充建议\n\n- **密码安全要求**：新密码建议至少 8 位，包含字母和数字，避免使用过于简单或与旧密码重复的组合。\n- **账户安全升级**：建议您在登录后到「安全设置」中开启**两步验证**，进一步提高账户安全性。\n- **重要提醒**：请通过 APP/官网正规入口进行重置操作，**正规客服不会向您索要验证码或密码**，请警惕任何索要此类信息的第三方。\n\n---\n\n如果您在重置过程中遇到收不到验证码、邮件，或重置后仍无法登录等具体情况，可以告诉我，我帮您进一步排查。",
+        "expected_intent": "account_security",
+        "predicted_intent": "technical_login",
+        "knowledge_used": true,
+        "scores": {
+          "relevance": 1.0,
+          "accuracy": 1.0,
+          "completeness": 1.0,
+          "helpfulness": 1.0,
+          "overall": 1.0
+        },
+        "missing_facts": [],
+        "fact_pass": true,
+        "judge_pass": true,
+        "rules_pass": true,
+        "strict_pass": true,
+        "judge_failed": false,
+        "judge_error": null
+      },
+      {
+        "id": "rag-answer-013",
+        "question": "发现异常登录后系统会如何处理？",
+        "answer": "根据 LumenMind 的账户安全政策，我来为你整理异常登录的处理方式：\n\n**发现异常登录后，系统会自动执行以下操作：**\n\n1. **自动锁定账户** —— 一旦检测到异常登录（例如在不常见的地点或设备上登录），系统会自动锁定你的账户，防止进一步的风险操作。\n\n2. **发送通知** —— 系统会自动向你的绑定手机号或邮箱发送登录异常的提醒通知。\n\n**你接下来可以这样做：**\n\n- **重置密码**：通过绑定的手机或邮箱重置账户密码。建议密码至少 8 位，最好包含字母和数字。\n- **开启两步验证**：在「安全设置」中开启两步验证，可以显著提升账户安全。即使有人拿到你的密码，也无法轻易登入。\n- **定期修改密码**，并避免将密码分享给他人。\n\n⚠️ **需要留意**：请务必警惕——LumenMind 客服**不会索取你的密码、验证码或支付信息**。如果收到自称客服要求提供这类信息的消息，都是骗局，切勿提供。\n\n另外，能帮我确认一下：这一般是无法自行处理的真实账户事件，涉及账户安全操作，**人工核实**是必要的。如果你想让我协助具体的账户核实或后续处理，请告诉我遇到了什么具体情况，或你希望了解安全设置中哪一步的操作细节，我可以继续帮你。",
+        "expected_intent": "account_security",
+        "predicted_intent": "account_security",
+        "knowledge_used": true,
+        "scores": {
+          "relevance": 1.0,
+          "accuracy": 1.0,
+          "completeness": 1.0,
+          "helpfulness": 1.0,
+          "overall": 1.0
+        },
+        "missing_facts": [],
+        "fact_pass": true,
+        "judge_pass": true,
+        "rules_pass": true,
+        "strict_pass": true,
+        "judge_failed": false,
+        "judge_error": null
+      },
+      {
+        "id": "rag-answer-014",
+        "question": "怎样进一步提高账户安全性？",
+        "answer": "根据知识库内容，我来为您介绍几种提高LumenMind账户安全性的做法：\n\n## 🔐 提高账户安全性的建议\n\n### 1. 设置强密码\n- **密码长度**至少 8 位\n- **建议包含**字母和数字（更建议字母、数字加符号混合）\n- **定期修改密码**，避免长期使用同一密码\n- 建议不要在其他网站重复使用同一密码\n\n### 2. 开启两步验证 ⭐（最推荐）\n在 **安全设置** 中开启**两步验证**，登录时除了密码外还需额外的验证信息，能显著提升账户的安全性，即使密码泄露他人也难以登录。\n\n### 3. 保护账号信息\n- **不要将密码分享给任何人**——请注意，LumenMind 客服人员**绝不会**索要您的密码、验证码等敏感信息\n- 对任何索要密码、验证码的来电或消息保持警惕\n\n### 4. 善用异常防护\nLumenMind 系统在检测到**异常登录**时，会自动**锁定账户**并通过绑定手机号/邮箱发送**通知**。请确保您的联系方式保持有效，以便及时收到提醒。\n\n### 5. 重置密码途径\n如果忘记密码，可以通过绑定的**手机号或邮箱**进行重置。\n\n---\n\n如果您需要进一步了解如何具体开启两步验证，或遇到登录异常等安全相关的问题，欢迎继续告诉我，我会尽力为您协助解答。请问是否需要我帮您确认某项设置的步骤？",
+        "expected_intent": "account_security",
+        "predicted_intent": "account_security",
+        "knowledge_used": true,
+        "scores": {
+          "relevance": 1.0,
+          "accuracy": 1.0,
+          "completeness": 1.0,
+          "helpfulness": 1.0,
+          "overall": 1.0
+        },
+        "missing_facts": [],
+        "fact_pass": true,
+        "judge_pass": true,
+        "rules_pass": true,
+        "strict_pass": true,
+        "judge_failed": false,
+        "judge_error": null
+      },
+      {
+        "id": "rag-answer-015",
+        "question": "客服人员会向我索取密码吗？",
+        "answer": "根据 LumenMind 的账户安全政策，我可以明确回答您：\n\n**不会。LumenMind 客服人员绝不会向您索取密码。**\n\n为了保护您的账户安全，请您务必记住以下几点：\n\n1. **客服绝不索取密码、验证码**：也不应索取支付密码、完整银行卡号、私钥或完整 API Key 等敏感信息。\n\n2. **如果您遇到有人自称客服并向您索要这些信息**，请警惕，这很可能是**诈骗**行为。请立即挂断或停止对话，通过官方渠道核实。\n\n3. **如何重置密码**：如果您忘记了密码，可以通过绑定的手机号或邮箱自行重置，无需客服介入。\n\n4. **建议开启两步验证**：在安全设置中开启两步验证，可进一步增强账户安全性。\n\n如果您遇到任何可疑情况，或者对账户安全有其他疑问，可以随时告诉我，我很乐意协助您核实处理。",
+        "expected_intent": "account_security",
+        "predicted_intent": "account_security",
+        "knowledge_used": true,
+        "scores": {
+          "relevance": 1.0,
+          "accuracy": 1.0,
+          "completeness": 1.0,
+          "helpfulness": 1.0,
+          "overall": 1.0
+        },
+        "missing_facts": [],
+        "fact_pass": true,
+        "judge_pass": true,
+        "rules_pass": false,
+        "strict_pass": false,
+        "judge_failed": false,
+        "judge_error": null
+      },
+      {
+        "id": "rag-answer-016",
+        "question": "应用崩溃时首先可以怎么处理？",
+        "answer": "根据维护的业务知识库，当 LumenMind **应用崩溃**时，首先可以按以下顺序处理：\n\n**第一步：清除缓存后重启应用**\n- 这是最常见的低成本处理方式。很多偶发性崩溃与缓存数据异常、临时文件损坏有关。\n- 操作后重新打开应用，看崩溃是否还复现。\n\n**第二步：如果问题持续，升级到最新版本**\n- 崩溃往往可能由旧版本存在的已知 bug 引起，官方会通过新版本修复。\n- 请先检查当前应用版本，对照是否有可用的更新。\n\n**第三步：若仍无法解决，收集信息并上报**\n- 记录崩溃发生的**具体时间**、**是否持续复现**、**操作路径**（做了什么操作后崩溃）以及设备的**系统版本和型号**。\n- 这些信息可以帮助进一步定位是否属于特定机型、系统或功能触发的崩溃，也便于升级处理。\n\n---\n\n需要补充的是：以上是知识库中针对**一般用户侧**的崩�溃引导步骤。如果您是**技术支持/服务端排查场景**，我建议先补充确认三点：\n1. **影响范围**——是单个用户还是部分/全部用户崩溃？\n2. **发生环境**——应用版本号、操作系统、是否刚更新过？\n3. **是否有报错日志或错误信息**——方便的情况下可提供片段。\n\n请问您当前遇到的是**个人使用应用时崩溃**，还是需要**协助排查某位用户反馈的崩溃问题**？我可以针对性地给出更详细的步骤。",
+        "expected_intent": "technical_crash",
+        "predicted_intent": "technical_crash",
+        "knowledge_used": true,
+        "scores": {
+          "relevance": 1.0,
+          "accuracy": 1.0,
+          "completeness": 1.0,
+          "helpfulness": 1.0,
+          "overall": 1.0
+        },
+        "missing_facts": [],
+        "fact_pass": true,
+        "judge_pass": true,
+        "rules_pass": true,
+        "strict_pass": true,
+        "judge_failed": false,
+        "judge_error": null
+      },
+      {
+        "id": "rag-answer-017",
+        "question": "登录返回401通常代表什么？",
+        "answer": "我注意到您问的是登录返回 401 的问题，但同时从记忆中看到您之前关注的是**发货后退款**的话题。让我先回应眼前的技术问题，然后您也可以继续之前的退款咨询。\n\n关于**登录返回 401** 的问题：\n\n401 表示**认证失败**，即服务器无法确认您（或您的请求）是谁。这和 403（权限不足）不同，401 先解决\"你是谁\"的问题。\n\n**常见可能原因：**\n- 账号或密码错误\n- 登录凭证（Token）已过期或失效\n- 验证码错误或已过期\n- 第三方登录授权过期或被撤销\n- 账号被锁定或停用\n- 请求中未正确携带登录凭证\n\n**排查建议：**\n1. 先确认是**首次登录**就失败，还是**之前能登录、现在突然失败**——两者方向不同\n2. 核对输入的账号/密码是否有误（注意大小写、空格）\n3. 若是验证码，确认是否在有效期内重新获取\n4. 若是扫码或第三方登录，尝试重新发起授权\n5. 若提示 Token 过期，重新登录获取新的凭证即可\n\n**验证方式：** 重新发起一次登录，观察是成功还是返回同样的 401。\n\n如果重试后仍然 401 且确认账号密码无误，可能是账号侧状态问题，我这边无法直接查询您的真实账号状态。届时建议您通过官方渠道重置密码，或联系人工客服核实账号是否被锁定。\n\n---\n\n另外，我注意到您此前在了解**发货后退款的流程**，如果您还需要继续这个话题，随时可以问我，我来为您解答退款的前置条件、时效和流程。需要继续吗？",
+        "expected_intent": "technical_login",
+        "predicted_intent": "technical_login",
+        "knowledge_used": false,
+        "scores": {
+          "relevance": 1.0,
+          "accuracy": 1.0,
+          "completeness": 1.0,
+          "helpfulness": 1.0,
+          "overall": 1.0
+        },
+        "missing_facts": [],
+        "fact_pass": true,
+        "judge_pass": true,
+        "rules_pass": true,
+        "strict_pass": true,
+        "judge_failed": false,
+        "judge_error": null
+      },
+      {
+        "id": "rag-answer-018",
+        "question": "页面加载很慢可以检查什么？",
+        "answer": "## 页面加载慢的排查思路\n\n根据我们的故障排查知识，**页面加载慢**通常可以从以下几个方向入手排查：\n\n### 1. 先排查基础网络\n- **检查网络连接**：确认手机/电脑当前的网络状态是否正常\n- **尝试切换网络**：试试切换 WiFi 和移动数据（或换一个 WiFi）看是否有改善\n- **使用测速工具**：确认当前网络的带宽和延迟是否正常\n\n### 2. 本地环境排查\n- **清除缓存**：清除浏览器或 App 的缓存后重新加载\n- **关闭占用资源的程序**：后台运行的程序过多可能占带宽或内存\n- **重启设备**：长时间未重启可能出现网络栈异常，重启后再试\n\n### 3. 确认是全局性问题还是局部问题\n可以做一个**对比测试**来缩小范围：\n- 只有**某一个页面**慢，还是**所有页面**都慢？\n  - 单个页面慢 → 可能是该页面功能或接口问题\n  - 所有页面都慢 → 更可能偏网络或设备问题\n- 换一个**时间段**再测试，排除高峰拥堵\n- 换**不同设备**登录同一账号，区分是设备问题还是账号问题\n\n### 4. 如果以上都正常\n如果网络和设备都没问题，但页面持续加载缓慢，那可能是**服务端的性能问题**，这种情况需要进一步的技术支持介入处理，建议您升级并提供以下信息以便我们定位：\n- 具体是哪个页面/功能慢\n- 大约从什么时候开始出现\n- 使用的网络环境是 WiFi 还是流量\n- 是否更换设备/网络后依然存在\n\n---\n\n如果您能补充一下**具体是哪个页面慢**，以及**是手机端还是网页端**，我可以帮您做更精准的判断。另外需要提醒：我无法直接查看您账号的后台数据或实时接口状态，涉及服务端性能核查时需要由技术支持在后台进一步诊断。",
+        "expected_intent": "technical",
+        "predicted_intent": "technical",
+        "knowledge_used": true,
+        "scores": {
+          "relevance": 1.0,
+          "accuracy": 1.0,
+          "completeness": 1.0,
+          "helpfulness": 1.0,
+          "overall": 1.0
+        },
+        "missing_facts": [],
+        "fact_pass": true,
+        "judge_pass": true,
+        "rules_pass": true,
+        "strict_pass": true,
+        "judge_failed": false,
+        "judge_error": null
+      },
+      {
+        "id": "rag-answer-019",
+        "question": "支付失败时应该先检查什么？",
+        "answer": "根据 LumenMind 的业务知识库，当支付失败时，建议**先按以下顺序排查**：\n\n**需要检查的内容**\n1. **银行卡余额是否充足** —— 确认账户内是否有足够的可用资金完成本次支付。\n2. **是否开通了网上支付功能** —— 部分银行卡需要先开通网上支付或快捷支付功能才能完成在线交易。\n3. **支付授权/限额设置** —— 部分银行设置了大额或每日支付限额，可留意是否触发了限额拦截（这类问题往往不只是\"客服可查账目\"能解决的）。\n4. **网络连接是否正常** —— 检查当前网络状态，必要时切换 WiFi 或移动数据后重试。\n5. **支付信息是否正确** —— 如果提示的是认证类错误，可核对手中的支付信息是否填写有误。\n\n**温馨提示**\n- 如果以上项目都排查正常、仍然失败，可能是**服务端或支付渠道的临时问题**，建议稍后重试；若问题持续，可提供**订单号、支付时间、支付渠道和失败提示**等信息供进一步核实处理。\n- 我不会在未核验订单信息的情况下直接断定失败原因，涉及实际退款或账目异常时需要转入工核验。\n\n如果您能告诉我**是哪个环节的支付失败（比如银行卡/微信/支付宝）、有没有具体的错误提示**，我可以更有针对性地帮您判断下一步。",
+        "expected_intent": "payment_issue",
+        "predicted_intent": "payment_issue",
+        "knowledge_used": true,
+        "scores": {
+          "relevance": 1.0,
+          "accuracy": 1.0,
+          "completeness": 1.0,
+          "helpfulness": 1.0,
+          "overall": 1.0
+        },
+        "missing_facts": [],
+        "fact_pass": true,
+        "judge_pass": true,
+        "rules_pass": true,
+        "strict_pass": true,
+        "judge_failed": false,
+        "judge_error": null
+      },
+      {
+        "id": "rag-answer-020",
+        "question": "接口持续返回500应该怎么办？",
+        "answer": "我先确认一下你的使用场景，这样能给出更准确的排查方向。\n\n在邮件或对接中常遇到的返回 500 有几类不同原因。为了帮你精准定位，请先补充以下关键信息：\n\n1. **返回体或错误码**：500 响应里通常会带 `request_id`、错误信息或子错误码，方便定位是平台还是参数触发的问题。\n2. **请求信息**：接口路径、请求方法（GET/POST）、发生时间。\n3. **是否稳定复现**：是每次必现，还是偶发（例如高峰时段）？影响单个接口还是多个接口？\n4. **最近变更**：是否刚升级版本、改参数格式、换环境、改密钥或签名方式？\n\n在此之前，可以先按这个顺序低成本自查第一轮：\n\n**可能原因 / 排查步骤**\n\n1. **参数或签名问题（最常见）**——500 表面是服务端异常，但很多其实是参数格式不符、必填字段缺失、签名未含正确时间戳/参数顺序触发。建议用文档里的示例请求逐字段比对。若响应里有参数校验信息，可按提示修正后重试一次。\n\n2. **请求体编码或 JSON 格式**——确认 `Content-Type` 与请求体格式一致，中文或特殊字符是否被转义错误。\n\n3. **网络代理 / 环境差异**——同一请求在**本地（curl / Postman）**与**生产服务**分别测试，若本地正常而线上偶发 500，多为网络抖动、限流或超时重试策略问题。\n\n4. **依赖服务或限流**——如果是偶发，确认是否接近接口 QPS 上限；重试请加**退避策略**（如递增间隔），不要无限快速重试。\n\n---\n\n为了不再泛泛而谈，**麻烦把第一轮排查的一条实际失败请求的 `request_id`、接口路径、发生时间和响应体摘要发我**，我就能判断是平台服务端异常、还是参数/配置层面的问题，并给出下一步具体动作。\n\n如果这是**生产环境持续 500 且影响多名用户**，或涉及**支付、下单等核心链路**，建议你先保留失败请求的 `request_id` 和日志时间点，我会帮你判断是否立即转二线技术支持。",
+        "expected_intent": "technical_crash",
+        "predicted_intent": "technical_crash",
+        "knowledge_used": false,
+        "scores": {
+          "relevance": 1.0,
+          "accuracy": 1.0,
+          "completeness": 0.95,
+          "helpfulness": 1.0,
+          "overall": 0.9875
+        },
+        "missing_facts": [
+          "稍后重试"
+        ],
+        "fact_pass": false,
+        "judge_pass": true,
+        "rules_pass": true,
+        "strict_pass": false,
+        "judge_failed": false,
+        "judge_error": null
+      },
+      {
+        "id": "rag-answer-021",
+        "question": "消费一元可以获得多少积分？",
+        "answer": "根据会员积分规则，为您解答：\n\n**每消费 1 元累积 1 积分**（即 1 元 = 1 积分）。\n\n另外为您补充一些相关细节，方便您更好地享受积分权益：\n\n- **积分抵扣**：100 积分 = 1 元，可在下次购物时抵扣。\n- **积分有效期**：1 年，过期自动清零。\n- **生日双倍**：生日当月消费可得双倍积分。\n- **会员等级**：\n  - 银卡会员（累计消费满 1000 元）：享 95 折\n  - 金卡会员（累计消费满 5000 元）：享 9 折\n\n请问还需要我帮您了解其他会员或积分相关的内容吗？",
+        "expected_intent": "query",
+        "predicted_intent": "query",
+        "knowledge_used": true,
+        "scores": {
+          "relevance": 1.0,
+          "accuracy": 1.0,
+          "completeness": 1.0,
+          "helpfulness": 1.0,
+          "overall": 1.0
+        },
+        "missing_facts": [],
+        "fact_pass": true,
+        "judge_pass": true,
+        "rules_pass": true,
+        "strict_pass": true,
+        "judge_failed": false,
+        "judge_error": null
+      },
+      {
+        "id": "rag-answer-022",
+        "question": "多少积分可以抵扣一元？",
+        "answer": "根据我们的会员积分规则，**100 积分可以抵扣 1 元**。\n\n简单补充几个相关信息：\n- 每消费 1 元可累积 1 积分\n- 积分有效期为 1 年，过期自动清零\n\n还有什么想了解的吗？比如积分使用或到期相关问题都可以问我。",
+        "expected_intent": "query",
+        "predicted_intent": "query",
+        "knowledge_used": true,
+        "scores": {
+          "relevance": 1.0,
+          "accuracy": 1.0,
+          "completeness": 1.0,
+          "helpfulness": 1.0,
+          "overall": 1.0
+        },
+        "missing_facts": [],
+        "fact_pass": true,
+        "judge_pass": true,
+        "rules_pass": true,
+        "strict_pass": true,
+        "judge_failed": false,
+        "judge_error": null
+      },
+      {
+        "id": "rag-answer-023",
+        "question": "银卡会员需要累计消费多少？",
+        "answer": "根据LumenMind的会员积分规则，为您整理银卡会员的升级条件如下：\n\n### 银卡会员升级要求\n\n**累计消费满 1000 元**即可升级为银卡会员。具体来说：\n\n| 会员等级 | 累计消费要求 | 权益折扣 |\n|---------|------------|---------|\n| 普通会员 | — | 无折扣 |\n| **银卡会员** | **1000 元** | 95 折 |\n| 金卡会员 | 5000 元 | 9 折 |\n\n### 相关补充说明\n- 每消费 1 元累积 1 积分，银卡会员权益在达标累计消费后自动生效\n- 如果您想进一步了解累计消费的口径（例如是否含退款部分、是否计入折扣后实付等），或对当前累计金额有疑问，我建议您查看账户中的会员/积分页面进行确认。\n\n还有其他可以帮您解答的吗？比如金卡会员的详细权益，或如何查询您的当前累计消费。",
+        "expected_intent": "query",
+        "predicted_intent": "account",
+        "knowledge_used": true,
+        "scores": {
+          "relevance": 1.0,
+          "accuracy": 1.0,
+          "completeness": 1.0,
+          "helpfulness": 1.0,
+          "overall": 1.0
+        },
+        "missing_facts": [],
+        "fact_pass": true,
+        "judge_pass": true,
+        "rules_pass": true,
+        "strict_pass": true,
+        "judge_failed": false,
+        "judge_error": null
+      },
+      {
+        "id": "rag-answer-024",
+        "question": "金卡会员可以享受几折优惠？",
+        "answer": "根据查询到的会员规则，为您说明如下：\n\n**金卡会员可享受 9 折优惠。**\n\n补充相关会员信息：\n- **金卡会员**：需累计消费满 5000 元升级，享受 **9 折** 优惠\n- 银卡会员（累计消费满 1000 元）享受 95 折\n- 普通会员暂无等级折扣\n- 积分规则：每消费 1 元累积 1 积分，100 积分可抵扣 1 元，积分有效期为 1 年\n\n请问您还有其他关于会员权益或优惠方面的问题需要了解吗？",
+        "expected_intent": "query",
+        "predicted_intent": "query",
+        "knowledge_used": true,
+        "scores": {
+          "relevance": 1.0,
+          "accuracy": 1.0,
+          "completeness": 1.0,
+          "helpfulness": 1.0,
+          "overall": 1.0
+        },
+        "missing_facts": [],
+        "fact_pass": true,
+        "judge_pass": true,
+        "rules_pass": true,
+        "strict_pass": true,
+        "judge_failed": false,
+        "judge_error": null
+      },
+      {
+        "id": "rag-answer-025",
+        "question": "积分有效期是多久？",
+        "answer": "根据 LumenMind 的会员积分规则，**积分的有效期为 1 年，到期会自动清零**。\n\n其他相关的积分规则我也可以一并告知您：\n- 每消费 1 元累计 1 积分\n- 购物时可抵扣，100 积分 = 1 元\n- 会员等级分为普通、银卡、金卡会员，越高等级享越多折扣\n- 生日当月消费可获得双倍积分\n\n请问还有什么可以帮您了解的吗？",
+        "expected_intent": "query",
+        "predicted_intent": "query",
+        "knowledge_used": true,
+        "scores": {
+          "relevance": 1.0,
+          "accuracy": 1.0,
+          "completeness": 1.0,
+          "helpfulness": 1.0,
+          "overall": 1.0
+        },
+        "missing_facts": [],
+        "fact_pass": true,
+        "judge_pass": true,
+        "rules_pass": true,
+        "strict_pass": true,
+        "judge_failed": false,
+        "judge_error": null
+      },
+      {
+        "id": "rag-answer-026",
+        "question": "标准配送一般几天送到？",
+        "answer": "根据配送说明：\n\n**标准配送一般需要 3-5 个工作日送达**，并且订单满 99 元可享免运费。\n\n另外补充几点相关信息供您参考：\n- 偏远地区可能需要额外增加 2-3 天\n- 配送时间为每天 9:00-18:00，节假日可能会有所延迟\n- 物流信息通常在发货后 24 小时内更新，若已发货超过 7 天仍未收到，可联系客服申请查件\n\n还有其他关于配送的问题需要帮助吗？😊",
+        "expected_intent": "logistics",
+        "predicted_intent": "logistics",
+        "knowledge_used": true,
+        "scores": {
+          "relevance": 1.0,
+          "accuracy": 1.0,
+          "completeness": 1.0,
+          "helpfulness": 1.0,
+          "overall": 1.0
+        },
+        "missing_facts": [],
+        "fact_pass": true,
+        "judge_pass": true,
+        "rules_pass": true,
+        "strict_pass": true,
+        "judge_failed": false,
+        "judge_error": null
+      },
+      {
+        "id": "rag-answer-027",
+        "question": "标准配送满多少钱免运费？",
+        "answer": "抱歉，我在当前知识库中没有找到标准配送免运费门槛的具体金额信息。\n\n为了不误导您，我不会用常识去猜测这个规则。建议您可前往 App/网站的**运费说明**页面查看，或咨询一下人工客服获取准确的免运费门槛。\n\n请问还有其他可以帮您的吗？😊",
+        "expected_intent": "logistics",
+        "predicted_intent": "logistics",
+        "knowledge_used": true,
+        "scores": {
+          "relevance": 0.0,
+          "accuracy": 0.0,
+          "completeness": 0.0,
+          "helpfulness": 0.0,
+          "overall": 0.0
+        },
+        "missing_facts": [
+          "99元"
+        ],
+        "fact_pass": false,
+        "judge_pass": false,
+        "rules_pass": true,
+        "strict_pass": false,
+        "judge_failed": false,
+        "judge_error": null
+      },
+      {
+        "id": "rag-answer-028",
+        "question": "加急配送需要多久，运费多少？",
+        "answer": "根据配送说明的相关规定，加急配送的具体信息如下：\n\n- **配送时效**：1-2 个工作日送达\n- **运费**：15 元\n\n需要提醒的是，如果配送地址属于偏远地区，可能需要额外增加 2-3 天的时间。如果你需要选择加急配送或想确认具体地址是否适用，可以告诉我订单情况或收货区域，我再帮你进一步确认相关信息。需要帮忙吗？😊",
+        "expected_intent": "logistics",
+        "predicted_intent": "logistics",
+        "knowledge_used": true,
+        "scores": {
+          "relevance": 1.0,
+          "accuracy": 1.0,
+          "completeness": 1.0,
+          "helpfulness": 1.0,
+          "overall": 1.0
+        },
+        "missing_facts": [],
+        "fact_pass": true,
+        "judge_pass": true,
+        "rules_pass": true,
+        "strict_pass": true,
+        "judge_failed": false,
+        "judge_error": null
+      },
+      {
+        "id": "rag-answer-029",
+        "question": "偏远地区配送会额外增加多久？",
+        "answer": "根据我们平台的配送规则，帮你说明一下：\n\n**偏远地区配送时间**\n- 标准配送：3-5 个工作日\n- 偏远地区：在上述基础上**额外增加约 2-3 天**\n\n也就是说偏远地区整体预计需要 **5-8 个工作日** 送达。另外，配送时间为每天 9:00-18:00，节假日可能还有延迟。\n\n你是想针对特定收货地区确认配送时间吗？可以告诉我大致区域，我再帮你看看。😊",
+        "expected_intent": "logistics",
+        "predicted_intent": "logistics",
+        "knowledge_used": true,
+        "scores": {
+          "relevance": 1.0,
+          "accuracy": 1.0,
+          "completeness": 1.0,
+          "helpfulness": 1.0,
+          "overall": 1.0
+        },
+        "missing_facts": [],
+        "fact_pass": true,
+        "judge_pass": true,
+        "rules_pass": true,
+        "strict_pass": true,
+        "judge_failed": false,
+        "judge_error": null
+      },
+      {
+        "id": "rag-answer-030",
+        "question": "每天的配送时间是什么时候？",
+        "answer": "根据我们的配送说明，为您整理如下：\n\n**每日配送时间**：每天 **9:00 - 18:00**\n\n另外补充一些相关信息供您参考：\n- 节假日可能会有所延迟。\n- 我们的配送方式包括：\n  - **标准配送**：3-5 个工作日，订单满 99 元免运费\n  - **加急配送**：1-2 个工作日，运费 15 元\n  - **同城配送**：当日达或次日达，运费 10 元\n- 偏远地区可能需要额外 2-3 天送达\n\n如果您还有其他关于配送或订单的问题，欢迎随时告诉我！😊",
+        "expected_intent": "logistics",
+        "predicted_intent": "logistics",
+        "knowledge_used": true,
+        "scores": {
+          "relevance": 1.0,
+          "accuracy": 1.0,
+          "completeness": 1.0,
+          "helpfulness": 1.0,
+          "overall": 1.0
+        },
+        "missing_facts": [],
+        "fact_pass": true,
+        "judge_pass": true,
+        "rules_pass": true,
+        "strict_pass": true,
+        "judge_failed": false,
+        "judge_error": null
+      }
+    ]
+  }
+}

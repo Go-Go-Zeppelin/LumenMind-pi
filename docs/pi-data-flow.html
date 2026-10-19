@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="LumenMind Pi 数据流交互演示：从一次用户请求，到主辅 Agent、工具调用、最终回复与记忆写回。">
+  <title>LumenMind Pi · 数据如何流动</title>
+  <style>
+/* === FIXED 16:9 STAGE — full viewport-base.css === */
+html,
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background: var(--stage-bg, #000);
+}
+.deck-viewport {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    background: var(--stage-bg, #000);
+}
+.deck-stage {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    transform-origin: 0 0;
+    background: var(--slide-bg, #fff);
+}
+.slide {
+    position: absolute;
+    inset: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    display: block;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    background: var(--slide-bg, #fff);
+}
+.slide.active,
+.slide.visible {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    z-index: 1;
+}
+img,
+video,
+canvas,
+svg {
+    max-width: 100%;
+    max-height: 100%;
+}
+.deck-controls {
+    position: fixed;
+    left: 50%;
+    bottom: 22px;
+    transform: translateX(-50%);
+    z-index: 1000;
+}
+@media print {
+    html, body { width: 1920px; height: auto; overflow: visible; background: #fff; }
+    .deck-viewport { position: static; overflow: visible; background: #fff; }
+    .deck-stage { position: static; width: auto; height: auto; transform: none !important; background: none; }
+    .slide { position: relative; display: block !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important; width: 1920px; height: 1080px; break-after: page; page-break-after: always; }
+    .slide:last-child { break-after: auto; page-break-after: auto; }
+    .deck-controls { display: none !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.2s !important; }
+}
+/* === DESIGN SYSTEM — offline fonts, no external dependencies === */
+:root { --stage-bg:#080d10; --slide-bg:#0c1317; --panel:#101b21; --line:#293b43; --ink:#e7eee9; --muted:#8da4ae; --accent:#b6edbd; --teal:#7edbc7; --amber:#f5bd7b; --blue:#9bbefa; --danger:#f5988e; --font:'PingFang SC','Noto Sans CJK SC','Microsoft YaHei',sans-serif; --mono:'SFMono-Regular',Consolas,'Liberation Mono',monospace; }
+* { box-sizing:border-box; }
+body { color:var(--ink); font-family:var(--font); }
+button,select { font:inherit; }
+button { cursor:pointer; color:inherit; border:1px solid var(--line); background:transparent; }
+button:hover { border-color:var(--accent); background:#17282a; }
+button:focus-visible,select:focus-visible,[contenteditable]:focus-visible { outline:3px solid var(--amber); outline-offset:5px; }
+button:disabled { cursor:default; opacity:.3; }
+.stage-surface { background:radial-gradient(ellipse at 13% 0%,#1c38353a,transparent 48%),var(--slide-bg); }
+.mono { font-family:var(--mono); }
+.eyebrow { font-size:17px; font-weight:500; letter-spacing:3px; color:var(--accent); }
+.brand { position:absolute; left:48px; top:31px; display:flex; align-items:center; gap:13px; }
+.logo { display:grid; place-items:center; width:35px; height:35px; border:1px solid #5a8078; border-radius:50%; font-family:Georgia,serif; font-style:italic; font-size:25px; color:var(--accent); }
+h1 { position:absolute; left:48px; top:64px; margin:0; font-size:54px; font-weight:600; letter-spacing:-1px; line-height:1.35; }
+h1 em { font-style:normal; color:var(--accent); }
+.header-meta { position:absolute; right:48px; top:45px; text-align:right; }
+.header-meta strong { display:block; font-size:24px; font-weight:500; margin-bottom:10px; }
+.header-meta span { font-size:17px; color:var(--muted); }
+.live-dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--accent); margin-right:9px; vertical-align:2px; }
+/* === SCENARIO NAVIGATION === */
+.scenarios { position:absolute; left:48px; top:164px; height:55px; display:flex; gap:9px; }
+.scenario { border-radius:8px; padding:0 22px; font-size:21px; color:#b0c0c6; display:flex; align-items:center; gap:12px; }
+.scenario .index { font:14px var(--mono); color:#718c98; }
+.scenario[aria-selected=true] { color:var(--accent); background:#20372e; border-color:#5a8067; }
+.scenario[aria-selected=true] .index { color:var(--accent); }
+.utility { position:absolute; right:48px; top:164px; display:flex; gap:10px; height:55px; }
+.utility button { padding:0 18px; border-radius:8px; font-size:18px; }
+.question-bar { position:absolute; top:240px; left:48px; right:48px; height:70px; display:flex; align-items:center; gap:22px; border-top:1px solid #31413f; border-bottom:1px solid #31413f; }
+.question-label { color:var(--muted); font-size:18px; flex-shrink:0; }
+.question { margin:0; font-size:26px; font-weight:500; flex:1; white-space:nowrap; }
+.provenance { color:var(--muted); font-size:16px; max-width:470px; text-align:right; line-height:1.5; }
+/* === FLOW MAP — stable spatial positions across all scenarios === */
+.flow-map { position:absolute; left:48px; top:330px; width:1254px; height:558px; border:1px solid var(--line); border-radius:14px; overflow:hidden; background-color:#0e181e; background-image:radial-gradient(#35495260 .8px,transparent .8px); background-size:20px 20px; }
+.map-label { position:absolute; top:17px; left:24px; font-size:15px; letter-spacing:2px; color:#72908f; }
+.map-legend { position:absolute; top:16px; right:24px; font-size:15px; color:var(--muted); display:flex; gap:20px; }
+.map-legend i { display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--accent); margin-right:7px; }
+.map-legend i.amber { background:var(--amber); }
+.map-legend i.blue { background:var(--blue); }
+.connections { position:absolute; inset:0; width:1254px; height:558px; overflow:visible; }
+.edge { fill:none; stroke:#324a54; stroke-width:2; stroke-linejoin:round; opacity:.52; }
+.edge.complete { stroke:#527d6c; opacity:.7; }
+.edge.flow { stroke:var(--accent); stroke-width:3; stroke-dasharray:9 7; opacity:1; animation:dash 1.2s linear infinite; }
+.edge.reverse { animation-direction:reverse; }
+.edge.warning { stroke:var(--amber); }
+.edge.off { opacity:.12; }
+.paused .edge.flow { animation-play-state:paused; }
+@keyframes dash { to { stroke-dashoffset:-32; } }
+.particle { fill:var(--accent); filter:drop-shadow(0 0 6px #b6edbd99); }
+.particle.warning { fill:var(--amber); }
+.node { position:absolute; border:1px solid #344952; background:linear-gradient(135deg,#15232b,#101a21); border-radius:10px; padding:15px 17px; transition:border-color .3s,background .3s,box-shadow .3s,opacity .3s; opacity:.61; text-align:left; }
+.node:hover { background:#1c3037; }
+.node .node-kicker { display:block; color:#94a9b2; font:13px var(--mono); letter-spacing:.4px; margin-bottom:7px; }
+.node strong { display:block; font-size:24px; font-weight:550; line-height:1.15; white-space:nowrap; }
+.node small { display:block; font-size:16px; color:#a3b6bd; margin-top:7px; line-height:1.3; white-space:nowrap; }
+.node.active { opacity:1; border-color:var(--accent); background:linear-gradient(135deg,#233e36,#172c2d); box-shadow:0 0 0 4px #b6edbd0b,0 8px 30px #0005; }
+.node.active::after { content:''; position:absolute; right:10px; top:12px; width:6px; height:6px; border-radius:50%; background:var(--accent); box-shadow:0 0 10px #b6edbd88; }
+.node.done { opacity:.95; border-color:#476d5b; }
+.node.unused { opacity:.28; }
+.node.warning { border-color:var(--amber); background:linear-gradient(135deg,#403324,#241f1d); }
+.node.warning.active::after { background:var(--amber); }
+.node.store .node-kicker { color:var(--amber); }
+.node.store.active { border-color:var(--amber); }
+.node .status { position:absolute; right:10px; top:11px; font-size:12px; color:var(--accent); }
+.agent-caption { position:absolute; top:166px; left:248px; font-size:16px; color:#8aa5a9; }
+.tool-caption { position:absolute; top:389px; left:27px; color:var(--amber); font-size:15px; }
+.tool-pills { display:flex; gap:9px; margin-top:9px; }
+.tool-pills span { border:1px solid #5d5141; color:#d7bb95; font:13px var(--mono); padding:3px 8px; border-radius:4px; }
+#node-tools strong { font-size:23px; }
+/* === DATA INSPECTOR === */
+.inspector { position:absolute; left:1326px; top:330px; width:546px; height:558px; border:1px solid var(--line); border-radius:14px; background:var(--panel); overflow:hidden; }
+.inspector-head { height:55px; padding:0 22px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--line); }
+.inspector-head span { font-size:15px; letter-spacing:2px; color:var(--muted); }
+.step-count { font:17px var(--mono); color:var(--accent)!important; letter-spacing:0!important; }
+.inspector-content { padding:21px 24px; }
+.step-category { color:var(--accent); font-size:15px; letter-spacing:1px; margin:0 0 9px; }
+.inspector h2 { margin:0 0 14px; font-size:28px; font-weight:550; line-height:1.4; }
+.payload-label { display:flex; align-items:center; justify-content:space-between; font:14px var(--mono); color:#78939e; margin-bottom:13px; }
+.payload-label .chip { font-family:var(--font); color:var(--amber); font-size:14px; background:#3c302340; border:1px solid #69513a; padding:3px 8px; border-radius:4px; }
+pre { margin:0; padding:0; font:17px/1.58 var(--mono),var(--font); color:#d4e0e6; white-space:pre-wrap; overflow-wrap:anywhere; }
+.json-key { color:#9dbfe0; }
+.json-str { color:#b6dfb0; }
+.json-num { color:#f2bf82; }
+.json-bool { color:#f2bf82; }
+.inspector-foot { position:absolute; bottom:0; left:0; right:0; padding:14px 24px; border-top:1px solid var(--line); background:#101b21; color:#8da4ae; font-size:15px; min-height:68px; line-height:1.45; }
+.inspector-foot b { font-weight:500; color:#c5d6d5; }
+.payload { height:270px; overflow:hidden; }
+.payload.fade-in { animation:payload-in .32s ease both; }
+@keyframes payload-in { from {opacity:.2;transform:translateY(7px)} to {opacity:1;transform:none} }
+/* === SPEAKER CUE / PLAYBACK CONTROLS === */
+.narration { position:absolute; left:48px; right:48px; top:910px; height:91px; display:flex; align-items:flex-start; gap:23px; }
+.step-number { flex:0 0 70px; height:70px; border-radius:50%; border:1px solid #42634f; display:grid; place-items:center; color:var(--accent); font:28px var(--mono); }
+.narration-copy { flex:1; padding-top:2px; }
+.narration-copy h3 { margin:0 0 8px; font-size:25px; font-weight:550; line-height:1.3; }
+.narration-copy p { margin:0; font-size:21px; color:#9eb4b9; line-height:1.5; }
+.controls { position:absolute; left:48px; right:48px; top:1022px; height:40px; display:flex; align-items:center; gap:14px; }
+.controls button { border-radius:7px; height:39px; padding:0 15px; font-size:17px; }
+.controls .play { background:var(--accent); color:#17251b; font-weight:600; min-width:123px; border-color:var(--accent); }
+.controls .play:hover { background:#d4f5d8; }
+.timeline { display:flex; align-items:center; gap:5px; flex:1; height:32px; margin:0 10px; }
+.timeline button { flex:1; padding:0; height:8px; min-width:0; border:0; border-radius:3px; background:#2d414a; position:relative; }
+.timeline button::before { content:''; position:absolute; inset:-13px 0; }
+.timeline button.done { background:#5d8e73; }
+.timeline button.current { background:#496055; }
+.timeline button i { display:block; height:100%; background:var(--accent); border-radius:3px; }
+.controls select { height:36px; color:#c5d8d9; background:#142129; border:1px solid #344953; border-radius:5px; padding:0 5px; font-size:16px; }
+.keyboard-hint { font-size:14px; color:#78919b; white-space:nowrap; }
+.progress-line { position:absolute; left:0; bottom:0; height:3px; background:var(--accent); transition:width .2s linear; }
+/* === REVIEWABLE IMPLEMENTATION NOTES / INLINE TEXT EDITING === */
+.modal { position:absolute; inset:0; z-index:30; background:#071014ee; padding:55px 80px; visibility:hidden; opacity:0; pointer-events:none; transition:opacity .2s; }
+.modal.open { visibility:visible; opacity:1; pointer-events:auto; }
+.modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:28px; }
+.modal h2 { font-size:38px; margin:0; font-weight:550; }
+.modal-header button { font-size:20px; border-radius:7px; padding:9px 20px; }
+.modal-subtitle { font-size:21px; color:var(--muted); margin:0 0 30px; }
+.notes-grid { display:grid; grid-template-columns:1fr 1fr; gap:22px; }
+.note-card { border:1px solid var(--line); border-radius:12px; background:#111e24; padding:24px 28px; }
+.note-card h3 { margin:0 0 12px; font-size:24px; color:var(--accent); font-weight:550; }
+.note-card p { margin:0; font-size:20px; line-height:1.65; color:#b4c8cd; }
+.note-card code { font:17px var(--mono); color:var(--amber); }
+.source-list { display:grid; grid-template-columns:1fr 1fr; gap:13px 40px; margin-top:27px; padding-top:23px; border-top:1px solid var(--line); }
+.source-list div { font-size:18px; color:#9db4bd; line-height:1.7; }
+.source-list code { display:block; color:#cae3df; font-size:16px; }
+.modal-bottom { margin-top:25px; font-size:17px; color:#809ca7; line-height:1.6; }
+.edit-hotzone { position:absolute; left:0; top:0; width:40px; height:64px; z-index:41; }
+.edit-toggle { position:absolute; left:5px; top:8px; z-index:42; opacity:0; pointer-events:none; padding:8px; border-radius:6px; font-size:14px; }
+.edit-toggle.show,.edit-toggle.active { opacity:1; pointer-events:auto; }
+.editing [data-edit] { outline:1px dashed var(--amber); outline-offset:4px; }
+.edit-banner { position:absolute; left:680px; top:20px; font-size:16px; color:var(--amber); z-index:43; visibility:hidden; }
+.editing .edit-banner { visibility:visible; }
+  </style>
+</head>
+<body class="paused">
+<div class="deck-viewport">
+<main class="deck-stage" id="deckStage">
+<section class="slide active stage-surface" aria-label="LumenMind Pi 数据流演示">
+  <div class="brand"><span class="logo">π</span><span class="eyebrow">LUMENMIND / INSIDE THE REQUEST</span></div>
+  <h1 data-edit="title">一个问题，如何变成<em>有依据的回答。</em></h1>
+  <div class="header-meta"><strong>Pi Agent 数据流</strong><span><i class="live-dot"></i>TypeScript 编排 × Python 基础设施</span></div>
+  <nav class="scenarios" id="scenarios" role="tablist" aria-label="演示场景"></nav>
+  <div class="utility"><button id="notesButton" aria-haspopup="dialog">实现依据 ↗</button><button id="fullscreen" aria-label="切换全屏">全屏 ⤢</button></div>
+  <div class="question-bar"><span class="question-label">本轮输入</span><p class="question" id="question"></p><span class="provenance" id="provenance"></span></div>
+  <div class="flow-map" id="flowMap" aria-label="数据流架构图">
+    <span class="map-label mono">REQUEST → CONTEXT → DECISION → ACTION → ANSWER</span>
+    <span class="map-legend"><span><i></i>正在处理</span><span><i class="amber"></i>Python / 数据</span><span><i class="blue"></i>点击节点跳转</span></span>
+    <svg class="connections" id="connections" viewBox="0 0 1254 558" aria-hidden="true">
+      <defs><marker id="arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto-start-reverse"><path d="M0 0 L7 3.5 L0 7" fill="#577269"/></marker></defs>
+      <g id="edges"></g><g id="particles"></g>
+    </svg>
+    <div class="agent-caption" id="agentCaption">主辅路由 · 每个 Agent 独立运行</div>
+    <div class="tool-caption">工具结果回到调用它的 Agent，再继续生成</div>
+    <div id="nodes"></div>
+  </div>
+  <aside class="inspector" aria-label="当前节点的数据快照">
+    <div class="inspector-head"><span>DATA SNAPSHOT / 数据快照</span><span class="step-count" id="stepCount"></span></div>
+    <div class="inspector-content"><p class="step-category" id="stepCategory"></p><h2 id="stepTitle"></h2><div class="payload-label"><span id="payloadLabel"></span><span class="chip" id="payloadChip"></span></div><pre class="payload" id="payload"></pre></div>
+    <div class="inspector-foot" id="inspectorFoot"></div>
+  </aside>
+  <div class="narration" aria-live="polite" aria-atomic="true"><div class="step-number" id="stepNumber"></div><div class="narration-copy"><h3 id="cueTitle" data-edit="cueTitle"></h3><p id="cueBody" data-edit="cueBody"></p></div></div>
+  <div class="controls" aria-label="播放控制">
+    <button class="play" id="play" aria-label="开始播放">▶ 开始演示</button><button id="prev" aria-label="上一步">←</button><button id="next" aria-label="下一步">下一步 →</button><button id="reset" aria-label="从头播放">↺ 重置</button>
+    <div class="timeline" id="timeline" aria-label="步骤时间线"></div>
+    <select id="speed" aria-label="播放速度"><option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.5">1.5×</option><option value="2">2×</option></select>
+    <span class="keyboard-hint">空格 播放 / 暂停 · ← → 单步 · F 全屏</span>
+  </div>
+  <div class="progress-line" id="progressLine"></div>
+  <div class="edit-hotzone" id="editHotzone" aria-hidden="true"></div><button class="edit-toggle" id="editToggle" aria-label="编辑讲解文字">编辑</button><div class="edit-banner">编辑模式 · 点击文字修改 · E 退出 · Ctrl / ⌘ + S 导出 HTML</div>
+  <div class="modal" id="notes" role="dialog" aria-modal="true" aria-label="实现依据与面试讲解" inert>
+    <div class="modal-header"><h2>讲清楚链路，也讲清楚边界。</h2><button id="closeNotes">返回演示 ×</button></div>
+    <p class="modal-subtitle">基于当前 LumenMind-pi 源码制作。订单场景引用 2026-10-08 验收记录；其余场景是可复述的流程示意。</p>
+    <div class="notes-grid">
+      <article class="note-card"><h3>① 先讲服务边界</h3><p>TypeScript + Pi 负责会话编排、意图路由、Agent 工具循环与 Composer。Python FastAPI 负责记忆、知识库、SQLite 查询、评测与监控。旧 <code>:8000/chat</code> 代理到 Pi，原生入口为 <code>:3000/chat</code>。</p></article>
+      <article class="note-card"><h3>② 再讲数据怎样变</h3><p><code>ChatRequest → MemoryContext → IntentDecision → RoutingDecision → AgentRunInput → AgentRunResult[] → ChatResponse</code>。<br>意图识别与主辅路由是两次决策；多个目标由 <code>Promise.all</code> 并行执行。</p></article>
+      <article class="note-card"><h3>③ 让工具结果成为回答依据</h3><p>模型决定是否调用工具。知识检索走 Python / ChromaDB；订单账单查询走 Python / SQLite；错误码等角色工具在 TypeScript 本地执行。业务工具用闭包绑定本次 <code>userId</code>，工具参数不暴露用户身份。</p></article>
+      <article class="note-card"><h3>④ 最后讲容错与可观测性</h3><p>记忆读取失败返回空上下文；写入失败保留本轮回答。专业 Agent 异常回退 General；Composer 异常确定性拼接。<code>request_id</code> 关联工具输入、输出与错误；Trace 默认仅存进程内最近 200 条。</p></article>
+    </div>
+    <div class="source-list">
+      <div>编排、会话锁、澄清、路由、写回、Trace<code>agent-service/src/agents/orchestrator.ts · chat / runChat / runWithFallback</code></div>
+      <div>规则 → Embedding 候选 → LLM，及实体提取<code>agent-service/src/agents/intent-router.ts · recognize / extractEntities</code></div>
+      <div>Pi 工具循环、SSE 事件、输出契约与一次修复<code>agent-service/src/agents/executor.ts · run / parseContract</code></div>
+      <div>多 Agent 汇总；升级节点只生成交接说明<code>agent-service/src/agents/composer.ts / escalation.ts</code></div>
+      <div>Python HTTP 接口、记忆分层、业务归属过滤<code>python-service/api/main.py · memory/conversation_memory.py · business/store.py</code></div>
+      <div>本页订单示例与工具返回值来源<code>docs/MINIMAL_BUSINESS_ACCEPTANCE.json · chats[1]</code></div>
+    </div>
+    <p class="modal-bottom">演示不连接后端、不调用模型；播放节奏不代表真实延迟。订单数据为演示数据，user_id 尚不是登录鉴权。当前业务工具只读；升级节点尚未接入人工队列。SSE 的 text_delta 是各业务 Agent 的原始增量，最终回复以 done 事件为准。内部工具用 Pi AgentTool，对外 /mcp 只公开 knowledge_search。情景记忆在压缩时归档，画像后台更新。离线评测 /eval/run 与 Prometheus 监控独立于请求的同步主链路。按 E 可编辑标题与讲解词。</p>
+  </div>
+</section>
+</main>
+</div>
+<script>
+'use strict';
+/* === CONTENT MODEL — snapshots are illustrative unless explicitly marked as acceptance evidence === */
+const $ = id => document.getElementById(id);
+const NS = 'http://www.w3.org/2000/svg';
+const pad = n => String(n).padStart(2,'0');
+const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const entities = (overrides={}) => ({order_id:[],product:[],date:[],amount:[],error_code:[],...overrides});
+const entityExcerpt = ent => Object.fromEntries(Object.entries(ent).filter(([,values])=>values.length));
+const request = message => ({message,user_id:'u1001',conv_id:'interview-demo'});
+const step = (category,title,nodes,edges,label,data,cue,body,foot,extra={}) => ({category,title,nodes,edges,label,data,cue,body,foot,...extra});
+const paths = {
+  'input-entry':'M200 102 H248', 'entry-memory':'M432 102 H490', 'memory-intent':'M692 102 H750', 'intent-route':'M952 102 H1010',
+  'route-general':'M1118 150 V191 H340 V235', 'route-technical':'M1118 150 V204 H591 V235', 'route-billing':'M1118 150 V217 H851 V235', 'route-branch':'M1118 150 V235',
+  'general-tools':'M340 335 V385 H228 V422', 'technical-tools':'M591 335 V385 H228 V422', 'billing-tools':'M851 335 V399 H228 V422',
+  'general-contract':'M340 335 V363 H591 V422', 'technical-contract':'M591 335 V422', 'billing-contract':'M851 335 V363 H591 V422',
+  'contract-composer':'M692 471 H750', 'composer-finish':'M952 471 H1010', 'branch-finish':'M1118 335 V422',
+  'billing-fallback':'M851 235 V165 H340 V235'
+};
+const nodeDefs = [
+  ['input',24,54,176,96,'01 / CLIENT','用户输入','message + IDs'],
+  ['entry',248,54,184,96,'02 / PI :3000','接入与会话锁','user_id + conv_id'],
+  ['memory',490,54,202,96,'03 / PYTHON','读取记忆','Redis · ChromaDB','store'],
+  ['intent',750,54,202,96,'04 / ROUTER','意图与实体','规则 → 语义 → LLM'],
+  ['route',1010,54,216,96,'05 / ORCHESTRATOR','路由决策','主 Agent + 辅助'],
+  ['prepare',24,235,176,100,'CONTEXT','能力装配','Skills / 工作流'],
+  ['general',248,235,184,100,'PI EXECUTOR','General','通用 / 业务查询'],
+  ['technical',490,235,202,100,'PI EXECUTOR','Technical','错误码 / 排障'],
+  ['billing',750,235,202,100,'PI EXECUTOR','Billing','账单 / 资金咨询'],
+  ['branch',1010,235,216,100,'SHORT CIRCUIT','澄清 / 升级','跳过业务 Agent'],
+  ['tools',24,422,408,100,'TOOLS / ON DEMAND','按需工具调用','Python HTTP / 本地角色工具','store'],
+  ['contract',490,422,202,100,'06 / EXECUTOR','校验结构化输出','必要时修复一次'],
+  ['composer',750,422,202,100,'07 / COMPOSER','合并回复','单路透传 / 多路汇总'],
+  ['finish',1010,422,216,100,'08 / COMMIT','写回与响应','最终回复 · Trace']
+];
+
+function opening(message, memoryEmpty=false) {
+  return [
+    step('接入 · 原始请求','从用户问题开始',['input'],[],'ChatRequest',request(message),'先看请求里有什么','消息决定本轮任务，user_id 与 conv_id 用来读取上下文，并控制同一会话的执行顺序。','原生 :3000/chat；旧 :8000/chat 会代理到 Pi。'),
+    step('接入 · 并发边界','同一会话串行执行',['entry'],['input-entry'],'KeyedLock',{user_id:'u1001',conv_id:'interview-demo',lock_key:'u1001:interview-demo',request_id:'本轮生成 UUID'},'先固定会话边界，再开始推理','编排器标准化身份并获取会话锁；不同会话可以并发，同一会话避免记忆读写交错。','KeyedLock 位于 Pi 进程内；多进程部署需要额外协调。'),
+    step('上下文 · Python HTTP','读取会话与长期上下文',['memory'],['entry-memory'],'MemoryContext',memoryEmpty?{prompt_text:'',recent_messages:[],relevant_history:[],user_profile:{},summary:''}:{recent_messages:[],relevant_history:[],user_profile:{},summary:'',prompt_text:'本示例从空会话开始'},'跨轮记忆由 Python 提供','Redis 保存最近消息；ChromaDB 保存相关历史与画像，再整理成 prompt_text 交给 Pi。','POST /memory/context；读取失败时降级为空上下文。')
+  ];
+}
+function ruleStep(intent,group,confidence,ent) {
+  return step('决策 · 意图识别','明确规则直接命中',['intent'],['memory-intent'],'IntentDecision（非空实体节选）',{intent,intent_group:group,confidence,entities:entityExcerpt(ent),source_scores:{pattern:confidence,embedding:0,llm:0}},'先用确定性规则，明确问题快速通过','规则同时提取实体。置信度达到 0.9 时，跳过 Embedding 和意图 LLM，减少延迟与成本。','意图结果只描述问题；主辅 Agent 由下一步单独决定。');
+}
+function routing(primary,supporting,scores) {
+  return step('决策 · 主辅路由','把问题分给合适的角色',['route'],['intent-route'],'RoutingDecision',{primaryAgent:primary,supportingAgents:supporting,domain_scores:scores},supporting.length?'一个请求，可以同时需要两个专业角色':'意图不直接等于 Agent，路由还会看实体与关键词',supporting.length?'领域分数分别计算，主辅 Agent 组成 targets，随后通过 Promise.all 并行运行。':'编排器结合意图、关键词、实体和可用性选角色，再从该类型实例池中选择 routing_score 最优者。','计划路由与实际执行分开记录，便于识别失败降级。');
+}
+function prep(targets,ent) {
+  return step('执行 · 上下文装配','把输入变成 Agent 的运行上下文',['prepare',...targets],targets.map(t=>'route-'+t),'AgentRunInput（字段节选）',{targets,memoryContext:'来自 Python 的 prompt_text',entities:entityExcerpt(ent),workflowContext:'按角色执行确定性前置工作流',skillPrompt:'按消息与角色匹配 Skill',allowKnowledge:true},'统一执行器，按角色配置能力','记忆、实体、工作流和 Skills 进入提示词；角色工具白名单单独挂载，业务查询身份绑定本次运行。','每次 run 创建新的 Pi Agent；跨轮记忆不依赖 Pi 自动保存。');
+}
+function contractStep(targets,toolNames,knowledgeUsed=false) {
+  return step('执行 · 输出契约','把模型输出变成可检查的结果',['contract'],targets.map(t=>t+'-contract'),'AgentRunResult（字段节选）',{agentType:targets[0],response:'基于工具结果形成的回复',toolsUsed:toolNames,knowledgeUsed,outputValid:true,outputErrors:[]},'工具循环结束，还要校验结构化输出','Executor 解析 response、steps、required_info、escalate 等字段；不合法时允许模型修复一轮。','当前为部分字段强校验；diagnosis 等语义字段仍主要靠提示词约束。');
+}
+function composeStep(multi=false) {
+  return step('汇总 · 最终回复',multi?'汇总两个专业角色的答案':'单 Agent 结果直接透传',['composer'],['contract-composer'],'ResponseComposer',multi?{input:'用户问题 + 主 Agent + 各路 response',tools:[],output:'去重、处理冲突后的最终回复',on_failure:'确定性拼接已有回复'}:{results_count:1,action:'直接返回该 Agent 的 response',extra_model_call:false},multi?'并行负责拆开问题，Composer 负责合成答案':'单 Agent 场景，省去一次额外模型调用',multi?'Composer 使用无工具 Pi Agent，以主 Agent 结论为主；保留排障步骤与核验条件，失败则确定性合并。':'只要只有一个非空结果，Composer 就直接返回，不额外调用模型，也不执行工具。','只有多路汇总会额外使用 Composer 模型；不会再去查业务数据。');
+}
+function writeStep(edge='composer-finish',response='最终合并回复') {
+  return step('持久化 · Python HTTP','只写入用户问题与最终回复',['finish'],[edge],'POST /memory/turn',{user_id:'u1001',conv_id:'interview-demo',message:'本轮原始问题',response},'把这一轮沉淀为下一轮的上下文','Python 将 user / assistant 两条消息写入 Redis；画像后台更新，旧消息在达到压缩阈值时归档到 ChromaDB。','写入失败仅记录警告，保留已生成的回答。');
+}
+function doneStep(primary,actual,tools,knowledge,response,extra={}) {
+  return step('响应 · 可观测性','返回回复，同时留下可追踪证据',['finish'],[],'ChatResponse（字段节选）',{request_id:'本轮 UUID',primary_agent:primary,agent_types:actual,tools_used:tools,knowledge_used:knowledge,...extra,response},'回答之外，还能解释它是怎么得到的','客户端收到回复与路由信息；用 request_id 查询工具输入、返回值和错误，定位识别、工具或生成阶段的问题。','GET /trace/tool/{request_id}；Trace 默认仅在进程内保留最近 200 条。',{chip:'示例响应'});
+}
+
+const orderMessage='订单 ORD-1001-001 发货了吗？';
+const orderEntities=entities({order_id:['ORD-1001-001']});
+const orderResponse='订单 ORD-1001-001（无线键盘 ×1，129.00 元）当前状态为「已发货」。这是演示业务数据，不含物流轨迹或预计送达时间。';
+const orderSteps=[...opening(orderMessage),ruleStep('order_status','query',.94,orderEntities),routing('general',[],{general:.87,technical:0,billing:0}),prep(['general'],orderEntities),
+  step('执行 · Pi 工具循环','模型选择查询订单',['general'],['route-general'],'Pi Agent → Tool call',{tool_name:'get_order',input:{order_id:'ORD-1001-001'},identity_binding:'本次 run 的 userId=u1001',tool_schema_has_user_id:false},'模型负责选工具，代码负责确定查询身份','General 看到订单问题后调用 get_order。模型只传订单号，userId 由工具闭包绑定，复用执行器不会串用户。','General / Billing 可查订单与账单；Technical 没有这四个业务工具。'),
+  step('数据 · TypeScript → Python','固定 HTTP 接口查询 SQLite',['tools'],['general-tools'],'GET /business/orders/{id}',{path:'/business/orders/ORD-1001-001',query:{user_id:'u1001'},store:'SQLite',filter:'order_id AND user_id',operation:'SELECT / 只读'},'业务事实来自数据库查询','TypeScript 工具通过固定 HTTP 客户端访问 Python；SQL 同时按订单号与归属用户过滤，缺失与越权统一返回 404。','当前 user_id 是演示身份，归属过滤尚不等于登录鉴权。'),
+  step('数据 · Tool result → 模型','把真实查询结果交回 Agent',['tools','general'],['general-tools'],'get_order result（验收节选）',{item:{order_id:'ORD-1001-001',product_name:'无线键盘',total_amount_cents:12900,currency:'CNY',status:'shipped'},source:'demo_business_db'},'工具返回事实，Agent 据此组织表达','金额存整数分，避免金额浮点误差。查询结果回到 General 的 Pi 工具循环，继续生成有依据的自然语言。','此返回值节选自项目验收记录；业务查询不会令 knowledge_used=true。',{reverse:true,chip:'验收数据'}),
+  contractStep(['general'],['get_order']),composeStep(),writeStep('composer-finish',orderResponse),doneStep('general',['general'],['get_order'],false,orderResponse)
+];
+const multiMessage='登录报错 401，而且被重复扣款';
+const multiEntities=entities({error_code:['401']});
+const multiSteps=[...opening(multiMessage),ruleStep('technical_login','technical',.98,multiEntities),routing('technical',['billing'],{technical:1.49,billing:.45,general:.1}),prep(['technical','billing'],multiEntities),
+  step('执行 · Promise.all','技术与账单两路并行',['technical','billing'],['route-technical','route-billing'],'targets → AgentRunInput[]',{targets:['technical','billing'],execution:'Promise.all',technical:'分析 401，给出低风险排障步骤',billing:'整理重复扣款的待核验信息'},'意图识别只有一个结果，执行仍可覆盖复合问题','虽然主意图是 technical_login，扣款关键词仍让 Billing 作为辅助角色执行；两路使用各自提示词与工具集合。','演示中的工具选择是合理示意；真实调用由模型决定。'),
+  step('工具 · TypeScript 本地','每个角色调用各自的工具',['technical','billing','tools'],['technical-tools','billing-tools'],'roleTools（示例调用）',{technical:{tool:'lookup_error_code',input:{error_code:'401'}},billing:{tool:'check_billing_fields',input:{}},execution:'本地确定性工具 / 不经过 Python'},'工具权限和处理流程让角色真正分工','Technical 查询 401 的解释；Billing 检查订单号、金额、扣款时间是否齐全，避免凭描述断言真实扣款。','角色工具本地执行；只有知识检索与业务查询才走 Python HTTP。'),
+  step('工具 · 并行结果回流','两路都拿到各自的证据',['technical','billing','tools'],['technical-tools','billing-tools'],'tool result（字段节选）',{technical:{meaning:'身份验证失败或凭证过期'},billing:{missing_fields:['order_id','amount','payment_time']}},'并行执行不会混合工具上下文','工具结果分别返回调用它的 Agent：技术给出验证步骤，账单要求补充核验资料，最终各自产生 AgentRunResult。','涉及资金争议时保留人工核验边界；当前工具不能执行退款。',{reverse:true}),
+  contractStep(['technical','billing'],['lookup_error_code','check_billing_fields']),composeStep(true),writeStep(),doneStep('technical',['technical','billing'],['lookup_error_code','check_billing_fields'],false,'先检查登录凭证与接口配置；同时补充订单号、金额及扣款时间，由人工核验重复扣款。')
+];
+const ragMessage='款项退回原路需要多长时间';
+const ragSteps=[...opening(ragMessage),
+  step('决策 · 规则未命中','语义表达没有明确关键词',['intent'],['memory-intent'],'Rule decision',{intent:'other',confidence:.3,entities:entities(),next:'召回候选意图'},'规则处理不了的表达，再进入语义链路','这句话没有命中“退款”等明确规则。启用 Embedding 路由时，Pi 调用 Python 的意图候选召回接口。','以下候选分数与模型判断为流程示意，依赖配置启用。'),
+  step('决策 · Python / ChromaDB','先召回候选，再交给模型判断',['intent','tools'],[],'POST /intent/embedding',{query:ragMessage,top_k:3,candidates:[{intent:'refund',score:.84}],purpose:'意图候选召回，不是知识检索'},'Embedding 的任务是提供候选意图','Python / ChromaDB 返回相似表达对应的意图候选；这一步只帮助分类，尚未向业务 Agent提供政策文档。','规则 ≥ 0.9 时不会进入这里；候选不是三路分数加权。'),
+  step('决策 · Pi 意图 LLM','综合消息、最近对话与候选',['intent'],[],'IntentDecision（示例）',{intent:'refund',intent_group:'billing',confidence:.93,source_scores:{pattern:.3,embedding:.84,llm:.93}},'模型做最后判断，并保留来源分数','LLM 用用户消息、近期对话和候选做结构化分类；不可用时，仅用超过配置阈值的候选兜底，否则退回规则结果。','本例假设 API Key、LLM 路由和 Embedding 路由均可用。'),routing('billing',[],{billing:.75,technical:0,general:.1}),prep(['billing'],entities()),
+  step('执行 · Agent 自主决策','需要政策依据时调用知识工具',['billing'],['route-billing'],'knowledge_search（示例）',{query:'退款原路退回的处理时效与核验条件',top_k:5,caller:'Billing Agent',allowKnowledge:true},'知识检索发生在 Agent 的工具循环里','knowledge_search 对业务 Agent 共享开放。模型判断本轮需要政策依据才发起调用，路由器不会预先检索或拼接结果。','allowKnowledge=true 表示工具可用，不表示本轮一定使用知识。'),
+  step('数据 · TypeScript → Python','从知识库获取文档片段',['tools'],['billing-tools'],'POST /knowledge/search',{query:'退款原路退回的处理时效与核验条件',top_k:5,store:'ChromaDB 知识库',returns:'results / cached / reranked'},'把问题变成检索查询，取回可引用的知识','Pi 工具调用 Python 的知识接口，返回文档内容与元数据；这与查询个人订单的 SQLite 业务接口分开。','查询改写、缓存、重排按配置使用，本页不假定始终启用。'),
+  step('数据 · Tool result → 模型','把检索依据交回 Billing',['tools','billing'],['billing-tools'],'KnowledgeSearchResponse（示意）',{results:[{title:'退款处理说明',content:'到账时效需结合支付渠道与核验状态确认。',fallback:false}],cached:false,reranked:false},'有有效检索结果，才能标记知识已使用','至少一条成功返回的文档不是 fallback 降级结果，knowledgeUsed 才为 true；Agent 据此回答并保留核验条件。','文档片段为流程示意；没有捏造具体到账天数。',{reverse:true}),contractStep(['billing'],['knowledge_search'],true),composeStep(),writeStep(),doneStep('billing',['billing'],['knowledge_search'],true,'退款到账时效需结合支付渠道与核验状态确认，请补充订单与退款申请信息。')
+];
+const clarifySteps=[...opening('那个事情还是不对'),
+  step('决策 · 不确定输入','仍无法确定用户想解决什么',['intent'],['memory-intent'],'IntentDecision（示例）',{intent:'other',confidence:.3,entities:entities(),clarification_condition:'other && 长度 > 2 && confidence < 0.5'},'不确定时先澄清，把错误路由挡在前面','本例假设规则与可用语义链路最终仍低置信度；编排器在正常路由之前，直接返回补充问题。','这条路径不创建业务 Pi Agent，也不进行工具调用。'),
+  step('短路 · 确定性回复','澄清路径跳过业务执行',['route','branch'],['intent-route','route-branch'],'Clarification',{response:'请补充是订单物流、退款账单、账户资料，还是技术故障？',tools_used:[],knowledge_used:false,agent_execution:false},'返回角色字段，不代表实际运行过业务 Agent','兼容响应把 agent_type 记为 general，但这里没有执行 General 的模型调用；因此工具轨迹为空。','澄清也会写回记忆，为用户下一轮补充信息提供上下文。'),writeStep('branch-finish','请补充是订单物流、退款账单、账户资料，还是技术故障？'),doneStep('general',['general'],[],false,'请补充是订单物流、退款账单、账户资料，还是技术故障？')
+];
+const handoffSteps=[...opening('请转人工客服'),ruleStep('human_handoff','escalation',.99,entities()),
+  step('决策 · 独立升级路由','明确转人工，进入升级节点',['route','branch'],['intent-route','route-branch'],'RoutingDecision',{primaryAgent:'escalation',supportingAgents:[],confidence:.99,reason:'human_handoff → escalation'},'转人工与紧急请求走独立节点','critical 紧急度或转人工意图进入 Escalation，跳过 General、Technical 和 Billing。','Escalation 是非 LLM 节点，不是第四个专业模型。'),
+  step('短路 · 非 LLM 节点','生成交接说明与安全提醒',['branch'],['route-branch'],'EscalationExecutor',{agentType:'escalation',response:'标记为人工升级处理，记录原因和实体。',knowledgeUsed:false,toolsUsed:[],external_ticket_created:false},'当前实现完成标记与摘要','节点确定性地组织升级原因、已知实体和安全提醒；尚未创建外部工单，也没有真正连接人工客服。','生成升级说明后，仍然写回记忆并记录本次 Trace。'),writeStep('branch-finish','问题已标记为人工升级处理，已记录升级原因和相关实体。'),doneStep('escalation',['escalation'],[],false,'问题已标记为人工升级处理；请勿发送密码或验证码。',{escalated:true})
+];
+const fallbackSteps=[...opening('退款多久能到账？'),ruleStep('refund','billing',.96,entities()),routing('billing',[],{billing:1.2,technical:0,general:.1}),prep(['billing'],entities()),
+  step('异常 · 专业 Agent 失败','Billing 工具完成后模型异常',['billing','tools'],['billing-tools'],'AgentExecutionError（示例）',{agent_type:'billing',error:'模型流异常结束',toolsUsed:['check_billing_fields'],toolTraces:'保留失败前已完成的工具记录'},'失败不能抹掉已经发生的工具调用','执行器把已用工具和完整轨迹随错误一起抛给编排器；即使专业 Agent 没生成答案，之前的证据仍保留。','这里演示运行时异常；不是输出修复后仍无效就必然触发回退。',{warning:['billing']}),
+  step('容错 · General 接管','复用本轮输入，切换到通用执行器',['billing','general'],['billing-fallback'],'runWithFallback',{planned_agent:'billing',actual_agent:'general',skillPrompt:'重新匹配 General Skills',fallbackUsed:true},'计划仍是 Billing，实际改由 General 完成','专业执行失败后使用 General 再运行一次；更换 General 的角色和 Skills，保留本轮消息、记忆与已提取实体。','若 General 也失败，返回固定的暂不可用文案，并保留失败信息。',{warning:['billing']}),contractStep(['general'],['check_billing_fields']),composeStep(),writeStep(),
+  step('响应 · 降级证据','响应记录实际执行，Trace 标记回退',['finish'],[],'ChatResponse / RequestTrace',{response:{primary_agent:'billing',agent_types:['general'],tools_used:['check_billing_fields']},trace:{fallback_used:true,tool_calls:'包含失败前调用及 General 的调用'}},'用计划与实际的差异解释这一次降级','primary_agent 保留原始计划，agent_types 表示实际返回的角色；fallback_used 位于 Trace，避免把它误当作 ChatResponse 字段。','同类实例全部达到监控降权阈值时，也可在路由阶段直接回退。')
+];
+const scenes=[
+  {id:'order',name:'订单查询',message:orderMessage,source:'业务值来自 2026-10-08 验收记录；回复为节选',roles:['general'],steps:orderSteps},
+  {id:'multi',name:'多 Agent 协作',message:multiMessage,source:'流程示意 · 展示主辅并行与结果汇总',roles:['technical','billing'],steps:multiSteps},
+  {id:'rag',name:'知识与语义',message:ragMessage,source:'流程示意 · 候选分数、文档片段为示例',roles:['billing'],steps:ragSteps},
+  {id:'clarify',name:'低置信度澄清',message:'那个事情还是不对',source:'流程示意 · 最终仍为低置信度 other',roles:[],steps:clarifySteps},
+  {id:'handoff',name:'转人工',message:'请转人工客服',source:'流程示意 · 独立非 LLM 升级节点',roles:[],steps:handoffSteps},
+  {id:'fallback',name:'失败降级',message:'退款多久能到账？',source:'流程示意 · 注入 Billing 运行异常',roles:['billing','general'],steps:fallbackSteps}
+];
+
+/* === FORMATTING — compact JSON that fits the data panel without scrolling === */
+function compactJSON(value,depth=0) {
+  if(value===null || typeof value!=='object') return JSON.stringify(value);
+  const one=JSON.stringify(value);
+  if(depth>0 && one.length<72) return one;
+  const indent='  '.repeat(depth),next='  '.repeat(depth+1);
+  if(Array.isArray(value)) return '[\n'+value.map(v=>next+compactJSON(v,depth+1)).join(',\n')+'\n'+indent+']';
+  return '{\n'+Object.entries(value).map(([k,v])=>next+JSON.stringify(k)+': '+compactJSON(v,depth+1)).join(',\n')+'\n'+indent+'}';
+}
+function highlight(value) {
+  const raw=esc(compactJSON(value));
+  return raw.replace(/(&quot;.*?&quot;)(\s*:)?|\b(true|false|null)\b|\b(-?\d+(?:\.\d+)?)\b/g,(m,str,colon,bool,num)=>str?'<span class="'+(colon?'json-key':'json-str')+'">'+str+'</span>'+(colon||''):bool?'<span class="json-bool">'+bool+'</span>':'<span class="json-num">'+num+'</span>');
+}
+/* === ARCHITECTURE DRAWING — paths, node hit targets, and animated data packets === */
+Object.entries(paths).forEach(([id,d])=>{const p=document.createElementNS(NS,'path');p.id='edge-'+id;p.setAttribute('d',d);p.setAttribute('class','edge');p.setAttribute('marker-end','url(#arrow)');$('edges').append(p);});
+nodeDefs.forEach(([id,x,y,w,h,kicker,title,sub,style])=>{
+  const b=document.createElement('button');b.id='node-'+id;b.className='node '+(style||'');b.style.cssText=`left:${x}px;top:${y}px;width:${w}px;height:${h}px`;
+  b.innerHTML=`<span class="node-kicker">${kicker}</span><strong>${title}</strong><small>${sub}</small>`;
+  b.setAttribute('aria-label','跳到'+title+'步骤');b.addEventListener('click',()=>player.jumpToNode(id));$('nodes').append(b);
+});
+
+/* === PLAYER — single clock drives both timeline progress and SVG packet positions === */
+class FlowPresentation {
+  constructor(){
+    this.sceneIndex=0;this.index=0;this.playing=false;this.elapsed=0;this.speed=1;this.lastTime=0;this.duration=5600;this.activePaths=[];this.reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+    scenes.forEach((s,i)=>{const b=document.createElement('button');b.id='tab-'+s.id;b.className='scenario';b.setAttribute('role','tab');b.innerHTML=`<span class="index">${pad(i+1)}</span>${s.name}`;b.onclick=()=>this.setScene(i);$('scenarios').append(b);});
+    $('play').onclick=()=>this.toggle();$('next').onclick=()=>this.move(1);$('prev').onclick=()=>this.move(-1);$('reset').onclick=()=>{this.pause();this.go(0)};
+    $('speed').onchange=e=>this.speed=Number(e.target.value);
+    $('fullscreen').onclick=()=>this.fullscreen();$('notesButton').onclick=()=>this.notes(true);$('closeNotes').onclick=()=>this.notes(false);
+    document.addEventListener('keydown',e=>this.key(e));
+    let touchX=0,touchY=0;document.addEventListener('touchstart',e=>{touchX=e.changedTouches[0].clientX;touchY=e.changedTouches[0].clientY},{passive:true});
+    document.addEventListener('touchend',e=>{if($('notes').classList.contains('open')||editor.active)return;const dx=e.changedTouches[0].clientX-touchX,dy=e.changedTouches[0].clientY-touchY;if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)*1.5)this.move(dx<0?1:-1)},{passive:true});
+    let lastWheel=0;$('flowMap').addEventListener('wheel',e=>{if(Math.abs(e.deltaY)>18&&performance.now()-lastWheel>700){e.preventDefault();lastWheel=performance.now();this.move(e.deltaY>0?1:-1)}},{passive:false});
+    document.addEventListener('visibilitychange',()=>{this.lastTime=0});
+    this.scale();addEventListener('resize',()=>this.scale());
+    this.setScene(0);requestAnimationFrame(t=>this.tick(t));
+  }
+  get scene(){return scenes[this.sceneIndex]}
+  get current(){return this.scene.steps[this.index]}
+  scale(){const s=Math.min(innerWidth/1920,innerHeight/1080);$('deckStage').style.transform=`translate(${(innerWidth-1920*s)/2}px,${(innerHeight-1080*s)/2}px) scale(${s})`;}
+  setScene(i){this.pause();if(typeof editor!=='undefined')editor.save();this.sceneIndex=i;this.index=0;this.elapsed=0;this.render();}
+  go(i){this.index=Math.max(0,Math.min(i,this.scene.steps.length-1));this.elapsed=0;this.render();}
+  move(n){this.pause();this.go(this.index+n);}
+  toggle(){if(editor.active)return;if(this.playing){this.pause();return;}if(this.index===this.scene.steps.length-1){this.go(0);}this.playing=true;this.lastTime=0;document.body.classList.remove('paused');$('play').textContent='Ⅱ 暂停演示';$('play').setAttribute('aria-label','暂停演示');}
+  pause(){this.playing=false;document.body.classList.add('paused');$('play').textContent='▶ '+(this.index===this.scene.steps.length-1?'重新播放':'开始演示');$('play').setAttribute('aria-label','开始播放');}
+  jumpToNode(id){const candidates=this.scene.steps.map((s,i)=>s.nodes.includes(id)?i:-1).filter(i=>i>=0);if(!candidates.length)return;this.pause();this.go(candidates.find(i=>i>this.index)??candidates[0]);}
+  render(){
+    const s=this.current,allSteps=this.scene.steps;
+    document.querySelectorAll('.scenario').forEach((b,i)=>{b.setAttribute('aria-selected',i===this.sceneIndex);b.tabIndex=i===this.sceneIndex?0:-1;});
+    $('question').textContent='“'+this.scene.message+'”';$('provenance').textContent=this.scene.source;
+    $('stepCount').textContent=pad(this.index+1)+' / '+pad(allSteps.length);$('stepNumber').textContent=pad(this.index+1);$('stepCategory').textContent=s.category;$('stepTitle').textContent=s.title;$('payloadLabel').textContent=s.label;$('payloadChip').textContent=s.chip||'链路示意';
+    const p=$('payload');p.innerHTML=highlight(s.data);p.classList.remove('fade-in');void p.offsetWidth;p.classList.add('fade-in');p.style.fontSize='17px';
+    $('cueTitle').textContent=s.cue;$('cueBody').textContent=s.body;$('inspectorFoot').innerHTML='<b>实现细节</b> · '+esc(s.foot);
+    // Respect the actual footer height before fitting this one code sample.
+    p.style.height=($('inspectorFoot').offsetTop-p.offsetTop-16)+'px';
+    for(let size=17;size>14&&p.scrollHeight>p.clientHeight+1;size-=.5)p.style.fontSize=(size-.5)+'px';
+    const seen=new Set(allSteps.slice(0,this.index).flatMap(x=>x.nodes)),seenEdges=new Set(allSteps.slice(0,this.index).flatMap(x=>x.edges));
+    nodeDefs.forEach(([id])=>{const b=$('node-'+id),unused=['general','technical','billing'].includes(id)&&!this.scene.roles.includes(id);b.classList.toggle('done',seen.has(id));b.classList.toggle('active',s.nodes.includes(id));b.classList.toggle('unused',unused);b.classList.toggle('warning',(s.warning||[]).includes(id));b.setAttribute('aria-current',s.nodes.includes(id)?'step':'false');});
+    $('node-branch').querySelector('strong').textContent=this.scene.id==='clarify'?'低置信度澄清':this.scene.id==='handoff'?'Escalation':'澄清 / 升级';
+    $('node-route').querySelector('strong').textContent=this.scene.id==='clarify'?'分支判断':'路由决策';
+    $('node-route').querySelector('small').textContent=this.scene.id==='clarify'?'低置信度先澄清':'主 Agent + 辅助';
+    Object.keys(paths).forEach(id=>{const p=$('edge-'+id);const reverse=Boolean(s.reverse&&s.edges.includes(id));p.setAttribute('marker-end',reverse?'none':'url(#arrow)');p.setAttribute('marker-start',reverse?'url(#arrow)':'none');p.style.visibility=id==='billing-fallback'&&!s.edges.includes(id)&&!seenEdges.has(id)?'hidden':'visible';p.setAttribute('class','edge'+(seenEdges.has(id)?' complete':'')+(s.edges.includes(id)?' flow':'')+(s.reverse?' reverse':'')+(id==='billing-fallback'?' warning':'')+(['route-general','route-technical','route-billing'].includes(id)&&!this.scene.roles.includes(id.slice(6))?' off':''));});
+    const toolNode=$('node-tools');
+    toolNode.querySelector('strong').textContent=this.scene.id==='order'?'订单查询 → SQLite':this.scene.id==='rag'?'知识检索 → ChromaDB':this.scene.id==='multi'?'角色工具 → TypeScript':'按需工具调用';
+    toolNode.querySelector('small').textContent=this.scene.id==='order'?'get_order · 经 Python HTTP':this.scene.id==='rag'?'knowledge_search · 经 Python HTTP':this.scene.id==='multi'?'lookup_error_code / check_billing_fields':'Python HTTP / 本地角色工具';
+    $('particles').replaceChildren();this.activePaths=s.edges.map(id=>{const path=$('edge-'+id);const circles=[0,1].map(()=>{const c=document.createElementNS(NS,'circle');c.setAttribute('r','4.5');c.setAttribute('class','particle'+(id.includes('fallback')?' warning':''));$('particles').append(c);return c});return {path,length:path.getTotalLength(),circles};});
+    $('timeline').replaceChildren();allSteps.forEach((st,i)=>{const b=document.createElement('button');b.className=(i<this.index?'done':i===this.index?'current':'');b.title=pad(i+1)+' '+st.title;b.setAttribute('aria-label','第'+(i+1)+'步：'+st.title);if(i===this.index){b.setAttribute('aria-current','step');b.innerHTML='<i id="stepProgress"></i>';}b.onclick=()=>{this.pause();this.go(i)};$('timeline').append(b);});
+    $('prev').disabled=this.index===0;$('next').disabled=this.index===allSteps.length-1;
+    if(!this.playing)this.pause();this.drawParticles(.45);this.progress();if(typeof editor!=='undefined')editor.restore();
+  }
+  progress(){const p=$('stepProgress');if(p)p.style.width=(this.elapsed/this.duration*100)+'%';$('progressLine').style.width=((this.index+this.elapsed/this.duration)/this.scene.steps.length*100)+'%';}
+  drawParticles(phase){if(this.reduced){$('particles').style.visibility='hidden';return;}$('particles').style.visibility='visible';this.activePaths.forEach(({path,length,circles})=>circles.forEach((c,j)=>{let f=(phase+j*.5)%1;if(this.current.reverse)f=1-f;const p=path.getPointAtLength(length*f);c.setAttribute('cx',p.x);c.setAttribute('cy',p.y);}));}
+  tick(t){if(this.playing&&!document.hidden){if(this.lastTime)this.elapsed+=Math.min(t-this.lastTime,100)*this.speed;if(this.elapsed>=this.duration){if(this.index===this.scene.steps.length-1){this.elapsed=this.duration;this.pause();}else this.go(this.index+1);}this.drawParticles((this.elapsed/2300)%1);this.progress();}this.lastTime=t;requestAnimationFrame(v=>this.tick(v));}
+  notes(open){if(open){this.pause();this.noteFocus=document.activeElement;}$('notes').classList.toggle('open',open);$('notes').inert=!open;if(open)$('closeNotes').focus();else(this.noteFocus||$('notesButton')).focus();}
+  async fullscreen(){try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch{$('fullscreen').textContent='浏览器菜单可全屏';}}
+  key(e){
+    if($('notes').classList.contains('open')){if(e.key==='Escape')this.notes(false);else if(e.key==='Tab'){e.preventDefault();$('closeNotes').focus();}return;}
+    if(e.target.isContentEditable||e.target.tagName==='SELECT')return;
+    // Native buttons retain Space / Enter activation; arrows inside tabs switch scenes.
+    if(e.target.classList.contains('scenario')&&['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){e.preventDefault();const i=e.key==='Home'?0:e.key==='End'?scenes.length-1:(this.sceneIndex+(e.key==='ArrowRight'?1:-1)+scenes.length)%scenes.length;this.setScene(i);$('tab-'+this.scene.id).focus();return;}
+    if(e.code==='Space'){e.preventDefault();this.toggle();}else if(['ArrowRight','PageDown'].includes(e.key)){e.preventDefault();this.move(1)}else if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();this.move(-1)}else if(e.key.toLowerCase()==='r'){this.pause();this.go(0)}else if(e.key.toLowerCase()==='f')this.fullscreen();
+  }
+}
+/* === INLINE EDITING — local persistence and portable HTML export === */
+let editor;
+const player=new FlowPresentation();
+class TextEditor {
+  constructor(){this.active=false;this.values={};try{this.values=JSON.parse(localStorage.getItem('lumenmind-pi-flow-edits')||'{}')}catch{};this.restore();$('editToggle').onclick=()=>this.toggle();$('editHotzone').onclick=()=>this.toggle();let timer;[$('editHotzone'),$('editToggle')].forEach(el=>{el.addEventListener('mouseenter',()=>{clearTimeout(timer);$('editToggle').classList.add('show')});el.addEventListener('mouseleave',()=>timer=setTimeout(()=>{if(!this.active)$('editToggle').classList.remove('show')},400))});document.addEventListener('keydown',e=>{if(e.key.toLowerCase()==='e'&&!e.target.isContentEditable&&!$('notes').classList.contains('open'))this.toggle();if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'&&this.active){e.preventDefault();this.save();this.download();}});document.querySelectorAll('[data-edit]').forEach(el=>el.addEventListener('input',()=>this.save()));}
+  key(el){return el.dataset.edit==='title'?'title':player.scene.id+':'+player.index+':'+el.dataset.edit;}
+  save(){document.querySelectorAll('[data-edit]').forEach(el=>this.values[this.key(el)]=el.innerHTML);try{localStorage.setItem('lumenmind-pi-flow-edits',JSON.stringify(this.values))}catch{}}
+  restore(){document.querySelectorAll('[data-edit]').forEach(el=>{const v=this.values[this.key(el)];if(v!==undefined)el.innerHTML=v;el.contentEditable=String(this.active);});}
+  toggle(){this.active=!this.active;player.pause();document.body.classList.toggle('editing',this.active);$('editToggle').classList.toggle('active',this.active);if(!this.active)this.save();this.restore();}
+  download(){this.save();const clone=document.documentElement.cloneNode(true);clone.querySelectorAll('[contenteditable]').forEach(el=>el.removeAttribute('contenteditable'));clone.querySelector('body').classList.remove('editing');clone.querySelector('#editToggle').classList.remove('active','show');['nodes','edges','particles','scenarios','timeline'].forEach(id=>clone.querySelector('#'+id).replaceChildren());const old=clone.querySelector('#savedEdits');if(old)old.remove();const script=document.createElement('script');script.id='savedEdits';script.textContent='Object.assign(editor.values,'+JSON.stringify(this.values).replace(/</g,'\\u003c')+');editor.restore();';clone.querySelector('body').append(script);const blob=new Blob(['<!doctype html>\n'+clone.outerHTML],{type:'text/html;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='LumenMind-Pi-数据流演示.html';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+}
+editor=new TextEditor();
+/* Expose read-only scenario metadata and the player for local visual verification. */
+window.flowDemo={player,scenes};
+</script>
+</body>
+</html>

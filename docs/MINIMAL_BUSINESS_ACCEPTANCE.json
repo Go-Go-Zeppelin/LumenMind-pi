@@ -1,0 +1,1909 @@
+{
+  "acceptance_date": "2026-10-08",
+  "api": [
+    {
+      "path": "/business/orders?user_id=u1001",
+      "status": 200,
+      "body": {
+        "items": [
+          {
+            "order_id": "ORD-1001-003",
+            "user_id": "u1001",
+            "product_name": "USB-C 扩展坞",
+            "quantity": 1,
+            "total_amount_cents": 9900,
+            "currency": "CNY",
+            "status": "completed",
+            "created_at": "2026-10-03T10:00:00+08:00"
+          },
+          {
+            "order_id": "ORD-1001-002",
+            "user_id": "u1001",
+            "product_name": "鼠标",
+            "quantity": 1,
+            "total_amount_cents": 5900,
+            "currency": "CNY",
+            "status": "pending_payment",
+            "created_at": "2026-10-02T10:00:00+08:00"
+          },
+          {
+            "order_id": "ORD-1001-001",
+            "user_id": "u1001",
+            "product_name": "无线键盘",
+            "quantity": 1,
+            "total_amount_cents": 12900,
+            "currency": "CNY",
+            "status": "shipped",
+            "created_at": "2026-10-01T10:00:00+08:00"
+          }
+        ],
+        "count": 3,
+        "source": "demo_business_db"
+      }
+    },
+    {
+      "path": "/business/orders/ORD-1001-001?user_id=u1001",
+      "status": 200,
+      "body": {
+        "item": {
+          "order_id": "ORD-1001-001",
+          "user_id": "u1001",
+          "product_name": "无线键盘",
+          "quantity": 1,
+          "total_amount_cents": 12900,
+          "currency": "CNY",
+          "status": "shipped",
+          "created_at": "2026-10-01T10:00:00+08:00"
+        },
+        "source": "demo_business_db"
+      }
+    },
+    {
+      "path": "/business/bills?user_id=u1001",
+      "status": 200,
+      "body": {
+        "items": [
+          {
+            "bill_id": "BILL-1001-003",
+            "order_id": "ORD-1001-003",
+            "amount_cents": 9900,
+            "currency": "CNY",
+            "status": "paid",
+            "payment_method": "wechat",
+            "paid_at": "2026-10-03T10:05:00+08:00",
+            "created_at": "2026-10-03T10:00:00+08:00"
+          },
+          {
+            "bill_id": "BILL-1001-002",
+            "order_id": "ORD-1001-002",
+            "amount_cents": 5900,
+            "currency": "CNY",
+            "status": "unpaid",
+            "payment_method": null,
+            "paid_at": null,
+            "created_at": "2026-10-02T10:00:00+08:00"
+          },
+          {
+            "bill_id": "BILL-1001-001",
+            "order_id": "ORD-1001-001",
+            "amount_cents": 12900,
+            "currency": "CNY",
+            "status": "paid",
+            "payment_method": "alipay",
+            "paid_at": "2026-10-01T10:05:00+08:00",
+            "created_at": "2026-10-01T10:00:00+08:00"
+          }
+        ],
+        "count": 3,
+        "source": "demo_business_db"
+      }
+    },
+    {
+      "path": "/business/bills?user_id=u1001&order_id=ORD-1001-001",
+      "status": 200,
+      "body": {
+        "items": [
+          {
+            "bill_id": "BILL-1001-001",
+            "order_id": "ORD-1001-001",
+            "amount_cents": 12900,
+            "currency": "CNY",
+            "status": "paid",
+            "payment_method": "alipay",
+            "paid_at": "2026-10-01T10:05:00+08:00",
+            "created_at": "2026-10-01T10:00:00+08:00"
+          }
+        ],
+        "count": 1,
+        "source": "demo_business_db"
+      }
+    },
+    {
+      "path": "/business/bills/BILL-1001-002?user_id=u1001",
+      "status": 200,
+      "body": {
+        "item": {
+          "bill_id": "BILL-1001-002",
+          "order_id": "ORD-1001-002",
+          "amount_cents": 5900,
+          "currency": "CNY",
+          "status": "unpaid",
+          "payment_method": null,
+          "paid_at": null,
+          "created_at": "2026-10-02T10:00:00+08:00"
+        },
+        "source": "demo_business_db"
+      }
+    },
+    {
+      "path": "/business/orders?user_id=u1002",
+      "status": 200,
+      "body": {
+        "items": [
+          {
+            "order_id": "ORD-1002-001",
+            "user_id": "u1002",
+            "product_name": "机械键盘",
+            "quantity": 1,
+            "total_amount_cents": 19900,
+            "currency": "CNY",
+            "status": "processing",
+            "created_at": "2026-10-03T11:00:00+08:00"
+          }
+        ],
+        "count": 1,
+        "source": "demo_business_db"
+      }
+    },
+    {
+      "path": "/business/bills?user_id=u1002",
+      "status": 200,
+      "body": {
+        "items": [
+          {
+            "bill_id": "BILL-1002-001",
+            "order_id": "ORD-1002-001",
+            "amount_cents": 19900,
+            "currency": "CNY",
+            "status": "paid",
+            "payment_method": "alipay",
+            "paid_at": "2026-10-03T11:05:00+08:00",
+            "created_at": "2026-10-03T11:00:00+08:00"
+          }
+        ],
+        "count": 1,
+        "source": "demo_business_db"
+      }
+    },
+    {
+      "path": "/business/orders/ORD-1002-001?user_id=u1001",
+      "status": 404,
+      "body": {
+        "detail": "not_found"
+      }
+    },
+    {
+      "path": "/business/orders/ORD-9999-999?user_id=u1001",
+      "status": 404,
+      "body": {
+        "detail": "not_found"
+      }
+    },
+    {
+      "path": "/business/bills/BILL-1002-001?user_id=u1001",
+      "status": 404,
+      "body": {
+        "detail": "not_found"
+      }
+    },
+    {
+      "path": "/business/bills/BILL-9999-999?user_id=u1001",
+      "status": 404,
+      "body": {
+        "detail": "not_found"
+      }
+    },
+    {
+      "path": "/business/orders?user_id=unknown",
+      "status": 200,
+      "body": {
+        "items": [],
+        "count": 0,
+        "source": "demo_business_db"
+      }
+    },
+    {
+      "path": "/business/bills?user_id=anonymous",
+      "status": 200,
+      "body": {
+        "items": [],
+        "count": 0,
+        "source": "demo_business_db"
+      }
+    },
+    {
+      "path": "/business/orders",
+      "status": 422,
+      "body": {
+        "detail": [
+          {
+            "type": "missing",
+            "loc": [
+              "query",
+              "user_id"
+            ],
+            "msg": "Field required",
+            "input": null
+          }
+        ]
+      }
+    },
+    {
+      "path": "/business/bills?user_id=u1001&limit=21",
+      "status": 422,
+      "body": {
+        "detail": [
+          {
+            "type": "less_than_equal",
+            "loc": [
+              "query",
+              "limit"
+            ],
+            "msg": "Input should be less than or equal to 20",
+            "input": "21",
+            "ctx": {
+              "le": 20
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "chats": [
+    {
+      "endpoint": "http://localhost:8000/chat",
+      "user_id": "u1001",
+      "message": "查一下我的订单",
+      "expected_tool": "list_orders",
+      "response": {
+        "conv_id": "business-acceptance-20261008-0",
+        "response": "已为你查到最近 3 笔订单（演示业务数据）：\n\n1. ORD-1001-001｜无线键盘 ×1｜129.00 元｜已发货｜2026-10-01\n2. ORD-1001-002｜鼠标 ×1｜59.00 元｜待支付｜2026-10-02\n3. ORD-1001-003｜USB-C 扩展坞 ×1｜99.00 元｜已完成｜2026-10-03\n\n说明：以上为演示数据，已发货状态不含物流轨迹或预计送达时间。如需查看某笔订单的详情或对应账单，告诉我订单号即可。另外，支付、退款、开票等操作目前暂不支持在线执行。",
+        "intent": "order_status",
+        "intent_group": "query",
+        "agent_type": "general",
+        "agent_types": [
+          "general"
+        ],
+        "primary_agent": "general",
+        "supporting_agents": [],
+        "routing_reason": "intent=order_status, group=query, primary=general, supporting=none, scores=[general=0.77, technical=0.00, billing=0.00]",
+        "routing_confidence": 0.77,
+        "escalated": false,
+        "latency_ms": 3133.5,
+        "knowledge_used": false,
+        "tools_used": [
+          "list_orders"
+        ],
+        "output_valid": true,
+        "output_errors": [],
+        "entities": {
+          "order_id": [],
+          "product": [],
+          "date": [],
+          "amount": [],
+          "error_code": []
+        },
+        "intent_confidence": 0.94,
+        "intent_source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.94
+        },
+        "request_id": "96d96de0-0c77-4595-b79a-06dd29d5abad"
+      },
+      "trace": {
+        "request_id": "96d96de0-0c77-4595-b79a-06dd29d5abad",
+        "found": true,
+        "trace": {
+          "request_id": "96d96de0-0c77-4595-b79a-06dd29d5abad",
+          "timestamp": "2026-10-08T02:24:34.287Z",
+          "user_id": "u1001",
+          "conv_id": "business-acceptance-20261008-0",
+          "message": "查一下我的订单",
+          "response": "已为你查到最近 3 笔订单（演示业务数据）：\n\n1. ORD-1001-001｜无线键盘 ×1｜129.00 元｜已发货｜2026-10-01\n2. ORD-1001-002｜鼠标 ×1｜59.00 元｜待支付｜2026-10-02\n3. ORD-1001-003｜USB-C 扩展坞 ×1｜99.00 元｜已完成｜2026-10-03\n\n说明：以上为演示数据，已发货状态不含物流轨迹或预计送达时间。如需查看某笔订单的详情或对应账单，告诉我订单号即可。另外，支付、退款、开票等操作目前暂不支持在线执行。",
+          "intent": "order_status",
+          "intent_group": "query",
+          "primary_agent": "general",
+          "supporting_agents": [],
+          "agent_types": [
+            "general"
+          ],
+          "tools_used": [
+            "list_orders"
+          ],
+          "skills_used": [
+            "通用客服接待规范"
+          ],
+          "fallback_used": false,
+          "tool_calls": [
+            {
+              "agent_type": "general",
+              "tool_name": "list_orders",
+              "tool_call_id": "call_00_T08JEWk3e25uajKKtSK43628",
+              "tool_use_id": "call_00_T08JEWk3e25uajKKtSK43628",
+              "input": {
+                "limit": 10
+              },
+              "started_at": "2026-10-08T02:24:32.507Z",
+              "success": true,
+              "is_error": false,
+              "latency_ms": 14.5,
+              "cached": false,
+              "reranked": false,
+              "finished_at": "2026-10-08T02:24:32.521Z",
+              "output": {
+                "items": [
+                  {
+                    "order_id": "ORD-1001-003",
+                    "user_id": "u1001",
+                    "product_name": "USB-C 扩展坞",
+                    "quantity": 1,
+                    "total_amount_cents": 9900,
+                    "currency": "CNY",
+                    "status": "completed",
+                    "created_at": "2026-10-03T10:00:00+08:00"
+                  },
+                  {
+                    "order_id": "ORD-1001-002",
+                    "user_id": "u1001",
+                    "product_name": "鼠标",
+                    "quantity": 1,
+                    "total_amount_cents": 5900,
+                    "currency": "CNY",
+                    "status": "pending_payment",
+                    "created_at": "2026-10-02T10:00:00+08:00"
+                  },
+                  {
+                    "order_id": "ORD-1001-001",
+                    "user_id": "u1001",
+                    "product_name": "无线键盘",
+                    "quantity": 1,
+                    "total_amount_cents": 12900,
+                    "currency": "CNY",
+                    "status": "shipped",
+                    "created_at": "2026-10-01T10:00:00+08:00"
+                  }
+                ],
+                "count": 3,
+                "source": "demo_business_db"
+              }
+            }
+          ],
+          "escalated": false,
+          "latency_ms": 3133.5,
+          "output_valid": true,
+          "output_errors": [],
+          "model_id": "deepseek-v4-flash",
+          "runtime_version": "pi-agent-core@0.82.1"
+        }
+      }
+    },
+    {
+      "endpoint": "http://localhost:8000/chat",
+      "user_id": "u1001",
+      "message": "订单 ORD-1001-001 发货了吗？",
+      "expected_tool": "get_order",
+      "response": {
+        "conv_id": "business-acceptance-20261008-1",
+        "response": "订单 ORD-1001-001（无线键盘 ×1，金额 129.00 元，下单时间 2026-10-01 10:00）当前状态为「已发货」。\n\n需要说明的是：这是演示业务数据，发货状态不包含物流轨迹或预计送达时间，我这边也查不到快递单号。如果你需要物流信息，建议联系发货渠道或转人工协助核实。",
+        "intent": "order_status",
+        "intent_group": "query",
+        "agent_type": "general",
+        "agent_types": [
+          "general"
+        ],
+        "primary_agent": "general",
+        "supporting_agents": [],
+        "routing_reason": "intent=order_status, group=query, primary=general, supporting=none, scores=[general=0.87, technical=0.00, billing=0.00]",
+        "routing_confidence": 0.87,
+        "escalated": true,
+        "latency_ms": 3026.4,
+        "knowledge_used": false,
+        "tools_used": [
+          "get_order"
+        ],
+        "output_valid": true,
+        "output_errors": [],
+        "entities": {
+          "order_id": [
+            "ORD-1001-001"
+          ],
+          "product": [],
+          "date": [],
+          "amount": [],
+          "error_code": []
+        },
+        "intent_confidence": 0.94,
+        "intent_source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.94
+        },
+        "request_id": "1a8dc783-cb3d-4bba-bdbb-9e19c8861fdb"
+      },
+      "trace": {
+        "request_id": "1a8dc783-cb3d-4bba-bdbb-9e19c8861fdb",
+        "found": true,
+        "trace": {
+          "request_id": "1a8dc783-cb3d-4bba-bdbb-9e19c8861fdb",
+          "timestamp": "2026-10-08T02:24:37.343Z",
+          "user_id": "u1001",
+          "conv_id": "business-acceptance-20261008-1",
+          "message": "订单 ORD-1001-001 发货了吗？",
+          "response": "订单 ORD-1001-001（无线键盘 ×1，金额 129.00 元，下单时间 2026-10-01 10:00）当前状态为「已发货」。\n\n需要说明的是：这是演示业务数据，发货状态不包含物流轨迹或预计送达时间，我这边也查不到快递单号。如果你需要物流信息，建议联系发货渠道或转人工协助核实。",
+          "intent": "order_status",
+          "intent_group": "query",
+          "primary_agent": "general",
+          "supporting_agents": [],
+          "agent_types": [
+            "general"
+          ],
+          "tools_used": [
+            "get_order"
+          ],
+          "skills_used": [
+            "通用客服接待规范"
+          ],
+          "fallback_used": false,
+          "tool_calls": [
+            {
+              "agent_type": "general",
+              "tool_name": "get_order",
+              "tool_call_id": "call_00_fktee53zyG1HqTxAoxZE0675",
+              "tool_use_id": "call_00_fktee53zyG1HqTxAoxZE0675",
+              "input": {
+                "order_id": "ORD-1001-001"
+              },
+              "started_at": "2026-10-08T02:24:35.384Z",
+              "success": true,
+              "is_error": false,
+              "latency_ms": 8.7,
+              "cached": false,
+              "reranked": false,
+              "finished_at": "2026-10-08T02:24:35.393Z",
+              "output": {
+                "item": {
+                  "order_id": "ORD-1001-001",
+                  "user_id": "u1001",
+                  "product_name": "无线键盘",
+                  "quantity": 1,
+                  "total_amount_cents": 12900,
+                  "currency": "CNY",
+                  "status": "shipped",
+                  "created_at": "2026-10-01T10:00:00+08:00"
+                },
+                "source": "demo_business_db"
+              }
+            }
+          ],
+          "escalated": true,
+          "latency_ms": 3026.4,
+          "output_valid": true,
+          "output_errors": [],
+          "model_id": "deepseek-v4-flash",
+          "runtime_version": "pi-agent-core@0.82.1"
+        }
+      }
+    },
+    {
+      "endpoint": "http://localhost:8000/chat",
+      "user_id": "u1001",
+      "message": "查看我的账单",
+      "expected_tools": [
+        "list_bills"
+      ],
+      "response": {
+        "conv_id": "business-acceptance-20261008-extra-0",
+        "response": "以下是你的最近账单（演示业务数据，金额已由分换算为元）：\n\n1. 账单号 BILL-1001-003｜订单 ORD-1001-003｜金额 99.00 元｜状态：已支付（paid）｜支付方式：微信｜支付时间：2026-10-03 10:05｜创建时间：2026-10-03 10:00\n2. 账单号 BILL-1001-002｜订单 ORD-1001-002｜金额 59.00 元｜状态：未支付（unpaid）｜支付方式：无｜支付时间：无｜创建时间：2026-10-02 10:00\n3. 账单号 BILL-1001-001｜订单 ORD-1001-001｜金额 129.00 元｜状态：已支付（paid）｜支付方式：支付宝｜支付时间：2026-10-01 10:05｜创建时间：2026-10-01 10:00\n\n说明：以上为演示数据，其中“已支付”仅表示演示账单状态，不代表真实支付渠道的资金记录。\n\n如果你需要针对某一笔账单申请退款、核实扣款或开发票，请告诉我账单号或订单号，并补充扣款时间、金额和支付渠道，我可以继续帮你判断处理路径。",
+        "intent": "billing",
+        "intent_group": "billing",
+        "agent_type": "billing",
+        "agent_types": [
+          "billing"
+        ],
+        "primary_agent": "billing",
+        "supporting_agents": [],
+        "routing_reason": "intent=billing, group=billing, primary=billing, supporting=none, scores=[billing=1.20, general=0.10, technical=0.00]",
+        "routing_confidence": 1,
+        "escalated": false,
+        "latency_ms": 5147,
+        "knowledge_used": false,
+        "tools_used": [
+          "list_bills"
+        ],
+        "output_valid": true,
+        "output_errors": [],
+        "entities": {
+          "order_id": [],
+          "product": [],
+          "date": [],
+          "amount": [],
+          "error_code": []
+        },
+        "intent_confidence": 0.91,
+        "intent_source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.91
+        },
+        "request_id": "199001de-f11c-40db-9130-eae2f808304a"
+      },
+      "trace": {
+        "request_id": "199001de-f11c-40db-9130-eae2f808304a",
+        "found": true,
+        "trace": {
+          "request_id": "199001de-f11c-40db-9130-eae2f808304a",
+          "timestamp": "2026-10-08T02:25:22.616Z",
+          "user_id": "u1001",
+          "conv_id": "business-acceptance-20261008-extra-0",
+          "message": "查看我的账单",
+          "response": "以下是你的最近账单（演示业务数据，金额已由分换算为元）：\n\n1. 账单号 BILL-1001-003｜订单 ORD-1001-003｜金额 99.00 元｜状态：已支付（paid）｜支付方式：微信｜支付时间：2026-10-03 10:05｜创建时间：2026-10-03 10:00\n2. 账单号 BILL-1001-002｜订单 ORD-1001-002｜金额 59.00 元｜状态：未支付（unpaid）｜支付方式：无｜支付时间：无｜创建时间：2026-10-02 10:00\n3. 账单号 BILL-1001-001｜订单 ORD-1001-001｜金额 129.00 元｜状态：已支付（paid）｜支付方式：支付宝｜支付时间：2026-10-01 10:05｜创建时间：2026-10-01 10:00\n\n说明：以上为演示数据，其中“已支付”仅表示演示账单状态，不代表真实支付渠道的资金记录。\n\n如果你需要针对某一笔账单申请退款、核实扣款或开发票，请告诉我账单号或订单号，并补充扣款时间、金额和支付渠道，我可以继续帮你判断处理路径。",
+          "intent": "billing",
+          "intent_group": "billing",
+          "primary_agent": "billing",
+          "supporting_agents": [],
+          "agent_types": [
+            "billing"
+          ],
+          "tools_used": [
+            "list_bills"
+          ],
+          "skills_used": [
+            "账单退款处理规范"
+          ],
+          "fallback_used": false,
+          "tool_calls": [
+            {
+              "agent_type": "billing",
+              "tool_name": "list_bills",
+              "tool_call_id": "call_00_3R3JOafsHnSMYBgESLbl9359",
+              "tool_use_id": "call_00_3R3JOafsHnSMYBgESLbl9359",
+              "input": {},
+              "started_at": "2026-10-08T02:25:19.013Z",
+              "success": true,
+              "is_error": false,
+              "latency_ms": 10.6,
+              "cached": false,
+              "reranked": false,
+              "finished_at": "2026-10-08T02:25:19.024Z",
+              "output": {
+                "items": [
+                  {
+                    "bill_id": "BILL-1001-003",
+                    "order_id": "ORD-1001-003",
+                    "amount_cents": 9900,
+                    "currency": "CNY",
+                    "status": "paid",
+                    "payment_method": "wechat",
+                    "paid_at": "2026-10-03T10:05:00+08:00",
+                    "created_at": "2026-10-03T10:00:00+08:00"
+                  },
+                  {
+                    "bill_id": "BILL-1001-002",
+                    "order_id": "ORD-1001-002",
+                    "amount_cents": 5900,
+                    "currency": "CNY",
+                    "status": "unpaid",
+                    "payment_method": null,
+                    "paid_at": null,
+                    "created_at": "2026-10-02T10:00:00+08:00"
+                  },
+                  {
+                    "bill_id": "BILL-1001-001",
+                    "order_id": "ORD-1001-001",
+                    "amount_cents": 12900,
+                    "currency": "CNY",
+                    "status": "paid",
+                    "payment_method": "alipay",
+                    "paid_at": "2026-10-01T10:05:00+08:00",
+                    "created_at": "2026-10-01T10:00:00+08:00"
+                  }
+                ],
+                "count": 3,
+                "source": "demo_business_db"
+              }
+            }
+          ],
+          "escalated": false,
+          "latency_ms": 5147,
+          "output_valid": true,
+          "output_errors": [],
+          "model_id": "deepseek-v4-flash",
+          "runtime_version": "pi-agent-core@0.82.1"
+        }
+      }
+    },
+    {
+      "endpoint": "http://localhost:8000/chat",
+      "user_id": "u1001",
+      "message": "订单 ORD-1001-001 的账单",
+      "expected_tools": [
+        "list_bills"
+      ],
+      "response": {
+        "conv_id": "business-acceptance-20261008-extra-1",
+        "response": "订单 ORD-1001-001 查到 1 条账单记录（演示业务数据）：\n\n- 账单号：BILL-1001-001\n- 关联订单：ORD-1001-001\n- 金额：129.00 元（CNY）\n- 状态：paid（已支付）\n- 支付方式：支付宝\n- 支付时间：2026-10-01 10:05\n- 创建时间：2026-10-01 10:00\n\n说明：以上为演示业务数据，状态 paid 仅表示演示账单已支付，不代表真实支付渠道的资金记录。\n\n如果你关心的是退款、重复扣款或发票问题，请告诉我具体诉求，并补充扣款时间、金额和支付渠道，我可以继续帮你判断处理路径。",
+        "intent": "billing",
+        "intent_group": "billing",
+        "agent_type": "billing",
+        "agent_types": [
+          "billing"
+        ],
+        "primary_agent": "billing",
+        "supporting_agents": [],
+        "routing_reason": "intent=billing, group=billing, primary=billing, supporting=none, scores=[billing=1.20, general=0.32, technical=0.00]",
+        "routing_confidence": 1,
+        "escalated": false,
+        "latency_ms": 4138.4,
+        "knowledge_used": false,
+        "tools_used": [
+          "list_bills"
+        ],
+        "output_valid": true,
+        "output_errors": [],
+        "entities": {
+          "order_id": [
+            "ORD-1001-001"
+          ],
+          "product": [],
+          "date": [],
+          "amount": [],
+          "error_code": []
+        },
+        "intent_confidence": 0.91,
+        "intent_source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.91
+        },
+        "request_id": "625f29ad-f5b7-40a7-90ac-740b0b37bb2f"
+      },
+      "trace": {
+        "request_id": "625f29ad-f5b7-40a7-90ac-740b0b37bb2f",
+        "found": true,
+        "trace": {
+          "request_id": "625f29ad-f5b7-40a7-90ac-740b0b37bb2f",
+          "timestamp": "2026-10-08T02:25:26.785Z",
+          "user_id": "u1001",
+          "conv_id": "business-acceptance-20261008-extra-1",
+          "message": "订单 ORD-1001-001 的账单",
+          "response": "订单 ORD-1001-001 查到 1 条账单记录（演示业务数据）：\n\n- 账单号：BILL-1001-001\n- 关联订单：ORD-1001-001\n- 金额：129.00 元（CNY）\n- 状态：paid（已支付）\n- 支付方式：支付宝\n- 支付时间：2026-10-01 10:05\n- 创建时间：2026-10-01 10:00\n\n说明：以上为演示业务数据，状态 paid 仅表示演示账单已支付，不代表真实支付渠道的资金记录。\n\n如果你关心的是退款、重复扣款或发票问题，请告诉我具体诉求，并补充扣款时间、金额和支付渠道，我可以继续帮你判断处理路径。",
+          "intent": "billing",
+          "intent_group": "billing",
+          "primary_agent": "billing",
+          "supporting_agents": [],
+          "agent_types": [
+            "billing"
+          ],
+          "tools_used": [
+            "list_bills"
+          ],
+          "skills_used": [
+            "账单退款处理规范"
+          ],
+          "fallback_used": false,
+          "tool_calls": [
+            {
+              "agent_type": "billing",
+              "tool_name": "list_bills",
+              "tool_call_id": "call_00_gEb5qh4DpUmKnWA2iH6q5555",
+              "tool_use_id": "call_00_gEb5qh4DpUmKnWA2iH6q5555",
+              "input": {
+                "order_id": "ORD-1001-001"
+              },
+              "started_at": "2026-10-08T02:25:23.866Z",
+              "success": true,
+              "is_error": false,
+              "latency_ms": 9.3,
+              "cached": false,
+              "reranked": false,
+              "finished_at": "2026-10-08T02:25:23.875Z",
+              "output": {
+                "items": [
+                  {
+                    "bill_id": "BILL-1001-001",
+                    "order_id": "ORD-1001-001",
+                    "amount_cents": 12900,
+                    "currency": "CNY",
+                    "status": "paid",
+                    "payment_method": "alipay",
+                    "paid_at": "2026-10-01T10:05:00+08:00",
+                    "created_at": "2026-10-01T10:00:00+08:00"
+                  }
+                ],
+                "count": 1,
+                "source": "demo_business_db"
+              }
+            }
+          ],
+          "escalated": false,
+          "latency_ms": 4138.4,
+          "output_valid": true,
+          "output_errors": [],
+          "model_id": "deepseek-v4-flash",
+          "runtime_version": "pi-agent-core@0.82.1"
+        }
+      }
+    },
+    {
+      "endpoint": "http://localhost:8000/chat",
+      "user_id": "u1001",
+      "message": "查询账单 BILL-1001-002",
+      "expected_tools": [
+        "get_bill"
+      ],
+      "response": {
+        "conv_id": "business-acceptance-20261008-extra-2",
+        "response": "已查到账单 BILL-1001-002（演示业务数据）：\n\n- 账单号：BILL-1001-002\n- 关联订单：ORD-1001-002\n- 金额：59.00 元（CNY）\n- 状态：未支付（unpaid）\n- 支付方式：暂无记录\n- 支付时间：暂无记录\n- 创建时间：2026-10-02 10:00（+08:00）\n\n说明：该账单目前为未支付状态，没有支付渠道和支付时间记录，因此不存在可核对的扣款流水。演示数据中的状态不代表真实渠道的资金结果。\n\n如果你关心的是以下情况，请补充信息，我再帮你判断：\n- 认为这笔账单已被扣款：请提供扣款时间、金额和支付渠道（微信/支付宝/银行卡等），以便核对是否与系统记录冲突。\n- 想申请退款或对费用有异议：需要订单号、支付时间、支付渠道，且实际退款需人工审核，当前无法直接执行。\n- 想开发票：需要发票类型、抬头、税号、邮箱和开票金额。\n\n另外，当前不支持执行支付、退款或开票操作。",
+        "intent": "billing",
+        "intent_group": "billing",
+        "agent_type": "billing",
+        "agent_types": [
+          "billing"
+        ],
+        "primary_agent": "billing",
+        "supporting_agents": [],
+        "routing_reason": "intent=billing, group=billing, primary=billing, supporting=none, scores=[billing=1.20, technical=0.20, general=0.10]",
+        "routing_confidence": 1,
+        "escalated": true,
+        "latency_ms": 6167.4,
+        "knowledge_used": false,
+        "tools_used": [
+          "get_bill"
+        ],
+        "output_valid": true,
+        "output_errors": [],
+        "entities": {
+          "order_id": [],
+          "product": [],
+          "date": [],
+          "amount": [],
+          "error_code": [
+            "BILL-1001-002"
+          ]
+        },
+        "intent_confidence": 0.91,
+        "intent_source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.91
+        },
+        "request_id": "04d24896-4049-43f2-aed6-785d13a4cb06"
+      },
+      "trace": {
+        "request_id": "04d24896-4049-43f2-aed6-785d13a4cb06",
+        "found": true,
+        "trace": {
+          "request_id": "04d24896-4049-43f2-aed6-785d13a4cb06",
+          "timestamp": "2026-10-08T02:25:32.983Z",
+          "user_id": "u1001",
+          "conv_id": "business-acceptance-20261008-extra-2",
+          "message": "查询账单 BILL-1001-002",
+          "response": "已查到账单 BILL-1001-002（演示业务数据）：\n\n- 账单号：BILL-1001-002\n- 关联订单：ORD-1001-002\n- 金额：59.00 元（CNY）\n- 状态：未支付（unpaid）\n- 支付方式：暂无记录\n- 支付时间：暂无记录\n- 创建时间：2026-10-02 10:00（+08:00）\n\n说明：该账单目前为未支付状态，没有支付渠道和支付时间记录，因此不存在可核对的扣款流水。演示数据中的状态不代表真实渠道的资金结果。\n\n如果你关心的是以下情况，请补充信息，我再帮你判断：\n- 认为这笔账单已被扣款：请提供扣款时间、金额和支付渠道（微信/支付宝/银行卡等），以便核对是否与系统记录冲突。\n- 想申请退款或对费用有异议：需要订单号、支付时间、支付渠道，且实际退款需人工审核，当前无法直接执行。\n- 想开发票：需要发票类型、抬头、税号、邮箱和开票金额。\n\n另外，当前不支持执行支付、退款或开票操作。",
+          "intent": "billing",
+          "intent_group": "billing",
+          "primary_agent": "billing",
+          "supporting_agents": [],
+          "agent_types": [
+            "billing"
+          ],
+          "tools_used": [
+            "get_bill"
+          ],
+          "skills_used": [
+            "账单退款处理规范"
+          ],
+          "fallback_used": false,
+          "tool_calls": [
+            {
+              "agent_type": "billing",
+              "tool_name": "get_bill",
+              "tool_call_id": "call_00_DhjrMTpVgnlp0p1cohsa3757",
+              "tool_use_id": "call_00_DhjrMTpVgnlp0p1cohsa3757",
+              "input": {
+                "bill_id": "BILL-1001-002"
+              },
+              "started_at": "2026-10-08T02:25:28.305Z",
+              "success": true,
+              "is_error": false,
+              "latency_ms": 10.6,
+              "cached": false,
+              "reranked": false,
+              "finished_at": "2026-10-08T02:25:28.315Z",
+              "output": {
+                "item": {
+                  "bill_id": "BILL-1001-002",
+                  "order_id": "ORD-1001-002",
+                  "amount_cents": 5900,
+                  "currency": "CNY",
+                  "status": "unpaid",
+                  "payment_method": null,
+                  "paid_at": null,
+                  "created_at": "2026-10-02T10:00:00+08:00"
+                },
+                "source": "demo_business_db"
+              }
+            }
+          ],
+          "escalated": true,
+          "latency_ms": 6167.4,
+          "output_valid": true,
+          "output_errors": [],
+          "model_id": "deepseek-v4-flash",
+          "runtime_version": "pi-agent-core@0.82.1"
+        }
+      }
+    },
+    {
+      "endpoint": "http://localhost:8000/chat",
+      "user_id": "u1001",
+      "message": "查询订单 ORD-9999-999",
+      "expected_tools": [
+        "get_order"
+      ],
+      "response": {
+        "conv_id": "business-acceptance-20261008-extra-3",
+        "response": "我按你提供的编号 ORD-9999-999 查询了演示订单数据，未查到该订单。\n\n可能的原因：编号有误、该订单不属于当前账号，或记录不存在。你可以：\n1. 核对一下订单号是否完整准确（注意字母和数字）；\n2. 如果不确定编号，我可以直接帮你查最近的订单列表。\n\n需要我列出你最近的订单吗？",
+        "intent": "order_status",
+        "intent_group": "query",
+        "agent_type": "general",
+        "agent_types": [
+          "general"
+        ],
+        "primary_agent": "general",
+        "supporting_agents": [],
+        "routing_reason": "intent=order_status, group=query, primary=general, supporting=none, scores=[general=0.87, technical=0.00, billing=0.00]",
+        "routing_confidence": 0.87,
+        "escalated": false,
+        "latency_ms": 13619.8,
+        "knowledge_used": false,
+        "tools_used": [
+          "get_order"
+        ],
+        "output_valid": true,
+        "output_errors": [],
+        "entities": {
+          "order_id": [
+            "ORD-9999-999"
+          ],
+          "product": [],
+          "date": [],
+          "amount": [],
+          "error_code": []
+        },
+        "intent_confidence": 0.96,
+        "intent_source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.96
+        },
+        "request_id": "c1dc6b75-dd44-4fad-b671-9dfb2bbf6487"
+      },
+      "trace": {
+        "request_id": "c1dc6b75-dd44-4fad-b671-9dfb2bbf6487",
+        "found": true,
+        "trace": {
+          "request_id": "c1dc6b75-dd44-4fad-b671-9dfb2bbf6487",
+          "timestamp": "2026-10-08T02:25:46.635Z",
+          "user_id": "u1001",
+          "conv_id": "business-acceptance-20261008-extra-3",
+          "message": "查询订单 ORD-9999-999",
+          "response": "我按你提供的编号 ORD-9999-999 查询了演示订单数据，未查到该订单。\n\n可能的原因：编号有误、该订单不属于当前账号，或记录不存在。你可以：\n1. 核对一下订单号是否完整准确（注意字母和数字）；\n2. 如果不确定编号，我可以直接帮你查最近的订单列表。\n\n需要我列出你最近的订单吗？",
+          "intent": "order_status",
+          "intent_group": "query",
+          "primary_agent": "general",
+          "supporting_agents": [],
+          "agent_types": [
+            "general"
+          ],
+          "tools_used": [
+            "get_order"
+          ],
+          "skills_used": [
+            "通用客服接待规范"
+          ],
+          "fallback_used": false,
+          "tool_calls": [
+            {
+              "agent_type": "general",
+              "tool_name": "get_order",
+              "tool_call_id": "call_00_NeARof2QLjODZOASho2h6063",
+              "tool_use_id": "call_00_NeARof2QLjODZOASho2h6063",
+              "input": {
+                "order_id": "ORD-9999-999"
+              },
+              "started_at": "2026-10-08T02:25:44.290Z",
+              "success": true,
+              "is_error": false,
+              "latency_ms": 8.2,
+              "cached": false,
+              "reranked": false,
+              "finished_at": "2026-10-08T02:25:44.298Z",
+              "output": {
+                "found": false,
+                "source": "demo_business_db"
+              }
+            }
+          ],
+          "escalated": false,
+          "latency_ms": 13619.8,
+          "output_valid": true,
+          "output_errors": [],
+          "model_id": "deepseek-v4-flash",
+          "runtime_version": "pi-agent-core@0.82.1"
+        }
+      }
+    },
+    {
+      "endpoint": "http://localhost:8000/chat",
+      "user_id": "u1001",
+      "message": "查询订单 ORD-1002-001",
+      "expected_tools": [
+        "get_order"
+      ],
+      "response": {
+        "conv_id": "business-acceptance-20261008-extra-4",
+        "response": "抱歉，未查到订单 ORD-1002-001 的记录（当前查询的是演示业务数据）。\n\n可能的原因：订单号有误、该订单不属于当前账号，或记录不存在。你可以：\n1. 核对一下订单号是否完整准确；\n2. 如果记不清订单号，我可以帮你列出最近的订单，你确认是哪一笔。\n\n需要我帮你查最近订单列表吗？",
+        "intent": "order_status",
+        "intent_group": "query",
+        "agent_type": "general",
+        "agent_types": [
+          "general"
+        ],
+        "primary_agent": "general",
+        "supporting_agents": [],
+        "routing_reason": "intent=order_status, group=query, primary=general, supporting=none, scores=[general=0.87, technical=0.00, billing=0.00]",
+        "routing_confidence": 0.87,
+        "escalated": false,
+        "latency_ms": 12313.7,
+        "knowledge_used": false,
+        "tools_used": [
+          "get_order"
+        ],
+        "output_valid": true,
+        "output_errors": [],
+        "entities": {
+          "order_id": [
+            "ORD-1002-001"
+          ],
+          "product": [],
+          "date": [],
+          "amount": [],
+          "error_code": []
+        },
+        "intent_confidence": 0.96,
+        "intent_source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.96
+        },
+        "request_id": "4eee10e6-69ea-427f-9b20-fb5017540751"
+      },
+      "trace": {
+        "request_id": "4eee10e6-69ea-427f-9b20-fb5017540751",
+        "found": true,
+        "trace": {
+          "request_id": "4eee10e6-69ea-427f-9b20-fb5017540751",
+          "timestamp": "2026-10-08T02:25:58.976Z",
+          "user_id": "u1001",
+          "conv_id": "business-acceptance-20261008-extra-4",
+          "message": "查询订单 ORD-1002-001",
+          "response": "抱歉，未查到订单 ORD-1002-001 的记录（当前查询的是演示业务数据）。\n\n可能的原因：订单号有误、该订单不属于当前账号，或记录不存在。你可以：\n1. 核对一下订单号是否完整准确；\n2. 如果记不清订单号，我可以帮你列出最近的订单，你确认是哪一笔。\n\n需要我帮你查最近订单列表吗？",
+          "intent": "order_status",
+          "intent_group": "query",
+          "primary_agent": "general",
+          "supporting_agents": [],
+          "agent_types": [
+            "general"
+          ],
+          "tools_used": [
+            "get_order"
+          ],
+          "skills_used": [
+            "通用客服接待规范"
+          ],
+          "fallback_used": false,
+          "tool_calls": [
+            {
+              "agent_type": "general",
+              "tool_name": "get_order",
+              "tool_call_id": "call_00_h1eoaVVe9eTl5nHma94t5027",
+              "tool_use_id": "call_00_h1eoaVVe9eTl5nHma94t5027",
+              "input": {
+                "order_id": "ORD-1002-001"
+              },
+              "started_at": "2026-10-08T02:25:56.452Z",
+              "success": true,
+              "is_error": false,
+              "latency_ms": 10.2,
+              "cached": false,
+              "reranked": false,
+              "finished_at": "2026-10-08T02:25:56.462Z",
+              "output": {
+                "found": false,
+                "source": "demo_business_db"
+              }
+            }
+          ],
+          "escalated": false,
+          "latency_ms": 12313.7,
+          "output_valid": true,
+          "output_errors": [],
+          "model_id": "deepseek-v4-flash",
+          "runtime_version": "pi-agent-core@0.82.1"
+        }
+      }
+    },
+    {
+      "endpoint": "http://localhost:3000/chat",
+      "user_id": "u1002",
+      "message": "查一下我的订单",
+      "expected_tools": [
+        "list_orders"
+      ],
+      "response": {
+        "conv_id": "business-acceptance-20261008-extra-5",
+        "response": "帮你查到了，当前账户下有 1 笔演示订单：\n\n1. 订单号：ORD-1002-001\n   商品：机械键盘 ×1\n   金额：199.00 元\n   状态：处理中（processing）\n   下单时间：2026-10-03 11:00\n\n以上为演示业务数据。需要看这笔订单的详情或对应账单吗？也可以直接告诉我订单号。",
+        "intent": "order_status",
+        "intent_group": "query",
+        "agent_type": "general",
+        "agent_types": [
+          "general"
+        ],
+        "primary_agent": "general",
+        "supporting_agents": [],
+        "routing_reason": "intent=order_status, group=query, primary=general, supporting=none, scores=[general=0.77, technical=0.00, billing=0.00]",
+        "routing_confidence": 0.77,
+        "escalated": false,
+        "latency_ms": 3826,
+        "knowledge_used": false,
+        "tools_used": [
+          "list_orders"
+        ],
+        "output_valid": true,
+        "output_errors": [],
+        "entities": {
+          "order_id": [],
+          "product": [],
+          "date": [],
+          "amount": [],
+          "error_code": []
+        },
+        "intent_confidence": 0.94,
+        "intent_source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.94
+        },
+        "request_id": "de2e9520-dcca-4d8e-b5c4-390cce2de923"
+      },
+      "trace": {
+        "request_id": "de2e9520-dcca-4d8e-b5c4-390cce2de923",
+        "found": true,
+        "trace": {
+          "request_id": "de2e9520-dcca-4d8e-b5c4-390cce2de923",
+          "timestamp": "2026-10-08T02:26:02.826Z",
+          "user_id": "u1002",
+          "conv_id": "business-acceptance-20261008-extra-5",
+          "message": "查一下我的订单",
+          "response": "帮你查到了，当前账户下有 1 笔演示订单：\n\n1. 订单号：ORD-1002-001\n   商品：机械键盘 ×1\n   金额：199.00 元\n   状态：处理中（processing）\n   下单时间：2026-10-03 11:00\n\n以上为演示业务数据。需要看这笔订单的详情或对应账单吗？也可以直接告诉我订单号。",
+          "intent": "order_status",
+          "intent_group": "query",
+          "primary_agent": "general",
+          "supporting_agents": [],
+          "agent_types": [
+            "general"
+          ],
+          "tools_used": [
+            "list_orders"
+          ],
+          "skills_used": [
+            "通用客服接待规范"
+          ],
+          "fallback_used": false,
+          "tool_calls": [
+            {
+              "agent_type": "general",
+              "tool_name": "list_orders",
+              "tool_call_id": "call_00_AAeKUUTfyZtPmIMvTJJM9034",
+              "tool_use_id": "call_00_AAeKUUTfyZtPmIMvTJJM9034",
+              "input": {
+                "limit": 10
+              },
+              "started_at": "2026-10-08T02:26:00.508Z",
+              "success": true,
+              "is_error": false,
+              "latency_ms": 9,
+              "cached": false,
+              "reranked": false,
+              "finished_at": "2026-10-08T02:26:00.517Z",
+              "output": {
+                "items": [
+                  {
+                    "order_id": "ORD-1002-001",
+                    "user_id": "u1002",
+                    "product_name": "机械键盘",
+                    "quantity": 1,
+                    "total_amount_cents": 19900,
+                    "currency": "CNY",
+                    "status": "processing",
+                    "created_at": "2026-10-03T11:00:00+08:00"
+                  }
+                ],
+                "count": 1,
+                "source": "demo_business_db"
+              }
+            }
+          ],
+          "escalated": false,
+          "latency_ms": 3826,
+          "output_valid": true,
+          "output_errors": [],
+          "model_id": "deepseek-v4-flash",
+          "runtime_version": "pi-agent-core@0.82.1"
+        }
+      }
+    },
+    {
+      "endpoint": "http://localhost:3000/chat",
+      "user_id": "unknown",
+      "message": "查看我的账单",
+      "expected_tools": [
+        "list_bills"
+      ],
+      "response": {
+        "conv_id": "business-acceptance-20261008-extra-6",
+        "response": "我查询了你的账单记录，当前没有查到任何账单（演示业务数据）。\n\n可能的原因：\n- 该账号下暂时没有产生账单；\n- 账单归属在其他账号下；\n- 账单尚未生成。\n\n如果你认为应该有账单，可以补充以下信息，我帮你进一步核对：\n- 订单号或交易号\n- 扣款时间\n- 扣款金额和支付渠道（微信 / 支付宝 / 银行卡 / 企业转账 / 余额）\n\n另外说明：当前系统只支持只读查询，不能执行支付、退款或开票操作；涉及真实资金处理需要人工审核。",
+        "intent": "billing",
+        "intent_group": "billing",
+        "agent_type": "billing",
+        "agent_types": [
+          "billing"
+        ],
+        "primary_agent": "billing",
+        "supporting_agents": [],
+        "routing_reason": "intent=billing, group=billing, primary=billing, supporting=none, scores=[billing=1.20, general=0.10, technical=0.00]",
+        "routing_confidence": 1,
+        "escalated": true,
+        "latency_ms": 4730.4,
+        "knowledge_used": false,
+        "tools_used": [
+          "list_bills"
+        ],
+        "output_valid": true,
+        "output_errors": [],
+        "entities": {
+          "order_id": [],
+          "product": [],
+          "date": [],
+          "amount": [],
+          "error_code": []
+        },
+        "intent_confidence": 0.91,
+        "intent_source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.91
+        },
+        "request_id": "1490cfa2-a0e5-4314-aa63-90e94772d1d3"
+      },
+      "trace": {
+        "request_id": "1490cfa2-a0e5-4314-aa63-90e94772d1d3",
+        "found": true,
+        "trace": {
+          "request_id": "1490cfa2-a0e5-4314-aa63-90e94772d1d3",
+          "timestamp": "2026-10-08T02:26:07.580Z",
+          "user_id": "unknown",
+          "conv_id": "business-acceptance-20261008-extra-6",
+          "message": "查看我的账单",
+          "response": "我查询了你的账单记录，当前没有查到任何账单（演示业务数据）。\n\n可能的原因：\n- 该账号下暂时没有产生账单；\n- 账单归属在其他账号下；\n- 账单尚未生成。\n\n如果你认为应该有账单，可以补充以下信息，我帮你进一步核对：\n- 订单号或交易号\n- 扣款时间\n- 扣款金额和支付渠道（微信 / 支付宝 / 银行卡 / 企业转账 / 余额）\n\n另外说明：当前系统只支持只读查询，不能执行支付、退款或开票操作；涉及真实资金处理需要人工审核。",
+          "intent": "billing",
+          "intent_group": "billing",
+          "primary_agent": "billing",
+          "supporting_agents": [],
+          "agent_types": [
+            "billing"
+          ],
+          "tools_used": [
+            "list_bills"
+          ],
+          "skills_used": [
+            "账单退款处理规范"
+          ],
+          "fallback_used": false,
+          "tool_calls": [
+            {
+              "agent_type": "billing",
+              "tool_name": "list_bills",
+              "tool_call_id": "call_00_v6yvtux1xSTafpnwpW3f6049",
+              "tool_use_id": "call_00_v6yvtux1xSTafpnwpW3f6049",
+              "input": {},
+              "started_at": "2026-10-08T02:26:04.295Z",
+              "success": true,
+              "is_error": false,
+              "latency_ms": 10.4,
+              "cached": false,
+              "reranked": false,
+              "finished_at": "2026-10-08T02:26:04.305Z",
+              "output": {
+                "items": [],
+                "count": 0,
+                "source": "demo_business_db"
+              }
+            }
+          ],
+          "escalated": true,
+          "latency_ms": 4730.4,
+          "output_valid": true,
+          "output_errors": [],
+          "model_id": "deepseek-v4-flash",
+          "runtime_version": "pi-agent-core@0.82.1"
+        }
+      }
+    },
+    {
+      "endpoint": "http://localhost:3000/chat",
+      "user_id": "u1001",
+      "message": "查一下我的订单和账单",
+      "expected_tools": [
+        "list_orders",
+        "list_bills"
+      ],
+      "response": {
+        "conv_id": "business-acceptance-20261008-extra-7",
+        "response": "以下是你的演示业务数据查询结果（非真实资金记录）：\n\n【订单】共 3 笔\n1. ORD-1001-003｜USB-C 扩展坞 ×1｜99.00 元｜状态：已完成｜下单时间 2026-10-03 10:00\n2. ORD-1001-002｜鼠标 ×1｜59.00 元｜状态：待支付｜下单时间 2026-10-02 10:00\n3. ORD-1001-001｜无线键盘 ×1｜129.00 元｜状态：已发货｜下单时间 2026-10-01 10:00\n\n【账单】共 3 笔\n1. BILL-1001-003｜对应 ORD-1001-003｜99.00 元｜已支付｜微信｜支付时间 2026-10-03 10:05\n2. BILL-1001-002｜对应 ORD-1001-002｜59.00 元｜未支付｜无支付渠道\n3. BILL-1001-001｜对应 ORD-1001-001｜129.00 元｜已支付｜支付宝｜支付时间 2026-10-01 10:05\n\n说明：以上为演示数据，其中“已支付”不代表真实支付渠道的资金流水；已发货状态不含物流轨迹或预计送达时间。\n\n如需进一步处理，可以告诉我：\n- 想查看某笔订单或账单的详情（提供订单号/账单号即可）；\n- 想了解退款、发票或订阅相关政策；\n- 对某笔扣款有疑问（如重复扣款），请提供订单号、扣款时间、金额和支付渠道，我会协助核实。",
+        "intent": "billing",
+        "intent_group": "billing",
+        "agent_type": "billing",
+        "agent_types": [
+          "billing"
+        ],
+        "primary_agent": "billing",
+        "supporting_agents": [],
+        "routing_reason": "intent=billing, group=billing, primary=billing, supporting=none, scores=[billing=1.20, general=0.22, technical=0.00]",
+        "routing_confidence": 1,
+        "escalated": false,
+        "latency_ms": 5689.1,
+        "knowledge_used": false,
+        "tools_used": [
+          "list_orders",
+          "list_bills"
+        ],
+        "output_valid": true,
+        "output_errors": [],
+        "entities": {
+          "order_id": [],
+          "product": [],
+          "date": [],
+          "amount": [],
+          "error_code": []
+        },
+        "intent_confidence": 0.91,
+        "intent_source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.91
+        },
+        "request_id": "43cd505d-2ace-418b-8c13-842b5921689a"
+      },
+      "trace": {
+        "request_id": "43cd505d-2ace-418b-8c13-842b5921689a",
+        "found": true,
+        "trace": {
+          "request_id": "43cd505d-2ace-418b-8c13-842b5921689a",
+          "timestamp": "2026-10-08T02:26:13.291Z",
+          "user_id": "u1001",
+          "conv_id": "business-acceptance-20261008-extra-7",
+          "message": "查一下我的订单和账单",
+          "response": "以下是你的演示业务数据查询结果（非真实资金记录）：\n\n【订单】共 3 笔\n1. ORD-1001-003｜USB-C 扩展坞 ×1｜99.00 元｜状态：已完成｜下单时间 2026-10-03 10:00\n2. ORD-1001-002｜鼠标 ×1｜59.00 元｜状态：待支付｜下单时间 2026-10-02 10:00\n3. ORD-1001-001｜无线键盘 ×1｜129.00 元｜状态：已发货｜下单时间 2026-10-01 10:00\n\n【账单】共 3 笔\n1. BILL-1001-003｜对应 ORD-1001-003｜99.00 元｜已支付｜微信｜支付时间 2026-10-03 10:05\n2. BILL-1001-002｜对应 ORD-1001-002｜59.00 元｜未支付｜无支付渠道\n3. BILL-1001-001｜对应 ORD-1001-001｜129.00 元｜已支付｜支付宝｜支付时间 2026-10-01 10:05\n\n说明：以上为演示数据，其中“已支付”不代表真实支付渠道的资金流水；已发货状态不含物流轨迹或预计送达时间。\n\n如需进一步处理，可以告诉我：\n- 想查看某笔订单或账单的详情（提供订单号/账单号即可）；\n- 想了解退款、发票或订阅相关政策；\n- 对某笔扣款有疑问（如重复扣款），请提供订单号、扣款时间、金额和支付渠道，我会协助核实。",
+          "intent": "billing",
+          "intent_group": "billing",
+          "primary_agent": "billing",
+          "supporting_agents": [],
+          "agent_types": [
+            "billing"
+          ],
+          "tools_used": [
+            "list_orders",
+            "list_bills"
+          ],
+          "skills_used": [
+            "账单退款处理规范"
+          ],
+          "fallback_used": false,
+          "tool_calls": [
+            {
+              "agent_type": "billing",
+              "tool_name": "list_orders",
+              "tool_call_id": "call_00_j4Lr7d8YGWrJth5icWup1650",
+              "tool_use_id": "call_00_j4Lr7d8YGWrJth5icWup1650",
+              "input": {
+                "limit": 10
+              },
+              "started_at": "2026-10-08T02:26:09.180Z",
+              "success": true,
+              "is_error": false,
+              "latency_ms": 11.6,
+              "cached": false,
+              "reranked": false,
+              "finished_at": "2026-10-08T02:26:09.192Z",
+              "output": {
+                "items": [
+                  {
+                    "order_id": "ORD-1001-003",
+                    "user_id": "u1001",
+                    "product_name": "USB-C 扩展坞",
+                    "quantity": 1,
+                    "total_amount_cents": 9900,
+                    "currency": "CNY",
+                    "status": "completed",
+                    "created_at": "2026-10-03T10:00:00+08:00"
+                  },
+                  {
+                    "order_id": "ORD-1001-002",
+                    "user_id": "u1001",
+                    "product_name": "鼠标",
+                    "quantity": 1,
+                    "total_amount_cents": 5900,
+                    "currency": "CNY",
+                    "status": "pending_payment",
+                    "created_at": "2026-10-02T10:00:00+08:00"
+                  },
+                  {
+                    "order_id": "ORD-1001-001",
+                    "user_id": "u1001",
+                    "product_name": "无线键盘",
+                    "quantity": 1,
+                    "total_amount_cents": 12900,
+                    "currency": "CNY",
+                    "status": "shipped",
+                    "created_at": "2026-10-01T10:00:00+08:00"
+                  }
+                ],
+                "count": 3,
+                "source": "demo_business_db"
+              }
+            },
+            {
+              "agent_type": "billing",
+              "tool_name": "list_bills",
+              "tool_call_id": "call_01_SvXkvKL2mZbgiIWIF8Tm9535",
+              "tool_use_id": "call_01_SvXkvKL2mZbgiIWIF8Tm9535",
+              "input": {
+                "limit": 10
+              },
+              "started_at": "2026-10-08T02:26:09.182Z",
+              "success": true,
+              "is_error": false,
+              "latency_ms": 10.3,
+              "cached": false,
+              "reranked": false,
+              "finished_at": "2026-10-08T02:26:09.193Z",
+              "output": {
+                "items": [
+                  {
+                    "bill_id": "BILL-1001-003",
+                    "order_id": "ORD-1001-003",
+                    "amount_cents": 9900,
+                    "currency": "CNY",
+                    "status": "paid",
+                    "payment_method": "wechat",
+                    "paid_at": "2026-10-03T10:05:00+08:00",
+                    "created_at": "2026-10-03T10:00:00+08:00"
+                  },
+                  {
+                    "bill_id": "BILL-1001-002",
+                    "order_id": "ORD-1001-002",
+                    "amount_cents": 5900,
+                    "currency": "CNY",
+                    "status": "unpaid",
+                    "payment_method": null,
+                    "paid_at": null,
+                    "created_at": "2026-10-02T10:00:00+08:00"
+                  },
+                  {
+                    "bill_id": "BILL-1001-001",
+                    "order_id": "ORD-1001-001",
+                    "amount_cents": 12900,
+                    "currency": "CNY",
+                    "status": "paid",
+                    "payment_method": "alipay",
+                    "paid_at": "2026-10-01T10:05:00+08:00",
+                    "created_at": "2026-10-01T10:00:00+08:00"
+                  }
+                ],
+                "count": 3,
+                "source": "demo_business_db"
+              }
+            }
+          ],
+          "escalated": false,
+          "latency_ms": 5689.1,
+          "output_valid": true,
+          "output_errors": [],
+          "model_id": "deepseek-v4-flash",
+          "runtime_version": "pi-agent-core@0.82.1"
+        }
+      }
+    },
+    {
+      "endpoint": "http://localhost:3000/chat/stream",
+      "user_id": "u1001",
+      "message": "订单 ORD-1001-001 发货了吗？",
+      "expected_tools": [
+        "get_order"
+      ],
+      "events": [
+        {
+          "event": "agent_start",
+          "data": {
+            "type": "agent_start",
+            "agent_type": "general"
+          }
+        },
+        {
+          "event": "tool_start",
+          "data": {
+            "type": "tool_start",
+            "agent_type": "general",
+            "tool": "get_order"
+          }
+        },
+        {
+          "event": "tool_end",
+          "data": {
+            "type": "tool_end",
+            "agent_type": "general",
+            "tool": "get_order",
+            "is_error": false
+          }
+        },
+        {
+          "event": "done",
+          "data": {
+            "conv_id": "business-acceptance-20261008-stream",
+            "response": "订单 ORD-1001-001（无线键盘 ×1，金额 129.00 元，下单时间 2026-10-01 10:00）当前状态为「已发货」。\n\n需要说明的是：这是演示业务数据，发货状态不包含物流轨迹或预计送达时间，我这边也查不到快递单号。如果你需要物流详情，建议联系发货方或承运快递核实。\n\n还有其他想确认的吗？",
+            "intent": "order_status",
+            "intent_group": "query",
+            "agent_type": "general",
+            "agent_types": [
+              "general"
+            ],
+            "primary_agent": "general",
+            "supporting_agents": [],
+            "routing_reason": "intent=order_status, group=query, primary=general, supporting=none, scores=[general=0.87, technical=0.00, billing=0.00]",
+            "routing_confidence": 0.87,
+            "escalated": false,
+            "latency_ms": 2819.5,
+            "knowledge_used": false,
+            "tools_used": [
+              "get_order"
+            ],
+            "output_valid": true,
+            "output_errors": [],
+            "entities": {
+              "order_id": [
+                "ORD-1001-001"
+              ],
+              "product": [],
+              "date": [],
+              "amount": [],
+              "error_code": []
+            },
+            "intent_confidence": 0.94,
+            "intent_source_scores": {
+              "llm": 0,
+              "embedding": 0,
+              "pattern": 0.94
+            },
+            "request_id": "c6bf6926-5526-4393-a9c2-c7ff1b5f73f8"
+          }
+        }
+      ],
+      "response": {
+        "conv_id": "business-acceptance-20261008-stream",
+        "response": "订单 ORD-1001-001（无线键盘 ×1，金额 129.00 元，下单时间 2026-10-01 10:00）当前状态为「已发货」。\n\n需要说明的是：这是演示业务数据，发货状态不包含物流轨迹或预计送达时间，我这边也查不到快递单号。如果你需要物流详情，建议联系发货方或承运快递核实。\n\n还有其他想确认的吗？",
+        "intent": "order_status",
+        "intent_group": "query",
+        "agent_type": "general",
+        "agent_types": [
+          "general"
+        ],
+        "primary_agent": "general",
+        "supporting_agents": [],
+        "routing_reason": "intent=order_status, group=query, primary=general, supporting=none, scores=[general=0.87, technical=0.00, billing=0.00]",
+        "routing_confidence": 0.87,
+        "escalated": false,
+        "latency_ms": 2819.5,
+        "knowledge_used": false,
+        "tools_used": [
+          "get_order"
+        ],
+        "output_valid": true,
+        "output_errors": [],
+        "entities": {
+          "order_id": [
+            "ORD-1001-001"
+          ],
+          "product": [],
+          "date": [],
+          "amount": [],
+          "error_code": []
+        },
+        "intent_confidence": 0.94,
+        "intent_source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.94
+        },
+        "request_id": "c6bf6926-5526-4393-a9c2-c7ff1b5f73f8"
+      },
+      "trace": {
+        "request_id": "c6bf6926-5526-4393-a9c2-c7ff1b5f73f8",
+        "found": true,
+        "trace": {
+          "request_id": "c6bf6926-5526-4393-a9c2-c7ff1b5f73f8",
+          "timestamp": "2026-10-08T02:26:16.138Z",
+          "user_id": "u1001",
+          "conv_id": "business-acceptance-20261008-stream",
+          "message": "订单 ORD-1001-001 发货了吗？",
+          "response": "订单 ORD-1001-001（无线键盘 ×1，金额 129.00 元，下单时间 2026-10-01 10:00）当前状态为「已发货」。\n\n需要说明的是：这是演示业务数据，发货状态不包含物流轨迹或预计送达时间，我这边也查不到快递单号。如果你需要物流详情，建议联系发货方或承运快递核实。\n\n还有其他想确认的吗？",
+          "intent": "order_status",
+          "intent_group": "query",
+          "primary_agent": "general",
+          "supporting_agents": [],
+          "agent_types": [
+            "general"
+          ],
+          "tools_used": [
+            "get_order"
+          ],
+          "skills_used": [
+            "通用客服接待规范"
+          ],
+          "fallback_used": false,
+          "tool_calls": [
+            {
+              "agent_type": "general",
+              "tool_name": "get_order",
+              "tool_call_id": "call_00_wpTAwYbtyskhLXWv7Fc78970",
+              "tool_use_id": "call_00_wpTAwYbtyskhLXWv7Fc78970",
+              "input": {
+                "order_id": "ORD-1001-001"
+              },
+              "started_at": "2026-10-08T02:26:14.317Z",
+              "success": true,
+              "is_error": false,
+              "latency_ms": 8.3,
+              "cached": false,
+              "reranked": false,
+              "finished_at": "2026-10-08T02:26:14.325Z",
+              "output": {
+                "item": {
+                  "order_id": "ORD-1001-001",
+                  "user_id": "u1001",
+                  "product_name": "无线键盘",
+                  "quantity": 1,
+                  "total_amount_cents": 12900,
+                  "currency": "CNY",
+                  "status": "shipped",
+                  "created_at": "2026-10-01T10:00:00+08:00"
+                },
+                "source": "demo_business_db"
+              }
+            }
+          ],
+          "escalated": false,
+          "latency_ms": 2819.5,
+          "output_valid": true,
+          "output_errors": [],
+          "model_id": "deepseek-v4-flash",
+          "runtime_version": "pi-agent-core@0.82.1"
+        }
+      }
+    }
+  ],
+  "runtime": {
+    "model": "deepseek-v4-flash",
+    "runtime": "pi-agent-core",
+    "sdk_version": "0.82.1",
+    "tools": {
+      "general_0": [
+        "knowledge_search",
+        "inspect_request_context",
+        "suggest_required_fields",
+        "list_orders",
+        "get_order",
+        "list_bills",
+        "get_bill"
+      ],
+      "technical_0": [
+        "knowledge_search",
+        "lookup_error_code",
+        "build_diagnostic_plan"
+      ],
+      "billing_0": [
+        "knowledge_search",
+        "check_billing_fields",
+        "compare_amounts",
+        "list_orders",
+        "get_order",
+        "list_bills",
+        "get_bill"
+      ]
+    }
+  },
+  "persistence": {
+    "before": {
+      "orders": [
+        [
+          "ORD-1001-001",
+          "u1001",
+          "无线键盘",
+          1,
+          12900,
+          "CNY",
+          "shipped",
+          "2026-10-01T10:00:00+08:00"
+        ],
+        [
+          "ORD-1001-002",
+          "u1001",
+          "鼠标",
+          1,
+          5900,
+          "CNY",
+          "pending_payment",
+          "2026-10-02T10:00:00+08:00"
+        ],
+        [
+          "ORD-1001-003",
+          "u1001",
+          "USB-C 扩展坞",
+          1,
+          9900,
+          "CNY",
+          "completed",
+          "2026-10-03T10:00:00+08:00"
+        ],
+        [
+          "ORD-1002-001",
+          "u1002",
+          "机械键盘",
+          1,
+          19900,
+          "CNY",
+          "processing",
+          "2026-10-03T11:00:00+08:00"
+        ]
+      ],
+      "bills": [
+        [
+          "BILL-1001-001",
+          "ORD-1001-001",
+          12900,
+          "CNY",
+          "paid",
+          "alipay",
+          "2026-10-01T10:05:00+08:00",
+          "2026-10-01T10:00:00+08:00"
+        ],
+        [
+          "BILL-1001-002",
+          "ORD-1001-002",
+          5900,
+          "CNY",
+          "unpaid",
+          null,
+          null,
+          "2026-10-02T10:00:00+08:00"
+        ],
+        [
+          "BILL-1001-003",
+          "ORD-1001-003",
+          9900,
+          "CNY",
+          "paid",
+          "wechat",
+          "2026-10-03T10:05:00+08:00",
+          "2026-10-03T10:00:00+08:00"
+        ],
+        [
+          "BILL-1002-001",
+          "ORD-1002-001",
+          19900,
+          "CNY",
+          "paid",
+          "alipay",
+          "2026-10-03T11:05:00+08:00",
+          "2026-10-03T11:00:00+08:00"
+        ]
+      ]
+    },
+    "sha256_before": "e1a34878503e7d044178d2be0d00048bd6c16fafd37e63c00417732bd005653f",
+    "after": {
+      "orders": [
+        [
+          "ORD-1001-001",
+          "u1001",
+          "无线键盘",
+          1,
+          12900,
+          "CNY",
+          "shipped",
+          "2026-10-01T10:00:00+08:00"
+        ],
+        [
+          "ORD-1001-002",
+          "u1001",
+          "鼠标",
+          1,
+          5900,
+          "CNY",
+          "pending_payment",
+          "2026-10-02T10:00:00+08:00"
+        ],
+        [
+          "ORD-1001-003",
+          "u1001",
+          "USB-C 扩展坞",
+          1,
+          9900,
+          "CNY",
+          "completed",
+          "2026-10-03T10:00:00+08:00"
+        ],
+        [
+          "ORD-1002-001",
+          "u1002",
+          "机械键盘",
+          1,
+          19900,
+          "CNY",
+          "processing",
+          "2026-10-03T11:00:00+08:00"
+        ]
+      ],
+      "bills": [
+        [
+          "BILL-1001-001",
+          "ORD-1001-001",
+          12900,
+          "CNY",
+          "paid",
+          "alipay",
+          "2026-10-01T10:05:00+08:00",
+          "2026-10-01T10:00:00+08:00"
+        ],
+        [
+          "BILL-1001-002",
+          "ORD-1001-002",
+          5900,
+          "CNY",
+          "unpaid",
+          null,
+          null,
+          "2026-10-02T10:00:00+08:00"
+        ],
+        [
+          "BILL-1001-003",
+          "ORD-1001-003",
+          9900,
+          "CNY",
+          "paid",
+          "wechat",
+          "2026-10-03T10:05:00+08:00",
+          "2026-10-03T10:00:00+08:00"
+        ],
+        [
+          "BILL-1002-001",
+          "ORD-1002-001",
+          19900,
+          "CNY",
+          "paid",
+          "alipay",
+          "2026-10-03T11:05:00+08:00",
+          "2026-10-03T11:00:00+08:00"
+        ]
+      ]
+    },
+    "sha256_after": "e1a34878503e7d044178d2be0d00048bd6c16fafd37e63c00417732bd005653f",
+    "same_rows": true,
+    "orders_after_restart": {
+      "items": [
+        {
+          "order_id": "ORD-1001-003",
+          "user_id": "u1001",
+          "product_name": "USB-C 扩展坞",
+          "quantity": 1,
+          "total_amount_cents": 9900,
+          "currency": "CNY",
+          "status": "completed",
+          "created_at": "2026-10-03T10:00:00+08:00"
+        },
+        {
+          "order_id": "ORD-1001-002",
+          "user_id": "u1001",
+          "product_name": "鼠标",
+          "quantity": 1,
+          "total_amount_cents": 5900,
+          "currency": "CNY",
+          "status": "pending_payment",
+          "created_at": "2026-10-02T10:00:00+08:00"
+        },
+        {
+          "order_id": "ORD-1001-001",
+          "user_id": "u1001",
+          "product_name": "无线键盘",
+          "quantity": 1,
+          "total_amount_cents": 12900,
+          "currency": "CNY",
+          "status": "shipped",
+          "created_at": "2026-10-01T10:00:00+08:00"
+        }
+      ],
+      "count": 3,
+      "source": "demo_business_db"
+    },
+    "bills_after_restart": {
+      "items": [
+        {
+          "bill_id": "BILL-1001-003",
+          "order_id": "ORD-1001-003",
+          "amount_cents": 9900,
+          "currency": "CNY",
+          "status": "paid",
+          "payment_method": "wechat",
+          "paid_at": "2026-10-03T10:05:00+08:00",
+          "created_at": "2026-10-03T10:00:00+08:00"
+        },
+        {
+          "bill_id": "BILL-1001-002",
+          "order_id": "ORD-1001-002",
+          "amount_cents": 5900,
+          "currency": "CNY",
+          "status": "unpaid",
+          "payment_method": null,
+          "paid_at": null,
+          "created_at": "2026-10-02T10:00:00+08:00"
+        },
+        {
+          "bill_id": "BILL-1001-001",
+          "order_id": "ORD-1001-001",
+          "amount_cents": 12900,
+          "currency": "CNY",
+          "status": "paid",
+          "payment_method": "alipay",
+          "paid_at": "2026-10-01T10:05:00+08:00",
+          "created_at": "2026-10-01T10:00:00+08:00"
+        }
+      ],
+      "count": 3,
+      "source": "demo_business_db"
+    }
+  },
+  "checks": {
+    "typescript_typecheck": "passed",
+    "typescript_tests": 56,
+    "typescript_build": "passed",
+    "python_tests": 51,
+    "compose_config": "passed",
+    "direct_http_cases": 15,
+    "real_model_chat_cases": 11,
+    "docker_rebuild": [
+      "python-infra",
+      "pi-agent"
+    ],
+    "fallback_tests": "mocked Pi events + HTTP; exception and monitor fallback both passed"
+  }
+}

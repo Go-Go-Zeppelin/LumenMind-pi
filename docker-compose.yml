@@ -1,0 +1,128 @@
+services:
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-lumenmind123}
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-lumenmind123}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  chromadb:
+    image: chromadb/chroma:0.5.23
+    ports:
+      - "8001:8000"
+    environment:
+      IS_PERSISTENT: "TRUE"
+      PERSIST_DIRECTORY: /chroma/chroma
+      ANONYMIZED_TELEMETRY: "FALSE"
+    volumes:
+      - chromadb-data:/chroma/chroma
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/api/v1/heartbeat || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+
+  python-infra:
+    build:
+      context: ./python-service
+    ports:
+      - "8000:8000"
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-4-6}
+      ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL:-}
+      REDIS_URL: redis://:${REDIS_PASSWORD:-lumenmind123}@redis:6379/0
+      CHROMA_HOST: chromadb
+      CHROMA_PORT: "8000"
+      CHROMA_PERSIST_DIRECTORY: /app/data/chroma
+      EVAL_BASELINE_PATH: /app/data/eval/baseline.json
+      BUSINESS_DB_PATH: /app/data/business/business.sqlite3
+      MEMORY_DB_PATH: /app/data/memory/memory.sqlite3
+      MEMORY_NAMESPACE: ${MEMORY_NAMESPACE:-lumenmind}
+      MEMORY_LONG_TERM_ENABLED: ${MEMORY_LONG_TERM_ENABLED:-true}
+      MEMORY_EPISODIC_ENABLED: ${MEMORY_EPISODIC_ENABLED:-true}
+      MEMORY_CONTEXT_MAX_CHARS: ${MEMORY_CONTEXT_MAX_CHARS:-24000}
+      MEMORY_SUMMARY_TRIGGER_CHARS: ${MEMORY_SUMMARY_TRIGGER_CHARS:-18000}
+      MEMORY_SUMMARY_TRIGGER_TURNS: ${MEMORY_SUMMARY_TRIGGER_TURNS:-12}
+      MEMORY_RECENT_MIN_TURNS: ${MEMORY_RECENT_MIN_TURNS:-3}
+      MEMORY_SUMMARY_MAX_CHARS: ${MEMORY_SUMMARY_MAX_CHARS:-4000}
+      MEMORY_FACT_BLOCK_MAX_CHARS: ${MEMORY_FACT_BLOCK_MAX_CHARS:-3000}
+      MEMORY_EPISODE_BLOCK_MAX_CHARS: ${MEMORY_EPISODE_BLOCK_MAX_CHARS:-3000}
+      MEMORY_FACT_MAX_COUNT: ${MEMORY_FACT_MAX_COUNT:-50}
+      MEMORY_FACT_MAX_CHARS: ${MEMORY_FACT_MAX_CHARS:-300}
+      MEMORY_EXTRACT_MIN_MESSAGES: ${MEMORY_EXTRACT_MIN_MESSAGES:-3}
+      MEMORY_EXTRACT_MAX_MESSAGES: ${MEMORY_EXTRACT_MAX_MESSAGES:-20}
+      MEMORY_EXTRACT_MAX_CHARS: ${MEMORY_EXTRACT_MAX_CHARS:-12000}
+      MEMORY_JOB_LEASE_SECONDS: ${MEMORY_JOB_LEASE_SECONDS:-180}
+      MEMORY_SESSION_LEASE_SECONDS: ${MEMORY_SESSION_LEASE_SECONDS:-90}
+      MEMORY_WORKER_POLL_SECONDS: ${MEMORY_WORKER_POLL_SECONDS:-5}
+      BUSINESS_SEED_DEMO: "true"
+      PI_AGENT_URL: http://pi-agent:3000
+      KNOWLEDGE_QUERY_REWRITE: ${KNOWLEDGE_QUERY_REWRITE:-false}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      redis:
+        condition: service_healthy
+      chromadb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  pi-agent:
+    build:
+      context: ./agent-service
+    ports:
+      - "3000:3000"
+    environment:
+      PI_HOST: 0.0.0.0
+      PI_PORT: "3000"
+      PI_API_KEY: ${PI_API_KEY:-${ANTHROPIC_API_KEY:-}}
+      PI_MODEL: ${PI_MODEL:-${ANTHROPIC_MODEL:-claude-sonnet-4-6}}
+      PI_BASE_URL: ${PI_BASE_URL:-${ANTHROPIC_BASE_URL:-}}
+      PI_MAX_TOKENS: ${PI_MAX_TOKENS:-1024}
+      PI_THINKING_LEVEL: ${PI_THINKING_LEVEL:-off}
+      PI_LLM_ROUTING: ${PI_LLM_ROUTING:-true}
+      PI_EMBEDDING_INTENT: ${PI_EMBEDDING_INTENT:-true}
+      PI_EMBEDDING_INTENT_TOP_K: ${PI_EMBEDDING_INTENT_TOP_K:-3}
+      PI_EMBEDDING_INTENT_THRESHOLD: ${PI_EMBEDDING_INTENT_THRESHOLD:-0.55}
+      PI_GENERAL_REPLICAS: ${PI_GENERAL_REPLICAS:-1}
+      PI_TECHNICAL_REPLICAS: ${PI_TECHNICAL_REPLICAS:-1}
+      PI_BILLING_REPLICAS: ${PI_BILLING_REPLICAS:-1}
+      PI_TOOL_TRACE_MAX: ${PI_TOOL_TRACE_MAX:-200}
+      PI_MONITOR_FALLBACK_PENALTY: ${PI_MONITOR_FALLBACK_PENALTY:-0.5}
+      PYTHON_INFRA_URL: http://python-infra:8000
+      PYTHON_INFRA_TIMEOUT_MS: ${PYTHON_INFRA_TIMEOUT_MS:-10000}
+      LUMENMIND_SKILLS_DIR: /app/skills
+      LUMENMIND_SKILLS_MAX_PROMPT_CHARS: ${LUMENMIND_SKILLS_MAX_PROMPT_CHARS:-5000}
+    volumes:
+      - ./skills:/app/skills:ro
+    depends_on:
+      python-infra:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/health').then(r=>{if(!r.ok)process.exit(1)})"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+
+volumes:
+  redis-data:
+  chromadb-data:
