@@ -4,9 +4,9 @@ LumenMind 的 Agent 运行时基于 TypeScript + Pi Agent SDK，同时保留 Pyt
 
 [MIT License](LICENSE) · [参与贡献](CONTRIBUTING.md) · [安全说明](SECURITY.md) · [开源状态与已知问题](docs/OPEN_SOURCE_STATUS.md)
 
-> 开发预览：业务查询、路由和工具链已有实现；记忆升级仅完成部分基础链路，尚未达到 P0～P3 整体验收标准。当前没有生产级认证，请在受信任的本地环境中运行。历史验收报告仅适用于其注明的日期和业务范围。
+> 开发预览：业务查询、路由和工具链已有实现；记忆升级的会话、摘要、事实、索引和离线迁移主链路已接通；完整部署及故障验收仍有待办。当前没有生产级认证，请在受信任的本地环境中运行。历史验收报告仅适用于其注明的日期和业务范围。
 
-当前记忆模块仍待完成：后台 Worker 启动与恢复、自动滚动摘要、模型事实 Judge、偏好纠正、完整遗忘屏障、角色化历史与模型预算、Chroma 索引同步和旧数据迁移。配置示例中的部分记忆参数尚未被运行代码读取，详见 [记忆开发方案](docs/AGENT_MEMORY_DEVELOPMENT.md)。
+2026-10-19 已按模块实现数据库租约与幂等、后台恢复、完整轮次摘要、来源证据与事实纠正、遗忘屏障、角色化历史、模型预算、Chroma 索引 outbox 和备份优先的离线迁移。验证结果与限制见 [记忆开发验收记录](docs/AGENT_MEMORY_ACCEPTANCE.md)，迁移步骤见 [操作指南](docs/MEMORY_MIGRATION.md)。
 
 当前实现包含 2026-09-28 的运行时更新：细粒度意图、结构化实体、主/辅助 Agent 路由、低置信度澄清、请求级工具轨迹、幂等知识库写入、RAG 工具自主调用，以及 Redis/ChromaDB 非阻塞异步访问。
 
@@ -35,12 +35,14 @@ flowchart LR
     G & B --> BQ["四个订单/账单只读工具"]
     BQ -->|"固定查询接口 + 本次 userId"| F
     G & T & B --> K["Pi knowledge_search 工具"]
-    G & T & B --> C["Response Composer"]
+    G & T & B --> CP["Response Composer"]
     K -->|"HTTP"| F
     P -->|"记忆读取/写入"| F
-    F --> Redis["Redis 旧记忆兼容路径"]
-    F --> Chroma["ChromaDB 知识库、旧记忆兼容路径"]
-    F --> MemoryDB["SQLite 记忆主库（部分实现）"]
+    F -. "legacy 辅助代码，当前 HTTP 链路旁路" .-> Redis["Redis"]
+    F --> Chroma["ChromaDB 知识库、命名空间情景索引"]
+    F --> MemoryDB["SQLite 记忆权威库"]
+    MemoryDB --> Worker["持久任务 Worker"]
+    Worker --> Chroma
     F --> SQLite["SQLite 演示订单、账单"]
     F -->|"评测调用"| P
     MCP["MCP 客户端"] -->|"Streamable HTTP /mcp"| P
@@ -49,11 +51,11 @@ flowchart LR
 核心边界是“替换 Agent 运行时，保留业务基础设施”：
 
 - TypeScript：Pi Agent 生命周期、工具循环、结构化 Agent 契约、多实例性能路由、独立升级节点、多 Agent Composer、Skills、SSE、MCP。
-- Python：SQLite 演示订单/账单只读查询、SQLite 记忆持久化基础链路、知识库与管理、LLM-as-Judge 评测、Prometheus、旧 API 兼容代理。Redis 版本化缓存和 Chroma 记忆索引重建尚未接通。
+- Python：SQLite 演示订单/账单只读查询、SQLite 记忆权威存储、持久摘要/事实任务与遗忘屏障、知识库与管理、LLM-as-Judge 评测、Prometheus、旧 API 兼容代理。新记忆链路直接从 SQLite 构建快照；Redis 版本化渲染缓存尚未启用。Chroma 情景索引使用可重试 outbox 和 SQLite 复核。
 
-记忆模块的后续开发依据 [Agent 记忆优化开发方案](docs/AGENT_MEMORY_DEVELOPMENT.md)，包含现状问题、目标架构、接口协议、数据迁移、分阶段任务和验收标准。该文档描述待实施方案，当前运行能力仍以源码为准。
+记忆模块的后续开发依据 [Agent 记忆优化开发方案](docs/AGENT_MEMORY_DEVELOPMENT.md)，包含现状问题、目标架构、接口协议、数据迁移、分阶段任务和验收标准。文档保留原始设计基线，并在第 18 节记录本次实现调整及尚未验收的项目。
 
-当前记忆主库默认为 `data/memory/memory.sqlite3`（Compose 中为 `/app/data/memory/memory.sqlite3`）。新请求使用 `/memory/turn/begin` → `/memory/context` → `/memory/turn/finish`，旧 `/memory/turn` 仍可兼容调用。事实、设置和删除接口已建立，但删除、匿名隔离、失败回执和关闭后回填等边界仍需补齐测试和实现；请使用合成演示数据。
+当前记忆主库默认为 `data/memory/memory.sqlite3`（Compose 中为 `/app/data/memory/memory.sqlite3`）。新请求使用 `/memory/turn/begin` → `/memory/context` → `/memory/turn/finish`，旧 `/memory/turn` 仍可兼容调用。事实、设置和删除接口已接通；`anonymous`/`demo` 不抽取跨会话事实。明确事实 ID 可直接撤回，含糊的删除描述会要求澄清。物理删除的索引清理进度由 `GET /memory/cleanup` 查询；迟到写入未确认前保持 PENDING。
 
 ## 快速启动
 
@@ -133,7 +135,10 @@ curl -fsS 'http://localhost:8000/trace/tool/替换为request_id'
 | Python `:8000` | `POST /chat` | 兼容代理到 Pi |
 | Python `:8000` | `GET /business/orders` / `/business/orders/{order_id}` | 当前演示用户的订单列表/详情 |
 | Python `:8000` | `GET /business/bills` / `/business/bills/{bill_id}` | 当前演示用户的账单列表/详情；列表可按 order_id 过滤 |
-| Python `:8000` | `POST /memory/context` / `POST /memory/turn` | 记忆内部接口 |
+| Python `:8000` | `POST /memory/turn/begin` / `renew` / `finish` | 租约、幂等、最终回复持久化；旧 `/memory/turn` 仅兼容 |
+| Python `:8000` | `POST /memory/context` / `flush` | 一致快照与限时事实整理 |
+| Python `:8000` | `GET /memory/facts`、`DELETE /memory/facts/{id}`、`POST /memory/clear` / `settings` | 事实来源、遗忘、清空与开关 |
+| Python `:8000` | `GET /memory/status` / `cleanup` | 无正文队列统计及索引清理进度 |
 | Python `:8000` | `POST /knowledge/search` | Pi/MCP 共用的 HTTP 检索接口 |
 | Python `:8000` | `/knowledge/add`、`/upload`、`/stats` | 知识库管理 |
 | Python `:8000` | `POST /eval/run` | 规则、Trace、会话目标、重复运行与离线发布检查 |

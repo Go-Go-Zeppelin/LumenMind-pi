@@ -1,0 +1,195 @@
+{
+  "date": "2026-10-19",
+  "status": "development-preview-modular-validation",
+  "automated": {
+    "python_tests": 256,
+    "typescript_tests": 164,
+    "typescript_typecheck": "passed",
+    "typescript_build": "passed",
+    "compose_config": "passed",
+    "python_warning": "Starlette/AnyIO deprecation warning"
+  },
+  "real_model": {
+    "model": "deepseek-v4-flash",
+    "environment": "isolated temporary SQLite; real model, no live user records",
+    "facts": [
+      {
+        "step": 1,
+        "foreground_status": "WRITTEN",
+        "settled_status": "WRITTEN",
+        "active": [
+          {
+            "key": "contact.channel",
+            "content": "优先通过电话联系"
+          }
+        ]
+      },
+      {
+        "step": 2,
+        "foreground_status": "WRITTEN",
+        "settled_status": "WRITTEN",
+        "active": [
+          {
+            "key": "contact.channel",
+            "content": "优先通过邮件联系，不要电话联系"
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "status": "WRITTEN",
+      "generation": 1,
+      "recent_message_count": 6,
+      "content": {
+        "user_goal": "用户正在排查登录错误401，并要求暂缓退款申请、继续排查。",
+        "constraints": [
+          "暂缓退款申请，继续排查登录错误401"
+        ],
+        "confirmed_facts": [
+          "第1-10轮（2026-10-19T07:34:26Z附近）用户重复表示正在排查登录错误401，暂缓退款申请，请继续排查。",
+          "assistant在每轮仅建议检查客户端版本，并明确表示尚未执行退款或创建工单。"
+        ],
+        "progress": [
+          "已重复确认当前排查方向为登录错误401；assistant仅给出检查客户端版本的建议，尚无退款或工单操作成功的记录。"
+        ],
+        "open_questions": [
+          "登录错误401的具体原因尚未确认。",
+          "客户端版本是否为问题根因尚未确认。"
+        ],
+        "next_step": "继续排查登录错误401，并核对客户端版本；退款申请保持暂缓。"
+      }
+    },
+    "clear": {
+      "status": "WRITTEN",
+      "revision": 3,
+      "mutated": true
+    },
+    "facts_after_clear": 0,
+    "status": {
+      "active_facts": 0,
+      "active_fact_content_chars": 0,
+      "jobs": {
+        "fact": {
+          "ready": 0,
+          "processing": 0,
+          "retry_wait": 0,
+          "quarantined": 0
+        },
+        "summary": {
+          "ready": 0,
+          "processing": 0,
+          "retry_wait": 0,
+          "quarantined": 0
+        },
+        "index": {
+          "ready": 2,
+          "processing": 0,
+          "retry_wait": 0,
+          "quarantined": 0
+        },
+        "other": {
+          "ready": 0,
+          "processing": 0,
+          "retry_wait": 0,
+          "quarantined": 0
+        }
+      },
+      "oldest_pending_seconds": {
+        "fact": 0.0,
+        "summary": 0.0,
+        "index": 0.011989474296569824,
+        "other": 0.0
+      },
+      "pending_sources": 13,
+      "oldest_source_age_seconds": 4.510979354381561,
+      "quarantined_jobs": 0,
+      "pending_index_deletes": 1,
+      "recoverable_turns": 0
+    }
+  },
+  "real_chroma_embedded": {
+    "index_count": 1,
+    "candidate_count": 1,
+    "verified_episode_count": 1,
+    "index_count_after_clear": 0,
+    "cleanup": {
+      "index_cleanup": "COMPLETED",
+      "pending": 0,
+      "completed": 1,
+      "unacknowledged_writes": 0
+    }
+  },
+  "real_http": {
+    "runtime": "real TS HTTP + Python HTTP + temporary SQLite + real configured model",
+    "remember": {
+      "memory_status": "stored",
+      "memory_operation": {
+        "request_id": "d84335d5-7d9a-4625-aa3b-67c57a2d5670",
+        "covered_source_seq": 1,
+        "revision": 1,
+        "applied": 1,
+        "mutated": true,
+        "status": "WRITTEN",
+        "job_id": "9bd6d78bb179743cb5ca706e4c6f023f",
+        "source_mutations": [
+          1
+        ]
+      },
+      "response": "记忆操作已保存。"
+    },
+    "idempotency_replay": true,
+    "sse_correction": {
+      "events": [
+        "done"
+      ],
+      "memory_status": "stored",
+      "operation": {
+        "request_id": "98b2c0f1-59c8-414b-a776-6ec1b86e1c78",
+        "covered_source_seq": 2,
+        "revision": 2,
+        "applied": 2,
+        "mutated": true,
+        "status": "WRITTEN",
+        "job_id": "e4f2ba70dcb504a0904ed0571f1861da",
+        "source_mutations": [
+          2
+        ]
+      }
+    },
+    "active_facts": [
+      {
+        "content": "不要电话联系，优先通过邮件联系",
+        "source_count": 1
+      }
+    ],
+    "business": {
+      "memory_status": "stored",
+      "tools_used": [
+        "list_bills"
+      ],
+      "output_valid": true,
+      "response": "已查到你的最近 3 条账单（演示业务数据，金额已由分换算为元）：\n\n1. 账单 BILL-1001-003｜订单 ORD-1001-003｜金额 99.00 元｜状态：已支付（演示）｜支付方式：微信｜支付时间：2026-10-03 10:05\n2. 账单 BILL-1001-002｜订单 ORD-1001-002｜金额 59.00 元｜状态：未支付｜支付方式：无｜创建时间：2026-10-02 10:00\n3. 账单 BILL-1001-001｜订单 ORD-1001-001｜金额 129.00 元｜状态：已支付（演示）｜支付方式：支付宝｜支付时间：2026-10-01 10:05\n\n说明：这里的“已支付”只是演示数据状态，不代表真实支付渠道的资金记录。如需查看某条账单的详情、对应订单信息，或咨询退款、发票、订阅问题，告诉我账单号或订单号即可。"
+    },
+    "clear": {
+      "operation": {
+        "request_id": "5c1964ac-47a2-4db1-a437-b2d7e4d93a88",
+        "status": "WRITTEN",
+        "revision": 3,
+        "mutated": true,
+        "applied": 1
+      },
+      "context_epoch": 1,
+      "recent_roles": []
+    },
+    "turns": {
+      "COMPLETED": 4
+    }
+  },
+  "limitations": [
+    "Redis versioned rendering cache bypassed; SQLite is authoritative and renders directly",
+    "No Docker deployment or remote Chroma HTTP fault injection in this run",
+    "In-flight index writes with no callback retain PENDING cleanup tombstones; no claim of complete physical erasure",
+    "Description-only fact retraction asks for clarification; explicit fact ID is supported",
+    "No production authentication, multi-host SQLite, Pi tool checkpoint/replay, or complete primary-model cost accounting"
+  ]
+}
