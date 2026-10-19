@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import math
+from .metrics import memory_metrics_snapshot
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +30,7 @@ class MemoryWorker:
             try:
                 # SQLite work is blocking; keep the API event loop available.
                 await asyncio.to_thread(self.repository.recover_interrupted_turns)
+                await asyncio.to_thread(memory_metrics_snapshot, self.repository)
                 for service in self.services:
                     try:
                         await service.tick()

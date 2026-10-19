@@ -8,6 +8,7 @@ import math
 from dataclasses import dataclass
 from typing import Any, Optional
 
+from .metrics import observe_job, observe_capacity
 from .model_client import MemoryModelClient
 from .repository import ConflictError, LeaseError
 
@@ -99,7 +100,9 @@ class FactService:
             decisions = await self.model.generate_json(FACT_JUDGE_SYSTEM, prompt)
             # Repository revalidates schema, user provenance, ownership, capacity,
             # claim token and all cursor/revision/erase versions atomically.
-            return await asyncio.to_thread(self.repository.apply_fact_result, job["job_id"], job["claim_token"], decisions)
+            result = await asyncio.to_thread(self.repository.apply_fact_result, job["job_id"], job["claim_token"], decisions)
+            observe_job("fact", result.get("status", "other"))
+            return result
         except (ConflictError, LeaseError) as error:
             return await asyncio.to_thread(self.repository.fail_fact_job, job["job_id"], job["claim_token"], type(error).__name__, conflict=True)
         except asyncio.CancelledError:
@@ -107,6 +110,9 @@ class FactService:
             # fabricate a successful result for an interrupted model request.
             raise
         except Exception as error:
+            if type(error).__name__ == "CapacityError":
+                observe_capacity("fact_block")
+            observe_job("fact", "failed")
             logger.warning("Fact job %s failed: %s", job.get("job_id"), type(error).__name__)
             return await asyncio.to_thread(self.repository.fail_fact_job, job["job_id"], job["claim_token"], type(error).__name__, conflict=False)
 
@@ -141,7 +147,9 @@ class FactService:
     def _receipt(receipt: dict, request_id: Optional[str]) -> dict:
         result = {"request_id": request_id, "covered_source_seq": 0, "revision": 0, "applied": 0, "mutated": False, **receipt}
         status = result.get("status")
-        if status in {"READY", "PROCESSING", "RETRY_WAIT"}:
+        if status not in {"WRITTEN", "NOOP"} and result.get("error_code") == "CapacityError":
+            result["status"] = "CAPACITY_EXCEEDED"
+        elif status in {"READY", "PROCESSING", "RETRY_WAIT"}:
             result["status"] = "PENDING"
         elif status == "QUARANTINED":
             result["status"] = "CAPACITY_EXCEEDED" if result.get("error_code") == "CapacityError" else "BLOCKED"

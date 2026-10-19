@@ -3,6 +3,9 @@ from __future__ import annotations
 
 import asyncio
 import json
+import time
+
+from .metrics import observe_model
 import math
 from typing import Any, Optional
 
@@ -64,11 +67,12 @@ class MemoryModelClient:
     def __init__(self, api_key: str = "", base_url: Optional[str] = None,
                  model: str = "", timeout_seconds: float = 30,
                  max_input_chars: int = 24_000, max_output_tokens: int = 4_096,
-                 context_window_tokens: int = 65_536, client: Any = None):
+                 context_window_tokens: int = 65_536, client: Any = None, purpose: str = "fact"):
         if not math.isfinite(timeout_seconds) or timeout_seconds <= 0 or max_input_chars <= 0 or max_output_tokens <= 0:
             raise ValueError("Memory model limits must be positive")
         if context_window_tokens <= max_output_tokens + 1024:
             raise ValueError("Memory model context window must reserve room for input")
+        self.purpose = purpose
         self.api_key = api_key
         self.base_url = base_url
         self.model = model
@@ -91,20 +95,29 @@ class MemoryModelClient:
             raise MemoryModelBudgetError("Memory model input plus output reserve exceeds its context window")
 
     async def generate_json(self, system: str, prompt: str) -> dict:
-        self._check_budget(system, prompt)
-        if not self.configured:
-            raise MemoryModelUnavailable("Memory model API key/model is not configured")
-        if self._client is None:
-            from anthropic import AsyncAnthropic
-            kwargs = {"api_key": self.api_key, "timeout": self.timeout_seconds, "max_retries": 0}
-            if self.base_url:
-                kwargs["base_url"] = self.base_url
-            self._client = AsyncAnthropic(**kwargs)
-        response = await asyncio.wait_for(self._client.messages.create(
-            model=self.model, system=system, max_tokens=self.max_output_tokens,
-            temperature=0, messages=[{"role": "user", "content": prompt}],
-        ), timeout=self.timeout_seconds)
-        return parse_model_json(response)
+        started = time.perf_counter()
+        outcome = "failed"
+        usage = None
+        try:
+            self._check_budget(system, prompt)
+            if not self.configured:
+                raise MemoryModelUnavailable("Memory model API key/model is not configured")
+            if self._client is None:
+                from anthropic import AsyncAnthropic
+                kwargs = {"api_key": self.api_key, "timeout": self.timeout_seconds, "max_retries": 0}
+                if self.base_url:
+                    kwargs["base_url"] = self.base_url
+                self._client = AsyncAnthropic(**kwargs)
+            response = await asyncio.wait_for(self._client.messages.create(
+                model=self.model, system=system, max_tokens=self.max_output_tokens,
+                temperature=0, messages=[{"role": "user", "content": prompt}],
+            ), timeout=self.timeout_seconds)
+            usage = getattr(response, "usage", None)
+            result = parse_model_json(response)
+            outcome = "success"
+            return result
+        finally:
+            observe_model(self.purpose, outcome, time.perf_counter() - started, usage)
 
     async def close(self) -> None:
         if self._client is not None and self._owns_client:

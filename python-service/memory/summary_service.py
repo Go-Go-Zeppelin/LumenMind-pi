@@ -4,6 +4,9 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import time
+
+from .metrics import observe_summary, observe_job
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -40,6 +43,7 @@ class SummaryService:
         self._system = _PROMPT.read_text(encoding="utf-8")
 
     async def _process(self, job):
+        started = time.perf_counter()
         try:
             # Status + role fields keep failed/interrupted work from being
             # rewritten into a fabricated assistant or tool success.
@@ -47,8 +51,12 @@ class SummaryService:
                 "complete_turns": job["turns"], "max_summary_chars": self.settings.max_summary_chars},
                 ensure_ascii=False, separators=(",", ":"))
             payload = await self.model.generate_json(self._system, prompt)
-            return await asyncio.to_thread(self.repository.apply_summary_result,
+            result = await asyncio.to_thread(self.repository.apply_summary_result,
                 job["job_id"], job["claim_token"], payload, max_chars=self.settings.max_summary_chars)
+            before = len(json.dumps(job["previous_summary"], ensure_ascii=False)) + sum(len(turn["user_text"]) + len(turn.get("assistant_text") or "") for turn in job["turns"])
+            observe_summary(before, len(json.dumps(payload, ensure_ascii=False)), time.perf_counter() - started, "success")
+            observe_job("summary", "WRITTEN")
+            return result
         except (ConflictError, LeaseError) as error:
             return await asyncio.to_thread(self.repository.fail_summary_job,
                 job["job_id"], job["claim_token"], type(error).__name__, conflict=True,
@@ -56,6 +64,8 @@ class SummaryService:
         except asyncio.CancelledError:
             raise  # Durable claim becomes reclaimable; old summary stays intact.
         except Exception as error:
+            observe_summary(0, 0, time.perf_counter() - started, "failed")
+            observe_job("summary", "failed")
             logger.warning("Summary job %s failed: %s", job["job_id"], type(error).__name__)
             return await asyncio.to_thread(self.repository.fail_summary_job,
                 job["job_id"], job["claim_token"], type(error).__name__, conflict=False,
