@@ -124,6 +124,7 @@ async def lifespan(_app: FastAPI):
     global _memory
     from memory.conversation_memory import MemoryManager
     from memory.fact_service import FactService, FactServiceSettings
+    from memory.summary_service import SummaryService, SummaryServiceSettings
     from memory.model_client import MemoryModelClient
 
     # Invalid settings fail startup; an unavailable database degrades only memory.
@@ -150,7 +151,12 @@ async def lifespan(_app: FastAPI):
         _memory._repo.fact_max_count = settings.fact_max_count
         _memory._repo.fact_max_chars = settings.fact_max_chars
         _memory._repo.fact_block_max_chars = settings.fact_block_max_chars
-        worker = MemoryWorker(_memory._repo, settings.recovery_poll_seconds, services=(_memory.fact_service,))
+        _memory.summary_service = SummaryService(_memory._repo,
+            MemoryModelClient(**cfg, timeout_seconds=settings.model_timeout_seconds),
+            SummaryServiceSettings(trigger_chars=settings.summary_trigger_chars, trigger_turns=settings.summary_trigger_turns,
+                recent_min_turns=settings.recent_min_turns, max_summary_chars=settings.summary_max_chars,
+                lease_seconds=settings.job_lease_seconds))
+        worker = MemoryWorker(_memory._repo, settings.recovery_poll_seconds, services=(_memory.fact_service, _memory.summary_service))
         worker_task = asyncio.create_task(worker.run(), name="memory-lease-recovery")
     _app.state.memory_worker = worker
     _app.state.memory_worker_task = worker_task
@@ -174,6 +180,8 @@ async def lifespan(_app: FastAPI):
         if _memory is not None:
             if _memory.fact_service is not None:
                 await _memory.fact_service.close()
+            if _memory.summary_service is not None:
+                await _memory.summary_service.close()
             await _memory.close()
             _memory = None
         logger.info("Python infrastructure stopped")

@@ -21,6 +21,7 @@ from typing import Any, Dict, Iterator, List, Optional
 
 from .models import MemoryScope, MemorySnapshot, TurnReceipt
 from .fact_repository import FactRepositoryMixin
+from .summary_repository import SummaryRepositoryMixin
 
 
 def utc_now() -> str:
@@ -43,7 +44,7 @@ class CapacityError(RepositoryError):
     pass
 
 
-class MemoryRepository(FactRepositoryMixin):
+class MemoryRepository(FactRepositoryMixin, SummaryRepositoryMixin):
     SCHEMA_VERSION = 3
 
     def __init__(self, path: str = "data/memory/memory.sqlite3", namespace: str = "lumenmind", long_term_enabled: bool = True):
@@ -228,9 +229,13 @@ class MemoryRepository(FactRepositoryMixin):
             if not scope or not session or session["deleted_at"]:
                 return MemorySnapshot(2,"ready",self.namespace,user_id,conv_id,0,0,0,0,{},[],[],[],"")
             floor = int(scope["context_floor_source_seq"])
+            summary_row = self._summary_baseline(db, session, scope)
+            covered = summary_row["covered_through_turn"] if summary_row else 0
             # RECEIVED 轮次属于当前尚未完成的请求：原文已经持久化，但不能
             # 再注入 prompt，避免 agent.prompt() 看到当前 user 两次。
-            turns = db.execute("SELECT * FROM memory_turn WHERE namespace=? AND user_id=? AND conv_id=? AND source_seq>? AND status IN ('COMPLETED','FAILED','CANCELLED','INTERRUPTED') AND deleted_at IS NULL AND (? IS NULL OR request_id!=?) ORDER BY turn_seq DESC LIMIT ?", (self.namespace,user_id,conv_id,floor,exclude_request_id,exclude_request_id,max_recent)).fetchall()
+            turns = db.execute("SELECT * FROM memory_turn WHERE namespace=? AND user_id=? AND conv_id=? AND source_seq>? AND turn_seq>? AND status IN ('COMPLETED','FAILED','CANCELLED','INTERRUPTED') AND deleted_at IS NULL AND (? IS NULL OR request_id!=?) ORDER BY turn_seq DESC LIMIT ?", (self.namespace,user_id,conv_id,floor,covered,exclude_request_id,exclude_request_id,max_recent+1)).fetchall()
+            context_truncated = len(turns) > max_recent
+            turns = turns[:max_recent]
             messages: List[Dict[str, Any]] = []
             for turn in reversed(turns):
                 messages.append({"role":"user","content":turn["user_text"],"source_seq":turn["source_seq"],"turn_seq":turn["turn_seq"],"request_id":turn["request_id"]})
@@ -238,13 +243,12 @@ class MemoryRepository(FactRepositoryMixin):
                     messages.append({"role":"assistant","content":turn["assistant_text"],"turn_seq":turn["turn_seq"]})
             facts = [] if not self.long_term_enabled or not scope["long_term_enabled"] or user_id.strip().casefold() in {"anonymous","demo"} else [dict(x) for x in db.execute("SELECT fact_id,category,fact_key,content,revision FROM memory_fact WHERE namespace=? AND user_id=? AND status='ACTIVE' AND erase_epoch<=? ORDER BY revision DESC LIMIT ?", (self.namespace,user_id,scope["erase_epoch"],max_facts)).fetchall()]
             summary: Dict[str, Any] | str = {}
-            if session["current_summary"] and not floor:
-                try: summary = json.loads(session["current_summary"])
-                except json.JSONDecodeError: summary = session["current_summary"]
+            if summary_row:
+                summary = json.loads(summary_row["content"])
             routing = ""
             if isinstance(summary, dict):
                 routing = "；".join(str(summary.get(k,"")) for k in ("user_goal","open_questions","next_step") if summary.get(k))
-            return MemorySnapshot(2,"ready",self.namespace,user_id,conv_id,int(scope["fact_revision"]),int(session["context_revision"]),int(scope["erase_epoch"]),int(session["summary_generation"]),summary,facts,[],messages,routing)
+            return MemorySnapshot(2,"ready",self.namespace,user_id,conv_id,int(scope["fact_revision"]),int(session["context_revision"]),int(scope["erase_epoch"]),int(session["summary_generation"]),summary,facts,[],messages,routing,context_truncated=context_truncated)
 
     def list_facts(self, user_id: str) -> Dict[str, Any]:
         with self._connection() as db:

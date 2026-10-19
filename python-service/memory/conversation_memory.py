@@ -251,6 +251,7 @@ class MemoryManager:
             "blocks": {"facts": snapshot.facts, "episodes": snapshot.episodes, "summary": snapshot.summary},
             "routing_context": snapshot.routing_context,
             "recent_messages": snapshot.recent_messages,
+            "context_truncated": snapshot.context_truncated,
         }
         settings = self.settings
         result = build_context(raw, ContextBudget(
