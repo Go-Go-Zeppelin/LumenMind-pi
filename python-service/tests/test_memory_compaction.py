@@ -279,3 +279,14 @@ def test_stale_scheduled_job_cancels_before_model_and_replacement_uses_new_revis
 def test_empty_array_and_nested_content_never_count_as_valid_summary():
     with pytest.raises(ValueError):
         validate_summary_result({key: [] for key in SUMMARY})
+
+
+def test_sensitive_summary_cannot_become_persistent_summary_or_episode(repo):
+    history(repo)
+    job = schedule(repo)
+    with pytest.raises(ValueError, match='SENSITIVE_CONTENT'):
+        repo.apply_summary_result(job['job_id'], job['claim_token'], {**SUMMARY, 'confirmed_facts': ['API Key: sk-abcdefghijklmnop']})
+    with repo._connection() as db:
+        assert db.execute('SELECT COUNT(*) FROM memory_summary').fetchone()[0] == 0
+        assert db.execute('SELECT COUNT(*) FROM memory_episode').fetchone()[0] == 0
+        assert db.execute('SELECT COUNT(*) FROM memory_turn').fetchone()[0] == 13

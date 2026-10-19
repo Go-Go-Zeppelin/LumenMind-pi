@@ -6,6 +6,8 @@ import secrets
 from typing import Any, Optional
 
 from .compactor import SUMMARY_FIELDS
+from .context_builder import _encode
+from .fact_pipeline import contains_sensitive
 
 _TERMINAL = {"COMPLETED", "FAILED", "CANCELLED", "INTERRUPTED"}
 _PROMPT_VERSION = "summary-v1"
@@ -20,7 +22,9 @@ def validate_summary_result(value: Any, max_chars: int = 4000) -> dict:
     if not any(item.strip() if isinstance(item, str) else any(part.strip() for part in item) for item in value.values()):
         raise ValueError("Summary must not be empty")
     rendered = json.dumps(value, ensure_ascii=False, separators=(",", ":"))
-    if len(rendered) > max_chars:
+    if contains_sensitive(rendered):
+        raise ValueError("SENSITIVE_CONTENT")
+    if len(_encode({"summary": value})) > max_chars:
         raise ValueError("Summary exceeds its character budget")
     rendered.encode("utf-8")
     return value

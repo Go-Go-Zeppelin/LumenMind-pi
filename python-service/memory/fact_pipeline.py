@@ -13,6 +13,23 @@ ALLOWED_CATEGORIES = {"preference", "stable_context"}
 ALLOWED_KEYS = {"contact.channel", "response.detail", "device.os"}
 
 
+_SENSITIVE_VALUE = re.compile(
+    r"(?i)(?:password|passcode|api[ _-]?key|(?:access|refresh)[ _-]?token|private[ _-]?key|"
+    r"密码|验证码|私钥|密钥|令牌)\s*(?:[:：=]|是|为|\bis\b)\s*[:：=]?\s*[^\s，。；,;]{3,}"
+    r"|-----BEGIN [A-Z ]*PRIVATE KEY-----"
+    r"|\bsk-[A-Za-z0-9_-]{12,}"
+    r"|\bAKIA[A-Z0-9]{16}\b"
+    r"|\bgh[pousr]_[A-Za-z0-9]{20,}"
+    r"|\bxox[baprs]-[A-Za-z0-9-]{12,}"
+    r"|(?<!\d)(?:\d[ -]?){12,18}\d(?!\d)"
+)
+
+
+def contains_sensitive(text: str) -> bool:
+    """Policy filter for credential values; never return or log matched text."""
+    return bool(_SENSITIVE_VALUE.search(text))
+
+
 class FactDecisionError(ValueError):
     pass
 
@@ -54,7 +71,7 @@ def validate_decisions(payload: Any, user_source: Dict[int, str], active_fact_id
         if action in {"ADD", "SUPERSEDE"}:
             if not isinstance(item.get("category"),str) or item.get("category") not in ALLOWED_CATEGORIES or not isinstance(item.get("content"), str) or not item["content"].strip() or len(item["content"]) > 300:
                 raise FactDecisionError("事实类别或正文不合法")
-            if re.search(r"(?i)(?:password|api[ _-]?key|private[ _-]?key|密码|验证码|私钥)\s*[:：=]\s*\S+|-----BEGIN .*PRIVATE KEY-----|\bsk-[A-Za-z0-9_-]{12,}|\b(?:\d[ -]?){13,19}\b", item["content"]):
+            if contains_sensitive(item["content"]):
                 raise FactDecisionError("SENSITIVE_CONTENT")
             if item.get("fact_key") is not None and (not isinstance(item.get("fact_key"),str) or item.get("fact_key") not in ALLOWED_KEYS):
                 raise FactDecisionError("事实键不在允许集合")
@@ -65,6 +82,8 @@ def validate_decisions(payload: Any, user_source: Dict[int, str], active_fact_id
             evidence = item.get("evidence")
             if not isinstance(seqs, list) or not seqs or any(type(x) is not int or x not in user_source for x in seqs):
                 raise FactDecisionError("事实来源必须来自本批 user 消息")
+            if isinstance(evidence,str) and contains_sensitive(evidence):
+                raise FactDecisionError("SENSITIVE_CONTENT")
             if not isinstance(evidence, str) or not evidence.strip() or not all(evidence.strip() in user_source[x] for x in seqs):
                 raise FactDecisionError("证据片段无法对应 user 原文")
     return decisions

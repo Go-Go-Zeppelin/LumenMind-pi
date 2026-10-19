@@ -19,6 +19,7 @@ from anthropic import AsyncAnthropic
 from core.llm_utils import extract_text_content
 from .context_builder import ContextBudget, build_context
 from .config import MemorySettings
+from .metrics import observe_context
 from .models import MemorySnapshot, TurnReceipt
 from .repository import CapacityError, ConflictError, LeaseError, MemoryRepository
 
@@ -173,12 +174,13 @@ class MemoryManager:
             raise RuntimeError("SQLite memory repository is not configured")
         return await asyncio.to_thread(self._repo.finish_turn, self._safe_text(user_id), self._safe_text(conv_id), self._safe_text(request_id), lease_token, status, response)
 
-    async def get_snapshot(self, user_id: str, conv_id: str, request_id: Optional[str] = None) -> MemorySnapshot:
+    async def get_snapshot(self, user_id: str, conv_id: str, request_id: Optional[str] = None, query: str = "") -> MemorySnapshot:
         if self._repo is None:
             raise RuntimeError("SQLite memory repository is not configured")
+        candidate_ids = await self.index_service.search_candidates(user_id, query) if self.index_service is not None else []
         snapshot = await asyncio.to_thread(
             self._repo.get_snapshot, self._safe_text(user_id), self._safe_text(conv_id),
-            exclude_request_id=request_id,
+            exclude_request_id=request_id, candidate_ids=candidate_ids,
         )
         if self._safe_text(user_id) in {"anonymous", "demo", ""} or not self.long_term_enabled:
             snapshot.facts = []
@@ -195,7 +197,7 @@ class MemoryManager:
 
     async def add_explicit_fact(self, *args, **kwargs) -> Dict[str, Any]:
         """Active facts may only be committed by a validated source-backed Judge."""
-        raise NotImplementedError("Fact Judge is not implemented; direct ACTIVE fact writes are disabled")
+        raise NotImplementedError("Direct ACTIVE writes are disabled; flush a persisted user request instead")
 
     async def retract_fact(self, user_id: str, fact_id: str, request_id: Optional[str] = None) -> Dict[str, Any]:
         if self._safe_text(user_id) in {"anonymous", "demo", ""}:
@@ -267,6 +269,7 @@ class MemoryManager:
             "preferences": [item["content"] for item in result["blocks"]["facts"] if item.get("category") == "preference"],
             "entities": {},
         }
+        observe_context(result["budget"]["rendered_chars"], result["budget"]["context_truncated"])
         return result
 
     # ── 写入 ──────────────────────────────────────────────────────────────────

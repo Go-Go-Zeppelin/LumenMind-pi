@@ -22,6 +22,7 @@ from typing import Any, Dict, Iterator, List, Optional
 from .models import MemoryScope, MemorySnapshot, TurnReceipt
 from .fact_repository import FactRepositoryMixin
 from .summary_repository import SummaryRepositoryMixin
+from .episodic_index import EpisodicIndexRepositoryMixin, validate_episode_candidates
 
 
 def utc_now() -> str:
@@ -44,7 +45,7 @@ class CapacityError(RepositoryError):
     pass
 
 
-class MemoryRepository(FactRepositoryMixin, SummaryRepositoryMixin):
+class MemoryRepository(FactRepositoryMixin, SummaryRepositoryMixin, EpisodicIndexRepositoryMixin):
     SCHEMA_VERSION = 3
 
     def __init__(self, path: str = "data/memory/memory.sqlite3", namespace: str = "lumenmind", long_term_enabled: bool = True):
@@ -221,7 +222,7 @@ class MemoryRepository(FactRepositoryMixin, SummaryRepositoryMixin):
             row = db.execute("SELECT * FROM memory_turn WHERE namespace=? AND user_id=? AND request_id=?", (self.namespace,user_id,request_id)).fetchone()
             receipt = self._receipt(db,row); db.commit(); return receipt
 
-    def get_snapshot(self, user_id: str, conv_id: str, max_recent: int = 20, max_facts: int = 50, exclude_request_id: Optional[str] = None) -> MemorySnapshot:
+    def get_snapshot(self, user_id: str, conv_id: str, max_recent: int = 20, max_facts: int = 50, exclude_request_id: Optional[str] = None, candidate_ids: Optional[List[str]] = None) -> MemorySnapshot:
         with self._connection() as db:
             db.execute("BEGIN")
             scope = db.execute("SELECT * FROM memory_scope WHERE namespace=? AND user_id=?", (self.namespace,user_id)).fetchone()
@@ -248,7 +249,9 @@ class MemoryRepository(FactRepositoryMixin, SummaryRepositoryMixin):
             routing = ""
             if isinstance(summary, dict):
                 routing = "；".join(str(summary.get(k,"")) for k in ("user_goal","open_questions","next_step") if summary.get(k))
-            return MemorySnapshot(2,"ready",self.namespace,user_id,conv_id,int(scope["fact_revision"]),int(session["context_revision"]),int(scope["erase_epoch"]),int(session["summary_generation"]),summary,facts,[],messages,routing,context_truncated=context_truncated)
+            episodes = validate_episode_candidates(db, self.namespace, user_id, conv_id, candidate_ids or [],
+                recent_turn_seqs=[turn["turn_seq"] for turn in turns], summary_covered_through=covered) if self.long_term_enabled else []
+            return MemorySnapshot(2,"ready",self.namespace,user_id,conv_id,int(scope["fact_revision"]),int(session["context_revision"]),int(scope["erase_epoch"]),int(session["summary_generation"]),summary,facts,episodes,messages,routing,context_truncated=context_truncated)
 
     def list_facts(self, user_id: str) -> Dict[str, Any]:
         with self._connection() as db:
@@ -257,6 +260,10 @@ class MemoryRepository(FactRepositoryMixin, SummaryRepositoryMixin):
             if user_id.strip().casefold() in {"anonymous", "demo"}:
                 return {"facts": [], "revision": scope["fact_revision"], "enabled": False}
             facts = [dict(x) for x in db.execute("SELECT fact_id,category,fact_key,content,origin,status,provenance_state,revision FROM memory_fact WHERE namespace=? AND user_id=? AND status='ACTIVE' ORDER BY revision", (self.namespace,user_id)).fetchall()]
+            for fact in facts:
+                fact["sources"] = [dict(row) for row in db.execute(
+                    "SELECT fs.source_seq,t.conv_id FROM memory_fact_source fs JOIN memory_turn t ON fs.namespace=t.namespace AND fs.user_id=t.user_id AND fs.source_seq=t.source_seq WHERE fs.namespace=? AND fs.user_id=? AND fs.fact_id=? AND t.deleted_at IS NULL ORDER BY fs.source_seq",
+                    (self.namespace, user_id, fact["fact_id"])).fetchall()]
             return {"facts": facts, "revision": scope["fact_revision"], "erase_epoch": scope["erase_epoch"], "enabled": self.long_term_enabled and bool(scope["long_term_enabled"])}
 
     def add_fact(self, user_id: str, category: str, content: str, fact_key: Optional[str] = None, source_seqs: Optional[List[int]] = None, evidence: str = "", origin: str = "EXPLICIT") -> Dict[str, Any]:
@@ -304,13 +311,33 @@ class MemoryRepository(FactRepositoryMixin, SummaryRepositoryMixin):
         now = self._db_now(db)
         db.execute("INSERT INTO memory_job(namespace,user_id,job_id,kind,dedup_key,status,next_run_at,result,created_at) VALUES(?,?,?,?,?,'WRITTEN',?,?,?)", (self.namespace,user_id,secrets.token_hex(16),operation,f"operation:{request_id or secrets.token_hex(16)}",now,json.dumps(result),now))
 
+    def _preserve_inflight_index_jobs(self, db: sqlite3.Connection, user_id: str) -> None:
+        """Keep body-free per-claim receipts until a late vector call acknowledges.
+
+        An expired database lease cannot prove that a remote operation stopped.
+        Separate receipts retain all attempts even when the main job is reclaimed.
+        """
+        rows=db.execute("SELECT * FROM memory_job WHERE namespace=? AND user_id=? AND kind IN ('index_upsert','index_write_receipt') AND status='PROCESSING' AND claim_token IS NOT NULL",(self.namespace,user_id)).fetchall()
+        for row in rows:
+            try: envelope=json.loads(row['result'] or '{}')
+            except (TypeError,ValueError): envelope={}
+            document_id=envelope.get('document_id')
+            if not document_id and row['kind']=='index_upsert':
+                episode=db.execute("SELECT * FROM memory_episode WHERE namespace=? AND user_id=? AND episode_id=?",(self.namespace,user_id,envelope.get('episode_id',''))).fetchone()
+                if episode:
+                    from .episodic_index import episode_document_id
+                    document_id=episode_document_id(self.namespace,user_id,episode['conv_id'],episode['from_turn'],episode['to_turn'],episode['index_version'])
+            metadata={'document_id':document_id} if document_id else {}
+            db.execute("UPDATE memory_job SET status='CANCELLED',error_code='INDEX_WRITE_UNACKNOWLEDGED',result=? WHERE namespace=? AND job_id=?",(json.dumps(metadata),self.namespace,row['job_id']))
+
     def _erase_barrier(self, db: sqlite3.Connection, user_id: str, reason: str) -> None:
         """Fence stale workers and every subsequent context read in one commit."""
         now = self._db_now(db)
+        self._preserve_inflight_index_jobs(db,user_id)
         db.execute("UPDATE memory_scope SET erase_epoch=erase_epoch+1,context_floor_source_seq=next_source_seq-1,extract_cursor=MAX(extract_cursor,next_source_seq-1),updated_at=? WHERE namespace=? AND user_id=?", (now,self.namespace,user_id))
         db.execute("UPDATE memory_session SET current_summary='',summary_generation=0,context_revision=context_revision+1 WHERE namespace=? AND user_id=?", (self.namespace,user_id))
         db.execute("UPDATE memory_episode SET invalid_at=? WHERE namespace=? AND user_id=? AND invalid_at IS NULL", (now,self.namespace,user_id))
-        db.execute("UPDATE memory_job SET status='CANCELLED',claim_token=NULL,lease_until=NULL,error_code=? WHERE namespace=? AND user_id=? AND status IN ('READY','PROCESSING','RETRY_WAIT','QUARANTINED') AND kind!='index_delete'", (reason,self.namespace,user_id))
+        db.execute("UPDATE memory_job SET status='CANCELLED',claim_token=NULL,lease_until=NULL,error_code=? WHERE namespace=? AND user_id=? AND status IN ('READY','PROCESSING','RETRY_WAIT','QUARANTINED') AND kind NOT IN ('index_delete','index_write_receipt')", (reason,self.namespace,user_id))
         epoch = db.execute("SELECT erase_epoch FROM memory_scope WHERE namespace=? AND user_id=?", (self.namespace,user_id)).fetchone()[0]
         db.execute("INSERT OR IGNORE INTO memory_job(namespace,user_id,job_id,kind,dedup_key,expected_epoch,next_run_at,created_at) VALUES(?,?,?,?,?,?,?,?)", (self.namespace,user_id,secrets.token_hex(16),'index_delete',f'forget-before-epoch:{epoch}',epoch,now,now))
 
@@ -352,6 +379,7 @@ class MemoryRepository(FactRepositoryMixin, SummaryRepositoryMixin):
             db.execute("BEGIN IMMEDIATE"); self._ensure_scope(db,user_id)
             previous = db.execute("SELECT long_term_enabled FROM memory_scope WHERE namespace=? AND user_id=?", (self.namespace,user_id)).fetchone()[0]
             if not enabled and previous:
+                self._preserve_inflight_index_jobs(db,user_id)
                 # Keep conversation context, but fence all prior extraction material.
                 db.execute("UPDATE memory_scope SET erase_epoch=erase_epoch+1,extract_cursor=next_source_seq-1 WHERE namespace=? AND user_id=?", (self.namespace,user_id))
                 db.execute("UPDATE memory_turn SET memory_eligible=0 WHERE namespace=? AND user_id=? AND source_seq>(SELECT extract_cursor FROM memory_scope WHERE namespace=? AND user_id=?)", (self.namespace,user_id,self.namespace,user_id))
@@ -375,7 +403,7 @@ class MemoryRepository(FactRepositoryMixin, SummaryRepositoryMixin):
             db.execute("DELETE FROM memory_episode WHERE namespace=? AND user_id=? AND conv_id=?", (self.namespace,user_id,conv_id))
             self._erase_barrier(db,user_id,"CONVERSATION_DELETED")
             db.execute("UPDATE memory_session SET deleted_at=?,lease_owner=NULL,lease_token=NULL,lease_until=NULL WHERE namespace=? AND user_id=? AND conv_id=?", (now,self.namespace,user_id,conv_id))
-            db.execute("UPDATE memory_job SET result=NULL WHERE namespace=? AND user_id=? AND status='CANCELLED'", (self.namespace,user_id))
+            db.execute("UPDATE memory_job SET result=NULL WHERE namespace=? AND user_id=? AND status='CANCELLED' AND COALESCE(error_code,'')!='INDEX_WRITE_UNACKNOWLEDGED'", (self.namespace,user_id))
             db.commit(); return {"status":"WRITTEN","conv_id":conv_id}
 
     def delete_all(self, user_id: str) -> Dict[str, Any]:
@@ -383,8 +411,9 @@ class MemoryRepository(FactRepositoryMixin, SummaryRepositoryMixin):
             db.execute("BEGIN IMMEDIATE"); self._ensure_scope(db,user_id)
             self._erase_barrier(db,user_id,"ALL_MEMORY_DELETED")
             now = self._db_now(db)
-            for table in ("memory_fact_source","memory_fact","memory_episode","memory_summary","memory_job"):
+            for table in ("memory_fact_source","memory_fact","memory_episode","memory_summary"):
                 db.execute(f"DELETE FROM {table} WHERE namespace=? AND user_id=?", (self.namespace,user_id))
+            db.execute("DELETE FROM memory_job WHERE namespace=? AND user_id=? AND COALESCE(error_code,'')!='INDEX_WRITE_UNACKNOWLEDGED'",(self.namespace,user_id))
             # Retain only body-free request/session tombstones to fence old retries.
             db.execute("UPDATE memory_turn SET user_text='',assistant_text=NULL,status='DELETED',memory_eligible=0,deleted_at=?,finished_at=COALESCE(finished_at,?) WHERE namespace=? AND user_id=?", (now,now,self.namespace,user_id))
             db.execute("UPDATE memory_session SET deleted_at=?,current_summary='',lease_owner=NULL,lease_token=NULL,lease_until=NULL WHERE namespace=? AND user_id=?", (now,self.namespace,user_id))

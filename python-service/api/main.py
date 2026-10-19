@@ -125,6 +125,7 @@ async def lifespan(_app: FastAPI):
     from memory.conversation_memory import MemoryManager
     from memory.fact_service import FactService, FactServiceSettings
     from memory.summary_service import SummaryService, SummaryServiceSettings
+    from memory.episodic_index import EpisodicIndexService
     from memory.model_client import MemoryModelClient
 
     # Invalid settings fail startup; an unavailable database degrades only memory.
@@ -152,11 +153,19 @@ async def lifespan(_app: FastAPI):
         _memory._repo.fact_max_chars = settings.fact_max_chars
         _memory._repo.fact_block_max_chars = settings.fact_block_max_chars
         _memory.summary_service = SummaryService(_memory._repo,
-            MemoryModelClient(**cfg, timeout_seconds=settings.model_timeout_seconds),
+            MemoryModelClient(**cfg, timeout_seconds=settings.model_timeout_seconds, purpose="summary"),
             SummaryServiceSettings(trigger_chars=settings.summary_trigger_chars, trigger_turns=settings.summary_trigger_turns,
                 recent_min_turns=settings.recent_min_turns, max_summary_chars=settings.summary_max_chars,
                 lease_seconds=settings.job_lease_seconds))
-        worker = MemoryWorker(_memory._repo, settings.recovery_poll_seconds, services=(_memory.fact_service, _memory.summary_service))
+        services = [_memory.fact_service, _memory.summary_service]
+        if settings.episodic_enabled:
+            def create_episode_client():
+                import chromadb
+                return chromadb.HttpClient(host=os.getenv("CHROMA_HOST", "localhost"), port=int(os.getenv("CHROMA_PORT", "8001")),
+                    settings=chromadb.Settings(anonymized_telemetry=False))
+            _memory.index_service = EpisodicIndexService(_memory._repo, client_factory=create_episode_client)
+            services.append(_memory.index_service)
+        worker = MemoryWorker(_memory._repo, settings.recovery_poll_seconds, services=services)
         worker_task = asyncio.create_task(worker.run(), name="memory-lease-recovery")
     _app.state.memory_worker = worker
     _app.state.memory_worker_task = worker_task
@@ -180,6 +189,8 @@ async def lifespan(_app: FastAPI):
         if _memory is not None:
             if _memory.fact_service is not None:
                 await _memory.fact_service.close()
+            if _memory.index_service is not None:
+                await _memory.index_service.close()
             if _memory.summary_service is not None:
                 await _memory.summary_service.close()
             await _memory.close()
@@ -402,7 +413,7 @@ def _receipt_dict(receipt) -> Dict[str, Any]:
 async def memory_context(body: MemoryContextInput):
     manager = _require_memory()
     try:
-        snapshot = await manager.get_snapshot(body.user_id, body.conv_id, body.request_id)
+        snapshot = await manager.get_snapshot(body.user_id, body.conv_id, body.request_id, body.query)
         return manager.snapshot_to_dict(snapshot)
     except Exception as error:
         raise _memory_error(error) from error
@@ -456,7 +467,7 @@ async def memory_facts(user_id: str = "anonymous"):
 @app.post("/memory/facts")
 async def memory_add_fact(body: MemoryFactInput):
     _require_memory()
-    raise HTTPException(501, "Fact Judge is not implemented; direct ACTIVE fact writes are disabled")
+    raise HTTPException(501, "Direct ACTIVE writes are disabled; flush a persisted user request instead")
 
 
 @app.delete("/memory/facts/{fact_id}")
@@ -477,6 +488,25 @@ async def memory_settings(body: MemorySettingsInput):
 @app.delete("/memory/conversations/{conv_id}")
 async def memory_delete_conversation(conv_id: str, user_id: str = "anonymous"):
     return await _memory_call("delete_conversation", user_id, conv_id)
+
+
+@app.get("/memory/status")
+async def memory_status():
+    from memory.metrics import memory_metrics_snapshot
+    manager = _require_memory()
+    try:
+        return await asyncio.to_thread(memory_metrics_snapshot, manager._repo)
+    except Exception as error:
+        raise _memory_error(error) from error
+
+
+@app.get("/memory/cleanup")
+async def memory_cleanup(user_id: str = "anonymous"):
+    manager = _require_memory()
+    try:
+        return await asyncio.to_thread(manager._repo.index_cleanup_progress, user_id)
+    except Exception as error:
+        raise _memory_error(error) from error
 
 
 @app.delete("/memory/all")

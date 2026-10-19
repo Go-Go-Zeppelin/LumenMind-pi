@@ -229,3 +229,67 @@ def test_importing_scope_cannot_schedule_or_claim_fact_jobs(repo):
     repo.schedule_due_fact_jobs(force=True)
     with repo._connection() as db:db.execute("UPDATE memory_scope SET migration_state='IMPORTING'")
     assert repo.claim_fact_job('u') is None
+
+
+@pytest.mark.parametrize('text',[
+    '我的密码是 abc123456', '验证码为 823491', 'password is huntertwo',
+    'API Key: sk-abcdefghijklmnop', 'private_key = abcdefghijk',
+    '-----BEGIN RSA PRIVATE KEY-----', '4111 1111 1111 1111',
+])
+def test_sensitive_source_is_policy_noop_without_model_claim(repo,text):
+    source(repo,text)
+    assert repo.schedule_due_fact_jobs(force=True)==1
+    assert repo.claim_fact_job('u') is None
+    receipt=repo.lookup_fact_receipt('u','r')
+    assert receipt['status']=='NOOP' and receipt['reason']=='POLICY_EXCLUDED'
+    with repo._connection() as db:
+        assert db.execute('SELECT user_text FROM memory_turn').fetchone()[0]==text
+        assert db.execute('SELECT extract_cursor FROM memory_scope').fetchone()[0]==1
+        assert not db.execute('SELECT * FROM memory_fact_source').fetchall()
+
+
+def test_sensitive_evidence_cannot_leak_into_benign_fact():
+    from memory.fact_pipeline import validate_decisions
+    text='API Key: sk-abcdefghijklmnop，以后邮件联系'
+    decision=add(evidence=text)
+    with pytest.raises(FactDecisionError,match='SENSITIVE_CONTENT'):
+        validate_decisions(payload(decision),{1:text},set())
+
+
+def test_mixed_batch_excludes_sensitive_original_from_claim_and_apply(repo):
+    source(repo,'password is huntertwo','secret')
+    source(repo,'email please','safe')
+    job=claim(repo)
+    assert job['from_seq']==1 and job['to_seq']==2
+    assert job['messages']==[dict(source_seq=2,conv_id='c',user_text='email please')]
+    with pytest.raises(FactDecisionError):
+        apply(repo,job,add(seq=1,evidence='password is huntertwo'))
+    result=apply(repo,job,add(seq=2,evidence='email'))
+    assert result['covered_source_seq']==2
+    with repo._connection() as db:
+        assert db.execute('SELECT source_seq,evidence_excerpt FROM memory_fact_source').fetchone()[:]==(2,'email')
+
+
+def test_password_warning_without_value_is_not_filtered(repo):
+    from memory.fact_pipeline import contains_sensitive
+    assert not contains_sensitive('不要提供密码')
+    source(repo,'不要提供密码，以后邮件联系')
+    job=claim(repo)
+    assert len(job['messages'])==1
+    assert apply(repo,job,add(evidence='以后邮件联系'))['status']=='WRITTEN'
+
+
+def test_same_key_latest_add_preserves_earlier_replacement_target(repo):
+    source(repo,'email please','old')
+    apply(repo,claim(repo),add())
+    previous=repo.list_facts('u')['facts'][0]
+    source(repo,'phone please','change')
+    source(repo,'sms please','latest')
+    replacement=add('phone replies',2,'phone')
+    replacement.update(action='SUPERSEDE',target_fact_id=previous['fact_id'])
+    result=apply(repo,claim(repo),replacement,add('sms replies',3,'sms'))
+    assert result['status']=='WRITTEN'
+    current=repo.list_facts('u')['facts'][0]
+    assert current['content']=='sms replies'
+    with repo._connection() as db:
+        assert db.execute('SELECT status,superseded_by FROM memory_fact WHERE fact_id=?',(previous['fact_id'],)).fetchone()[:]==('INVALID',current['fact_id'])
