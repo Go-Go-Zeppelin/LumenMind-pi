@@ -1,3 +1,5 @@
+import { assertModelBudget } from "./model-budget.js";
+import type { MemoryOperationReceipt } from "../types.js";
 import { Agent } from "@earendil-works/pi-agent-core";
 import type { AssistantMessage, Model } from "@earendil-works/pi-ai";
 import { streamSimple as streamAnthropicSimple } from "@earendil-works/pi-ai/api/anthropic-messages";
@@ -33,7 +35,7 @@ export class ResponseComposer {
    * 输出：Promise<string>，内容是一条最终面向用户的自然语言回复。该字符串返回给
    * Orchestrator，随后作为 ChatResponse.response 返回客户端并写入 Python 对话记忆。
    */
-  async compose(message: string, primaryAgent: string, results: AgentRunResult[]): Promise<string> {
+  async compose(message: string, primaryAgent: string, results: AgentRunResult[], operation?: MemoryOperationReceipt, signal?: AbortSignal): Promise<string> {
     const successful = results.filter((result) => result.response.trim());
     if (successful.length <= 1) return successful[0]?.response ?? "抱歉，暂时没有可用的处理结果。";
 
@@ -46,6 +48,7 @@ export class ResponseComposer {
           "你是 LumenMind 的 Response Composer，负责把多个专业 Agent 的结果合并成一条最终客服回复。",
           "以主 Agent 结论为主，去掉重复和冲突表述；不得编造订单、退款、后台查询结果。",
           "如果结论冲突，明确说明需要核验；保留必要的排查步骤、核验字段和升级边界。",
+          "记忆操作只能按输入回执描述，PENDING/FAILED/NOOP不能写成已经记住。",
           "只输出给用户看的回复，不要提及 Agent、编排器或内部工具。",
         ].join("\n"),
         model: this.appConfig.model as Model<any>,
@@ -53,16 +56,18 @@ export class ResponseComposer {
         tools: [],
         messages: [],
       },
-      streamFn: (model, context, options) => streamAnthropicSimple(model as Model<"anthropic-messages">, context, {
-        ...options,
-        apiKey: this.appConfig.apiKey,
-        maxTokens: this.appConfig.maxTokens,
-        temperature: 0.1,
-      }),
+      streamFn: (model, context, options) => {
+        assertModelBudget(model, context, this.appConfig.maxTokens);
+        return streamAnthropicSimple(model as Model<"anthropic-messages">, context, {
+          ...options, signal: signal && options?.signal ? AbortSignal.any([signal, options.signal]) : signal ?? options?.signal,
+          apiKey: this.appConfig.apiKey, maxTokens: this.appConfig.maxTokens, temperature: 0.1,
+        });
+      },
     });
 
     try {
-      await agent.prompt(`主 Agent：${primaryAgent}\n用户问题：${message}\n候选结果：\n${evidence}`);
+      signal?.throwIfAborted();
+      await agent.prompt(`记忆操作回执：${JSON.stringify(operation ?? null)}\n主 Agent：${primaryAgent}\n用户问题：${message}\n候选结果：\n${evidence}`);
       const assistants = agent.state.messages.filter((item): item is AssistantMessage => item.role === "assistant");
       const response = assistants.at(-1);
       if (response) {
@@ -70,12 +75,13 @@ export class ResponseComposer {
         if (text) return text;
       }
     } catch {
+      signal?.throwIfAborted();
       // Composer 失败时使用确定性合并，不能丢失专业 Agent 的结果。
     }
     return this.deterministicMerge(successful);
   }
 
-  private deterministicMerge(results: AgentRunResult[]): string {
+  private deterministicMerge(results: AgentRunResult[], operation?: MemoryOperationReceipt, signal?: AbortSignal): string {
     return results.map((result, index) => index === 0 ? result.response : `补充说明：\n${result.response}`).join("\n\n");
   }
 }

@@ -1,8 +1,10 @@
 import { Agent, type AgentTool } from "@earendil-works/pi-agent-core";
-import type { AssistantMessage, Model, UserMessage } from "@earendil-works/pi-ai";
+import type { AssistantMessage, Model } from "@earendil-works/pi-ai";
 import { streamSimple as streamAnthropicSimple } from "@earendil-works/pi-ai/api/anthropic-messages";
 import type { AppConfig } from "../config.js";
-import type { AgentType, ChatEventSink, KnowledgeSearchResponse, ToolCallTrace } from "../types.js";
+import type { AgentType, ChatEventSink, KnowledgeSearchResponse, ToolCallTrace, MemoryContext, MemoryOperationReceipt } from "../types.js";
+import { buildMemoryMessages } from "./memory-context.js";
+import { assertModelBudget, boundToolResult, ModelBudgetError } from "./model-budget.js";
 import { buildSystemPrompt } from "./prompts.js";
 import { AGENT_PROFILES, type AgentProfile } from "./profiles.js";
 import { AgentStats } from "./stats.js";
@@ -26,6 +28,8 @@ export interface AgentRunInput {
   userId: string;
   convId: string;
   memoryContext: string;
+  memorySnapshot?: MemoryContext;
+  memoryOperation?: MemoryOperationReceipt;
   skillPrompt: string;
   entities: Record<string, string[]>;
   allowKnowledge: boolean;
@@ -143,8 +147,10 @@ export class PiAgentExecutor {
     let knowledgeUsed = false;
     const toolsUsed = new Set<string>();
     const toolTraces: ToolCallTrace[] = [];
+    const truncatedTools = new Set<string>();
     const startedTools = new Map<string, { startedAt: number; trace: ToolCallTrace }>();
     let ok = false;
+    let budgetFailure: ModelBudgetError | undefined;
 
     try {
       if (!this.appConfig.apiKey) throw new Error("未配置 PI_API_KEY 或 ANTHROPIC_API_KEY");
@@ -162,25 +168,31 @@ export class PiAgentExecutor {
             ...(input.allowKnowledge ? [this.knowledgeTool] : []),
             ...this.roleTools,
             ...(this.agentType === "technical" ? [] : createBusinessTools(this.infrastructure, input.userId)),
-          ],
+          ].map((tool): AgentTool => ({ ...tool, execute: async (id, params, signal, onUpdate) => {
+            const original = await tool.execute(id, params, signal, onUpdate);
+            const bounded = boundToolResult(original, this.appConfig.toolResultMaxChars);
+            if (bounded !== original) truncatedTools.add(id);
+            return bounded;
+          } })),
           // 每次执行从空消息列表开始，当前用户消息稍后由 agent.prompt() 加入。
-          messages: input.memoryContext ? [{
-            role: "user",
-            content: `<memory_context>\n${input.memoryContext}\n</memory_context>`,
-            timestamp: Date.now(),
-          } satisfies UserMessage] : [],
+          messages: buildMemoryMessages(input.memorySnapshot ?? {
+            prompt_text: input.memoryContext, recent_messages: [], relevant_history: [], user_profile: {}, summary: "",
+          }, this.appConfig.model, input.memoryOperation),
         },
         sessionId: input.convId,
         // 若模型在一次决策中产生多个工具调用，允许它们并行执行。
         toolExecution: "parallel",
         // Pi 最终通过 Anthropic Messages API 流式调用所配置的模型。
-        streamFn: (model, context, options) => streamAnthropicSimple(model as Model<"anthropic-messages">, context, {
-          ...options,
-          signal: input.signal && options?.signal ? AbortSignal.any([input.signal, options.signal]) : input.signal ?? options?.signal,
-          apiKey: this.appConfig.apiKey,
-          maxTokens: this.profile.max_tokens || this.appConfig.maxTokens,
-          temperature: this.profile.temperature,
-        }),
+        streamFn: (model, context, options) => {
+          const maxTokens = this.profile.max_tokens || this.appConfig.maxTokens;
+          try { assertModelBudget(model, context, maxTokens); }
+          catch (error) { if (error instanceof ModelBudgetError) budgetFailure = error; throw error; }
+          return streamAnthropicSimple(model as Model<"anthropic-messages">, context, {
+            ...options,
+            signal: input.signal && options?.signal ? AbortSignal.any([input.signal, options.signal]) : input.signal ?? options?.signal,
+            apiKey: this.appConfig.apiKey, maxTokens, temperature: this.profile.temperature,
+          });
+        },
       });
 
       // 将 Pi 内部事件转换为 LumenMind 的 ChatStreamEvent，再交给 SSE 接口发送。
@@ -224,6 +236,7 @@ export class PiAgentExecutor {
           trace.success = !event.isError;
           trace.is_error = event.isError;
           trace.finished_at = new Date().toISOString();
+          trace.model_output_truncated = truncatedTools.has(event.toolCallId);
           trace.output = event.result?.details ?? event.result?.content ?? null;
           trace.latency_ms = Number((performance.now() - (pending?.startedAt ?? performance.now())).toFixed(1));
           trace.cached = Boolean(details?.cached);
@@ -252,6 +265,7 @@ export class PiAgentExecutor {
       // 直到产生最终 AssistantMessage 或异常结束。
       input.signal?.throwIfAborted();
       await agent.prompt(input.message);
+      if (budgetFailure) throw budgetFailure;
       input.signal?.throwIfAborted();
 
       // state.messages 可能包含 user、assistant、toolResult 等消息；这里只保留 assistant。
@@ -272,6 +286,7 @@ export class PiAgentExecutor {
       // 不符合 JSON schema 时要求同一个 Agent 重新结构化输出。
       if (!contract.valid) {
         await agent.prompt(`上一条输出不符合 JSON 输出契约，请只输出修正后的 JSON。错误：${contract.errors.join("；")}。原输出：${response}`);
+        if (budgetFailure) throw budgetFailure;
         const repaired = agent.state.messages
           .filter((item): item is AssistantMessage => item.role === "assistant")
           .at(-1);
@@ -306,6 +321,8 @@ export class PiAgentExecutor {
         toolTraces.push(pending.trace);
       }
       startedTools.clear();
+      if (budgetFailure) throw budgetFailure;
+      if (error instanceof ModelBudgetError) throw error;
       if (error instanceof AgentExecutionError) throw error;
       throw new AgentExecutionError(message, [...toolsUsed], [...toolTraces], knowledgeUsed);
     } finally {

@@ -102,6 +102,7 @@ export interface ToolCallTrace {
   error?: string;
   /** 专业 Agent 失败后由 General Agent 接管时，保留原调用轨迹并标记降级。 */
   fallback_used?: boolean;
+  model_output_truncated?: boolean;
 }
 
 export interface RequestTrace {
@@ -141,6 +142,7 @@ export interface MemoryContext {
   relevant_history: string[];
   user_profile: Record<string, unknown>;
   summary: string;
+  background_text?: string;
   schema_version?: number;
   status?: "ready" | "degraded" | "unavailable";
   snapshot?: { fact_revision: number; context_revision: number; erase_epoch: number };

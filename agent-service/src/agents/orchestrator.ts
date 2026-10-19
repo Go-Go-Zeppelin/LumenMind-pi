@@ -11,6 +11,7 @@ import type {
   Intent,
   IntentDecision,
   MemoryMessage,
+  MemoryContext,
   RequestTrace,
   RoutingAgentType,
   MemoryOperationReceipt,
@@ -24,6 +25,7 @@ import { AGENT_PROFILES } from "./profiles.js";
 import { runAgentWorkflow } from "./workflow.js";
 import { roleTools } from "../tools/agent-tools.js";
 import { MemoryCoordinator, isPureMemoryRequest, memoryReceiptText } from "./memory-coordinator.js";
+import { ModelBudgetError } from "./model-budget.js";
 import { withMemoryTurn } from "./memory-turn.js";
 
 // 编排器接收 IntentDecision 后，不直接用 intent 字符串查 Agent，
@@ -271,12 +273,12 @@ export class LumenMindOrchestrator {
       };
     }
     // 2) 读记忆：{user_id, conv_id, query} -> MemoryContext；Python 不可用时返回可区分的降级状态。
-    const memory = memoryAvailable
+    const memory: MemoryContext = memoryAvailable
       ? await this.infrastructure.getMemoryContext(userId, convId, message, requestId)
       : { prompt_text: "", recent_messages: [], relevant_history: [], user_profile: {}, summary: "", status: "unavailable" as const };
     if (memory.status === "unavailable" || memory.status === "degraded") memoryStatus = memoryStatus === "stored" ? memory.status : memoryStatus;
     // 3) 意图识别：message + recent_messages -> IntentDecision。
-    const intent = await this.intentRouter.recognize(message, memory.recent_messages);
+    const intent = await this.intentRouter.recognize(message, memory.recent_messages, memory.routing_context, signal);
     signal.throwIfAborted();
 
     if (needsClarification(message, intent)) {
@@ -394,7 +396,7 @@ export class LumenMindOrchestrator {
       message,
       userId,
       convId,
-      memory.prompt_text,
+      memory,
       intent.entities,
       // 共享知识工具始终暴露给业务 Agent；模型自行决定是否调用。
       shouldUseKnowledge(intent.intent),
@@ -402,11 +404,12 @@ export class LumenMindOrchestrator {
       intent.urgency,
       sink,
       signal,
+      memoryOperation,
     )));
 
     // 6) 合并结果：单 Agent 直接返回；多 Agent 按“主处理/辅助处理”标签拼接最终回复。
     signal.throwIfAborted();
-    const composed = await this.composer.compose(message, primaryExecution, results);
+    const composed = await this.composer.compose(message, primaryExecution, results, memoryOperation, signal);
     const response = memoryOperation ? `${composed}\n\n${memoryReceiptText(memoryOperation)}` : composed;
     // 7) 将多个 AgentRunResult 汇总为本次请求的统一状态：
     //    AgentRunResult[]
@@ -513,13 +516,14 @@ export class LumenMindOrchestrator {
     message: string,
     userId: string,
     convId: string,
-    memoryContext: string,
+    memorySnapshot: MemoryContext,
     entities: Record<string, string[]>,
     allowKnowledge: boolean,
     intent?: string,
     urgency?: string,
     sink?: ChatEventSink,
     signal?: AbortSignal,
+    memoryOperation?: MemoryOperationReceipt,
   ): Promise<AgentRunResult> {
     /**
      * 输入：一个计划执行的 Agent 类型，以及本轮 AgentRunInput 所需的上下文。
@@ -534,7 +538,9 @@ export class LumenMindOrchestrator {
       message,
       userId,
       convId,
-      memoryContext,
+      memoryContext: memorySnapshot.prompt_text,
+      memorySnapshot,
+      memoryOperation,
       entities,
       allowKnowledge,
       intent,
@@ -548,6 +554,7 @@ export class LumenMindOrchestrator {
       return { ...await this.bestAgent(agentType).run(input, sink), skillsUsed };
     } catch (error) {
       signal?.throwIfAborted();
+      if (error instanceof ModelBudgetError) throw error;
       const failure = error instanceof AgentExecutionError ? error : undefined;
       const failureMessage = error instanceof Error ? error.message : String(error);
       const failedTools = failure?.toolsUsed ?? [];
@@ -576,6 +583,7 @@ export class LumenMindOrchestrator {
           };
         } catch (fallbackError) {
           signal?.throwIfAborted();
+          if (fallbackError instanceof ModelBudgetError) throw fallbackError;
           const fallbackFailure = fallbackError instanceof AgentExecutionError ? fallbackError : undefined;
           const fallbackMessage = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
           console.error("General Agent 降级也失败:", fallbackMessage);

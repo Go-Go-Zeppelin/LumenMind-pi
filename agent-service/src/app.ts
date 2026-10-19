@@ -3,6 +3,7 @@ import express, { type NextFunction, type Request, type Response } from "express
 import type { AppConfig } from "./config.js";
 import { InfrastructureError, type InfrastructureClient } from "./clients/infrastructure.js";
 import type { LumenMindOrchestrator } from "./agents/orchestrator.js";
+import { ModelBudgetError } from "./agents/model-budget.js";
 import { recognizeByRules } from "./agents/intent-router.js";
 import { handleMcpHttpRequest } from "./mcp/server.js";
 import type { SkillManager } from "./skills/loader.js";
@@ -133,7 +134,7 @@ export function createApp(
   app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
     console.error(error);
     if (!res.headersSent) {
-      res.status(error instanceof InfrastructureError ? error.status ?? 503 : 500).json({ detail: error instanceof Error ? error.message : "内部服务错误" });
+      res.status(error instanceof ModelBudgetError ? 413 : error instanceof InfrastructureError ? error.status ?? 503 : 500).json({ detail: error instanceof Error ? error.message : "内部服务错误" });
     }
   });
   return app;

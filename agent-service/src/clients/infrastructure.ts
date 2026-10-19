@@ -191,6 +191,7 @@ export class InfrastructureClient {
       });
       return { ...EMPTY_MEMORY, ...context, status: context.status ?? "ready" };
     } catch (error) {
+      if (error instanceof InfrastructureError && error.status === 413) throw error;
       console.warn("记忆服务不可用，本轮使用空上下文:", error instanceof Error ? error.message : error);
       return { ...EMPTY_MEMORY, recent_messages: [], relevant_history: [], user_profile: {} };
     }

@@ -17,6 +17,12 @@ function numberFromEnv(name: string, fallback: number): number {
   return value;
 }
 
+function boundedInteger(name: string, fallback: number, min: number, max: number): number {
+  const value = numberFromEnv(name, fallback);
+  if (!Number.isInteger(value) || value < min || value > max) throw new Error(`${name} must be an integer between ${min} and ${max}`);
+  return value;
+}
+
 function booleanFromEnv(name: string, fallback: boolean): boolean {
   const raw = process.env[name];
   if (raw === undefined) return fallback;
@@ -51,6 +57,8 @@ export const config = {
   embeddingIntentThreshold: Math.max(0, Math.min(1, numberFromEnv("PI_EMBEDDING_INTENT_THRESHOLD", 0.55))),
   infrastructureUrl: (process.env.PYTHON_INFRA_URL ?? "http://localhost:8000").replace(/\/$/, ""),
   memoryRenewIntervalMs: 20_000,
+  memoryRoutingMaxChars: boundedInteger("PI_MEMORY_ROUTING_MAX_CHARS", 2000, 100, 2000),
+  toolResultMaxChars: boundedInteger("PI_TOOL_RESULT_MAX_CHARS", 8000, 256, 100000),
   infrastructureTimeoutMs: numberFromEnv("PYTHON_INFRA_TIMEOUT_MS", 10_000),
   skillsDir: path.isAbsolute(configuredSkillsDir) ? configuredSkillsDir : path.resolve(projectRoot, configuredSkillsDir),
   skillsMaxPromptChars: numberFromEnv("LUMENMIND_SKILLS_MAX_PROMPT_CHARS", 5000),
