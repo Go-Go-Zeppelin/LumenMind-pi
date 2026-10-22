@@ -1,0 +1,2066 @@
+{
+  "timestamp": "2026-10-22T07:04:11.783509+00:00",
+  "label": "before-rules",
+  "methodology": {
+    "intent_chain": "rules only",
+    "model": "deepseek-v4-flash",
+    "api_key_configured": true,
+    "datasets": {
+      "intent_synthetic_v1.jsonl": "d072334597727f650a8bc5b4eb698cc015c6b391bf2383a8c9e948c935078d30",
+      "rag_retrieval_v2.jsonl": "2f4ae9bf43f22515f6fcb452f42a81d50fccbad27baee80c76a7a85d8bc9705e"
+    },
+    "sources": {
+      "agent-service/src/agents/intent-router.ts": "62c3bb66accc05cd7a795b5a694ef21719d1d0aba7649d9d17aa5ce220aeafb5",
+      "python-service/mcp/knowledge_base.py": "3cfe3e8def47deedee82b3d7e4daa5ea1d451bf183bd6a8ae50eed97b76b3fcd",
+      "python-service/evaluation/benchmark_suite.py": "3d19ce22e958426dbe4edb9b6f2c96e0cf3f2c3907daef9f73e4c619163e97c1"
+    },
+    "warning": "Existing synthetic cases are development regression data, not an independent human gold set."
+  },
+  "intent": {
+    "total": 500,
+    "correct": 194,
+    "accuracy": 0.388,
+    "macro_f1": 0.4363,
+    "per_class": {
+      "account": {
+        "precision": 1.0,
+        "recall": 0.4615,
+        "f1": 0.6316,
+        "support": 26
+      },
+      "account_security": {
+        "precision": 1.0,
+        "recall": 0.5,
+        "f1": 0.6667,
+        "support": 26
+      },
+      "billing": {
+        "precision": 0.6,
+        "recall": 0.6923,
+        "f1": 0.6429,
+        "support": 26
+      },
+      "complaint": {
+        "precision": 1.0,
+        "recall": 0.4815,
+        "f1": 0.65,
+        "support": 27
+      },
+      "escalation": {
+        "precision": 1.0,
+        "recall": 0.0741,
+        "f1": 0.1379,
+        "support": 27
+      },
+      "feedback": {
+        "precision": 0.6667,
+        "recall": 0.3077,
+        "f1": 0.4211,
+        "support": 26
+      },
+      "greeting": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 27
+      },
+      "human_handoff": {
+        "precision": 1.0,
+        "recall": 0.1154,
+        "f1": 0.2069,
+        "support": 26
+      },
+      "invoice": {
+        "precision": 1.0,
+        "recall": 0.8077,
+        "f1": 0.8936,
+        "support": 26
+      },
+      "logistics": {
+        "precision": 0.8636,
+        "recall": 0.7308,
+        "f1": 0.7917,
+        "support": 26
+      },
+      "order_status": {
+        "precision": 1.0,
+        "recall": 0.2308,
+        "f1": 0.375,
+        "support": 26
+      },
+      "other": {
+        "precision": 0.0709,
+        "recall": 0.3846,
+        "f1": 0.1198,
+        "support": 26
+      },
+      "payment_issue": {
+        "precision": 1.0,
+        "recall": 0.3846,
+        "f1": 0.5556,
+        "support": 26
+      },
+      "query": {
+        "precision": 0.1386,
+        "recall": 0.5185,
+        "f1": 0.2188,
+        "support": 27
+      },
+      "refund": {
+        "precision": 1.0,
+        "recall": 0.1154,
+        "f1": 0.2069,
+        "support": 26
+      },
+      "request": {
+        "precision": 0.1882,
+        "recall": 0.5926,
+        "f1": 0.2857,
+        "support": 27
+      },
+      "technical": {
+        "precision": 1.0,
+        "recall": 0.3333,
+        "f1": 0.5,
+        "support": 27
+      },
+      "technical_crash": {
+        "precision": 1.0,
+        "recall": 0.3462,
+        "f1": 0.5143,
+        "support": 26
+      },
+      "technical_login": {
+        "precision": 1.0,
+        "recall": 0.3077,
+        "f1": 0.4706,
+        "support": 26
+      }
+    },
+    "confusion_matrix": {
+      "account": {
+        "account": 12,
+        "other": 4,
+        "query": 7,
+        "request": 3
+      },
+      "account_security": {
+        "request": 3,
+        "account_security": 13,
+        "query": 4,
+        "other": 6
+      },
+      "billing": {
+        "query": 2,
+        "billing": 18,
+        "request": 2,
+        "other": 4
+      },
+      "complaint": {
+        "complaint": 13,
+        "request": 2,
+        "feedback": 4,
+        "query": 4,
+        "other": 4
+      },
+      "escalation": {
+        "other": 12,
+        "escalation": 2,
+        "request": 8,
+        "query": 5
+      },
+      "feedback": {
+        "other": 7,
+        "request": 5,
+        "feedback": 8,
+        "query": 6
+      },
+      "greeting": {
+        "request": 6,
+        "other": 14,
+        "query": 7
+      },
+      "human_handoff": {
+        "other": 13,
+        "human_handoff": 3,
+        "request": 6,
+        "query": 4
+      },
+      "invoice": {
+        "invoice": 21,
+        "query": 2,
+        "other": 2,
+        "request": 1
+      },
+      "logistics": {
+        "other": 4,
+        "logistics": 19,
+        "request": 2,
+        "query": 1
+      },
+      "order_status": {
+        "query": 4,
+        "request": 7,
+        "order_status": 6,
+        "other": 9
+      },
+      "other": {
+        "request": 5,
+        "other": 10,
+        "query": 11
+      },
+      "payment_issue": {
+        "billing": 12,
+        "payment_issue": 10,
+        "other": 3,
+        "query": 1
+      },
+      "query": {
+        "logistics": 3,
+        "request": 3,
+        "query": 14,
+        "other": 7
+      },
+      "refund": {
+        "refund": 3,
+        "request": 4,
+        "query": 11,
+        "other": 8
+      },
+      "request": {
+        "other": 8,
+        "request": 16,
+        "query": 3
+      },
+      "technical": {
+        "technical": 9,
+        "other": 8,
+        "request": 4,
+        "query": 6
+      },
+      "technical_crash": {
+        "other": 6,
+        "query": 6,
+        "technical_crash": 9,
+        "request": 5
+      },
+      "technical_login": {
+        "other": 12,
+        "technical_login": 8,
+        "request": 3,
+        "query": 3
+      }
+    },
+    "duration_s": 0.39,
+    "latency_ms_mean": 4.31,
+    "latency_ms_p95": 14.6,
+    "errors": 0,
+    "source_usage": {
+      "pattern_high_confidence": 148,
+      "embedding_available": 0,
+      "llm_used": 0
+    },
+    "failures": [
+      {
+        "id": "intent-11-010",
+        "message": "最近遇到一个情况，我的货还没收到。",
+        "expected_intent": "logistics",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.3,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.3
+        },
+        "reasoning": "无明确规则命中",
+        "latency_ms": 14.6,
+        "error": null
+      },
+      {
+        "id": "intent-05-002",
+        "message": "最近遇到一个情况，让你们负责人跟进。",
+        "expected_intent": "escalation",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.3,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.3
+        },
+        "reasoning": "无明确规则命中",
+        "latency_ms": 14.7,
+        "error": null
+      },
+      {
+        "id": "intent-16-008",
+        "message": "请问，账号登录总是失败",
+        "expected_intent": "technical_login",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.3,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.3
+        },
+        "reasoning": "无明确规则命中",
+        "latency_ms": 15.3,
+        "error": null
+      },
+      {
+        "id": "intent-09-022",
+        "message": "请问，你们服务很好。",
+        "expected_intent": "feedback",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.3,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.3
+        },
+        "reasoning": "无明确规则命中",
+        "latency_ms": 15.3,
+        "error": null
+      },
+      {
+        "id": "intent-03-021",
+        "message": "想咨询一下，麻烦处理一下这个需求。",
+        "expected_intent": "request",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.3,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.3
+        },
+        "reasoning": "无明确规则命中",
+        "latency_ms": 15.6,
+        "error": null
+      },
+      {
+        "id": "intent-07-016",
+        "message": "请问，想了解收费明细，能帮忙确认吗？",
+        "expected_intent": "billing",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "query",
+        "confidence": 0.72,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.72
+        },
+        "reasoning": "规则命中: ？",
+        "latency_ms": 2.2,
+        "error": null
+      },
+      {
+        "id": "intent-06-012",
+        "message": "想咨询一下，回调一直收不到，已经有一会儿了。",
+        "expected_intent": "technical",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.3,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.3
+        },
+        "reasoning": "无明确规则命中",
+        "latency_ms": 2.4,
+        "error": null
+      },
+      {
+        "id": "intent-09-003",
+        "message": "麻烦帮我看看，客服回复很及时",
+        "expected_intent": "feedback",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "request",
+        "confidence": 0.78,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.78
+        },
+        "reasoning": "规则命中: 帮我",
+        "latency_ms": 2.0,
+        "error": null
+      },
+      {
+        "id": "intent-06-014",
+        "message": "麻烦帮我看看，回调一直收不到，该怎么处理？",
+        "expected_intent": "technical",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "request",
+        "confidence": 0.78,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.78
+        },
+        "reasoning": "规则命中: 帮我",
+        "latency_ms": 1.9,
+        "error": null
+      },
+      {
+        "id": "intent-16-026",
+        "message": "想咨询一下，输入密码后进不去，谢谢。",
+        "expected_intent": "technical_login",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.3,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.3
+        },
+        "reasoning": "无明确规则命中",
+        "latency_ms": 2.0,
+        "error": null
+      },
+      {
+        "id": "intent-19-018",
+        "message": "麻烦帮我看看，现在感觉不太对",
+        "expected_intent": "other",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "request",
+        "confidence": 0.78,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.78
+        },
+        "reasoning": "规则命中: 帮我",
+        "latency_ms": 5.5,
+        "error": null
+      },
+      {
+        "id": "intent-14-005",
+        "message": "最近遇到一个情况，扣款金额和订单不一致，谢谢。",
+        "expected_intent": "payment_issue",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "billing",
+        "confidence": 0.91,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.91
+        },
+        "reasoning": "规则命中: 扣款",
+        "latency_ms": 1.9,
+        "error": null
+      },
+      {
+        "id": "intent-14-020",
+        "message": "钱扣了但订单仍未支付。",
+        "expected_intent": "payment_issue",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "billing",
+        "confidence": 0.91,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.91
+        },
+        "reasoning": "规则命中: 支付",
+        "latency_ms": 1.8,
+        "error": null
+      },
+      {
+        "id": "intent-04-019",
+        "message": "麻烦帮我看看，你好",
+        "expected_intent": "greeting",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "request",
+        "confidence": 0.78,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.78
+        },
+        "reasoning": "规则命中: 帮我",
+        "latency_ms": 1.6,
+        "error": null
+      },
+      {
+        "id": "intent-17-006",
+        "message": "应用启动后无法保持运行，已经有一会儿了。",
+        "expected_intent": "technical_crash",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.3,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.3
+        },
+        "reasoning": "无明确规则命中",
+        "latency_ms": 5.6,
+        "error": null
+      },
+      {
+        "id": "intent-17-015",
+        "message": "请问，服务端出现内部错误，该怎么处理？",
+        "expected_intent": "technical_crash",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "query",
+        "confidence": 0.74,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.74
+        },
+        "reasoning": "规则命中: 怎么, ？",
+        "latency_ms": 1.7,
+        "error": null
+      },
+      {
+        "id": "intent-10-007",
+        "message": "请问，这张订单还在处理中吗，能帮忙确认吗？",
+        "expected_intent": "order_status",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "query",
+        "confidence": 0.72,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.72
+        },
+        "reasoning": "规则命中: ？",
+        "latency_ms": 1.7,
+        "error": null
+      },
+      {
+        "id": "intent-04-005",
+        "message": "想咨询一下，hi，谢谢。",
+        "expected_intent": "greeting",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.3,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.3
+        },
+        "reasoning": "无明确规则命中",
+        "latency_ms": 1.7,
+        "error": null
+      },
+      {
+        "id": "intent-10-001",
+        "message": "帮我看看订单进度，谢谢。",
+        "expected_intent": "order_status",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "request",
+        "confidence": 0.78,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.78
+        },
+        "reasoning": "规则命中: 帮我",
+        "latency_ms": 5.8,
+        "error": null
+      },
+      {
+        "id": "intent-04-026",
+        "message": "晚上好，该怎么处理？",
+        "expected_intent": "greeting",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "query",
+        "confidence": 0.74,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.74
+        },
+        "reasoning": "规则命中: 怎么, ？",
+        "latency_ms": 2.1,
+        "error": null
+      },
+      {
+        "id": "intent-01-025",
+        "message": "请问，标准配送需要多长时间。",
+        "expected_intent": "query",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "logistics",
+        "confidence": 0.94,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.94
+        },
+        "reasoning": "规则命中: 配送",
+        "latency_ms": 5.2,
+        "error": null
+      },
+      {
+        "id": "intent-02-004",
+        "message": "麻烦帮我看看，处理效率实在太低，已经有一会儿了。",
+        "expected_intent": "complaint",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "request",
+        "confidence": 0.78,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.78
+        },
+        "reasoning": "规则命中: 帮我",
+        "latency_ms": 1.7,
+        "error": null
+      },
+      {
+        "id": "intent-02-011",
+        "message": "最近遇到一个情况，这次体验让我非常不满意，谢谢。",
+        "expected_intent": "complaint",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "feedback",
+        "confidence": 0.88,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.88
+        },
+        "reasoning": "规则命中: 满意",
+        "latency_ms": 1.8,
+        "error": null
+      },
+      {
+        "id": "intent-06-015",
+        "message": "服务连接经常中断，已经有一会儿了。",
+        "expected_intent": "technical",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.3,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.3
+        },
+        "reasoning": "无明确规则命中",
+        "latency_ms": 1.7,
+        "error": null
+      },
+      {
+        "id": "intent-10-009",
+        "message": "想咨询一下，帮我看看订单进度，谢谢。",
+        "expected_intent": "order_status",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "request",
+        "confidence": 0.78,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.78
+        },
+        "reasoning": "规则命中: 帮我",
+        "latency_ms": 1.7,
+        "error": null
+      },
+      {
+        "id": "intent-16-018",
+        "message": "麻烦帮我看看，登录页面一直拒绝访问，已经有一会儿了。",
+        "expected_intent": "technical_login",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "request",
+        "confidence": 0.78,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.78
+        },
+        "reasoning": "规则命中: 帮我",
+        "latency_ms": 1.5,
+        "error": null
+      },
+      {
+        "id": "intent-08-010",
+        "message": "请问，我想关闭当前账号。",
+        "expected_intent": "account",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.3,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.3
+        },
+        "reasoning": "无明确规则命中",
+        "latency_ms": 4.9,
+        "error": null
+      },
+      {
+        "id": "intent-19-010",
+        "message": "麻烦帮我看看，这件事有些复杂，谢谢。",
+        "expected_intent": "other",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "request",
+        "confidence": 0.78,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.78
+        },
+        "reasoning": "规则命中: 帮我",
+        "latency_ms": 1.6,
+        "error": null
+      },
+      {
+        "id": "intent-08-022",
+        "message": "请问，如何变更个人资料，该怎么处理？",
+        "expected_intent": "account",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "query",
+        "confidence": 0.74,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.74
+        },
+        "reasoning": "规则命中: 怎么, ？",
+        "latency_ms": 1.6,
+        "error": null
+      },
+      {
+        "id": "intent-18-013",
+        "message": "让真人客服联系我，谢谢。",
+        "expected_intent": "human_handoff",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.3,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.3
+        },
+        "reasoning": "无明确规则命中",
+        "latency_ms": 1.6,
+        "error": null
+      },
+      {
+        "id": "intent-01-026",
+        "message": "麻烦帮我看看，怎样查看帮助中心，能帮忙确认吗？",
+        "expected_intent": "query",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "request",
+        "confidence": 0.78,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.78
+        },
+        "reasoning": "规则命中: 帮我",
+        "latency_ms": 1.6,
+        "error": null
+      },
+      {
+        "id": "intent-11-024",
+        "message": "麻烦帮我看看，包裹运输进度如何，已经有一会儿了。",
+        "expected_intent": "logistics",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "request",
+        "confidence": 0.78,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.78
+        },
+        "reasoning": "规则命中: 帮我",
+        "latency_ms": 5.8,
+        "error": null
+      },
+      {
+        "id": "intent-14-008",
+        "message": "最近遇到一个情况，钱扣了但订单仍未支付，已经有一会儿了。",
+        "expected_intent": "payment_issue",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "billing",
+        "confidence": 0.91,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.91
+        },
+        "reasoning": "规则命中: 支付",
+        "latency_ms": 1.6,
+        "error": null
+      },
+      {
+        "id": "intent-02-024",
+        "message": "请问，这次体验让我非常不满意，已经有一会儿了。",
+        "expected_intent": "complaint",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "feedback",
+        "confidence": 0.88,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.88
+        },
+        "reasoning": "规则命中: 满意",
+        "latency_ms": 1.6,
+        "error": null
+      },
+      {
+        "id": "intent-06-004",
+        "message": "麻烦帮我看看，程序运行时出现未知错误",
+        "expected_intent": "technical",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "request",
+        "confidence": 0.78,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.78
+        },
+        "reasoning": "规则命中: 帮我",
+        "latency_ms": 2.1,
+        "error": null
+      },
+      {
+        "id": "intent-16-009",
+        "message": "最近遇到一个情况，认证凭证好像过期了，谢谢。",
+        "expected_intent": "technical_login",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.3,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.3
+        },
+        "reasoning": "无明确规则命中",
+        "latency_ms": 2.2,
+        "error": null
+      },
+      {
+        "id": "intent-18-001",
+        "message": "请安排人工继续处理。",
+        "expected_intent": "human_handoff",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.3,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.3
+        },
+        "reasoning": "无明确规则命中",
+        "latency_ms": 3.1,
+        "error": null
+      },
+      {
+        "id": "intent-02-007",
+        "message": "这次体验让我非常不满意，能帮忙确认吗？",
+        "expected_intent": "complaint",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "feedback",
+        "confidence": 0.88,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.88
+        },
+        "reasoning": "规则命中: 满意",
+        "latency_ms": 2.8,
+        "error": null
+      },
+      {
+        "id": "intent-09-010",
+        "message": "最近遇到一个情况，客服回复很及时，能帮忙确认吗？",
+        "expected_intent": "feedback",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "query",
+        "confidence": 0.72,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.72
+        },
+        "reasoning": "规则命中: ？",
+        "latency_ms": 2.9,
+        "error": null
+      },
+      {
+        "id": "intent-13-017",
+        "message": "请问，什么时候能收到电子票，谢谢。",
+        "expected_intent": "invoice",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "query",
+        "confidence": 0.72,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.72
+        },
+        "reasoning": "规则命中: 什么",
+        "latency_ms": 2.0,
+        "error": null
+      },
+      {
+        "id": "intent-02-001",
+        "message": "请问，处理效率实在太低，能帮忙确认吗？",
+        "expected_intent": "complaint",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "query",
+        "confidence": 0.72,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.72
+        },
+        "reasoning": "规则命中: ？",
+        "latency_ms": 5.4,
+        "error": null
+      },
+      {
+        "id": "intent-05-008",
+        "message": "麻烦帮我看看，我要向上级反映",
+        "expected_intent": "escalation",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "request",
+        "confidence": 0.78,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.78
+        },
+        "reasoning": "规则命中: 帮我",
+        "latency_ms": 3.4,
+        "error": null
+      },
+      {
+        "id": "intent-07-003",
+        "message": "麻烦帮我看看，想了解收费明细",
+        "expected_intent": "billing",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "request",
+        "confidence": 0.78,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.78
+        },
+        "reasoning": "规则命中: 帮我",
+        "latency_ms": 3.3,
+        "error": null
+      },
+      {
+        "id": "intent-15-023",
+        "message": "麻烦帮我看看，我的账号可能被盗了，已经有一会儿了。",
+        "expected_intent": "account_security",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "request",
+        "confidence": 0.78,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.78
+        },
+        "reasoning": "规则命中: 帮我",
+        "latency_ms": 1.9,
+        "error": null
+      },
+      {
+        "id": "intent-08-004",
+        "message": "麻烦帮我看看，如何变更个人资料，谢谢。",
+        "expected_intent": "account",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "request",
+        "confidence": 0.78,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.78
+        },
+        "reasoning": "规则命中: 帮我",
+        "latency_ms": 3.3,
+        "error": null
+      },
+      {
+        "id": "intent-15-026",
+        "message": "麻烦帮我看看，我的账号可能被盗了",
+        "expected_intent": "account_security",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "request",
+        "confidence": 0.78,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.78
+        },
+        "reasoning": "规则命中: 帮我",
+        "latency_ms": 1.6,
+        "error": null
+      },
+      {
+        "id": "intent-04-025",
+        "message": "您好，已经有一会儿了。",
+        "expected_intent": "greeting",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.3,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.3
+        },
+        "reasoning": "无明确规则命中",
+        "latency_ms": 1.7,
+        "error": null
+      },
+      {
+        "id": "intent-05-003",
+        "message": "最近遇到一个情况，请让主管来处理。",
+        "expected_intent": "escalation",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.3,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.3
+        },
+        "reasoning": "无明确规则命中",
+        "latency_ms": 3.4,
+        "error": null
+      },
+      {
+        "id": "intent-11-004",
+        "message": "最近遇到一个情况，包裹运输进度如何，能帮忙确认吗？",
+        "expected_intent": "logistics",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "query",
+        "confidence": 0.72,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.72
+        },
+        "reasoning": "规则命中: ？",
+        "latency_ms": 2.6,
+        "error": null
+      },
+      {
+        "id": "intent-07-017",
+        "message": "麻烦帮我看看，这个月的费用如何组成。",
+        "expected_intent": "billing",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "request",
+        "confidence": 0.78,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.78
+        },
+        "reasoning": "规则命中: 帮我",
+        "latency_ms": 2.7,
+        "error": null
+      },
+      {
+        "id": "intent-17-003",
+        "message": "想咨询一下，服务端出现内部错误，已经有一会儿了。",
+        "expected_intent": "technical_crash",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.3,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.3
+        },
+        "reasoning": "无明确规则命中",
+        "latency_ms": 3.9,
+        "error": null
+      },
+      {
+        "id": "intent-12-016",
+        "message": "麻烦帮我看看，我要把商品退回去，该怎么处理？",
+        "expected_intent": "refund",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "request",
+        "confidence": 0.78,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.78
+        },
+        "reasoning": "规则命中: 帮我",
+        "latency_ms": 2.9,
+        "error": null
+      },
+      {
+        "id": "intent-12-025",
+        "message": "最近遇到一个情况，钱什么时候退回来，已经有一会儿了。",
+        "expected_intent": "refund",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "query",
+        "confidence": 0.72,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.72
+        },
+        "reasoning": "规则命中: 什么",
+        "latency_ms": 4.4,
+        "error": null
+      },
+      {
+        "id": "intent-10-010",
+        "message": "请问，这张订单还在处理中吗，谢谢。",
+        "expected_intent": "order_status",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.3,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.3
+        },
+        "reasoning": "无明确规则命中",
+        "latency_ms": 3.2,
+        "error": null
+      },
+      {
+        "id": "intent-05-005",
+        "message": "我要联系更高级别客服，谢谢。",
+        "expected_intent": "escalation",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.3,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.3
+        },
+        "reasoning": "无明确规则命中",
+        "latency_ms": 2.8,
+        "error": null
+      },
+      {
+        "id": "intent-11-003",
+        "message": "包裹运输进度如何，已经有一会儿了。",
+        "expected_intent": "logistics",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.3,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.3
+        },
+        "reasoning": "无明确规则命中",
+        "latency_ms": 4.4,
+        "error": null
+      },
+      {
+        "id": "intent-11-017",
+        "message": "请问，包裹运输进度如何，已经有一会儿了。",
+        "expected_intent": "logistics",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.3,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.3
+        },
+        "reasoning": "无明确规则命中",
+        "latency_ms": 3.6,
+        "error": null
+      },
+      {
+        "id": "intent-09-020",
+        "message": "想咨询一下，整体体验不错，该怎么处理？",
+        "expected_intent": "feedback",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "query",
+        "confidence": 0.74,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.74
+        },
+        "reasoning": "规则命中: 怎么, ？",
+        "latency_ms": 2.1,
+        "error": null
+      },
+      {
+        "id": "intent-10-026",
+        "message": "麻烦帮我看看，订单什么时候开始处理，已经有一会儿了。",
+        "expected_intent": "order_status",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "request",
+        "confidence": 0.78,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.78
+        },
+        "reasoning": "规则命中: 帮我",
+        "latency_ms": 4.1,
+        "error": null
+      },
+      {
+        "id": "intent-01-017",
+        "message": "请问，有哪些会员权益，谢谢。",
+        "expected_intent": "query",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.3,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.3
+        },
+        "reasoning": "无明确规则命中",
+        "latency_ms": 3.3,
+        "error": null
+      },
+      {
+        "id": "intent-08-018",
+        "message": "请问，我想关闭当前账号，能帮忙确认吗？",
+        "expected_intent": "account",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "query",
+        "confidence": 0.72,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.72
+        },
+        "reasoning": "规则命中: ？",
+        "latency_ms": 2.0,
+        "error": null
+      },
+      {
+        "id": "intent-10-003",
+        "message": "想咨询一下，这张订单还在处理中吗，已经有一会儿了。",
+        "expected_intent": "order_status",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.3,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.3
+        },
+        "reasoning": "无明确规则命中",
+        "latency_ms": 3.5,
+        "error": null
+      },
+      {
+        "id": "intent-16-024",
+        "message": "请问，登录页面一直拒绝访问，该怎么处理？",
+        "expected_intent": "technical_login",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "query",
+        "confidence": 0.74,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.74
+        },
+        "reasoning": "规则命中: 怎么, ？",
+        "latency_ms": 4.1,
+        "error": null
+      },
+      {
+        "id": "intent-10-013",
+        "message": "麻烦帮我看看，购买记录显示什么状态，谢谢。",
+        "expected_intent": "order_status",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "request",
+        "confidence": 0.78,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.78
+        },
+        "reasoning": "规则命中: 帮我",
+        "latency_ms": 3.4,
+        "error": null
+      },
+      {
+        "id": "intent-15-011",
+        "message": "怀疑密码已经泄露，该怎么处理？",
+        "expected_intent": "account_security",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "query",
+        "confidence": 0.74,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.74
+        },
+        "reasoning": "规则命中: 怎么, ？",
+        "latency_ms": 2.3,
+        "error": null
+      },
+      {
+        "id": "intent-01-004",
+        "message": "想咨询一下，怎样查看帮助中心，已经有一会儿了。",
+        "expected_intent": "query",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.3,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.3
+        },
+        "reasoning": "无明确规则命中",
+        "latency_ms": 2.4,
+        "error": null
+      },
+      {
+        "id": "intent-09-006",
+        "message": "想咨询一下，整体体验不错，能帮忙确认吗？",
+        "expected_intent": "feedback",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "query",
+        "confidence": 0.72,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.72
+        },
+        "reasoning": "规则命中: ？",
+        "latency_ms": 1.9,
+        "error": null
+      },
+      {
+        "id": "intent-03-011",
+        "message": "想咨询一下，麻烦处理一下这个需求，谢谢。",
+        "expected_intent": "request",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.3,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.3
+        },
+        "reasoning": "无明确规则命中",
+        "latency_ms": 2.8,
+        "error": null
+      },
+      {
+        "id": "intent-19-022",
+        "message": "这个情况有点奇怪，该怎么处理？",
+        "expected_intent": "other",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "query",
+        "confidence": 0.74,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.74
+        },
+        "reasoning": "规则命中: 怎么, ？",
+        "latency_ms": 8.0,
+        "error": null
+      },
+      {
+        "id": "intent-16-021",
+        "message": "麻烦帮我看看，账号登录总是失败",
+        "expected_intent": "technical_login",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "request",
+        "confidence": 0.78,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.78
+        },
+        "reasoning": "规则命中: 帮我",
+        "latency_ms": 3.1,
+        "error": null
+      },
+      {
+        "id": "intent-19-005",
+        "message": "请问，暂时不知道属于什么问题",
+        "expected_intent": "other",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "query",
+        "confidence": 0.72,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.72
+        },
+        "reasoning": "规则命中: 什么",
+        "latency_ms": 6.1,
+        "error": null
+      },
+      {
+        "id": "intent-19-013",
+        "message": "我不太清楚怎么描述，已经有一会儿了。",
+        "expected_intent": "other",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "query",
+        "confidence": 0.72,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.72
+        },
+        "reasoning": "规则命中: 怎么",
+        "latency_ms": 5.1,
+        "error": null
+      },
+      {
+        "id": "intent-19-002",
+        "message": "麻烦帮我看看，我不太清楚怎么描述，该怎么处理？",
+        "expected_intent": "other",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "request",
+        "confidence": 0.78,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.78
+        },
+        "reasoning": "规则命中: 帮我",
+        "latency_ms": 2.6,
+        "error": null
+      },
+      {
+        "id": "intent-15-001",
+        "message": "请问，我的账号可能被盗了",
+        "expected_intent": "account_security",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.3,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.3
+        },
+        "reasoning": "无明确规则命中",
+        "latency_ms": 4.3,
+        "error": null
+      },
+      {
+        "id": "intent-14-001",
+        "message": "想咨询一下，付款页面提示交易失败，谢谢。",
+        "expected_intent": "payment_issue",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.3,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.3
+        },
+        "reasoning": "无明确规则命中",
+        "latency_ms": 3.7,
+        "error": null
+      },
+      {
+        "id": "intent-03-023",
+        "message": "最近遇到一个情况，麻烦处理一下这个需求，该怎么处理？",
+        "expected_intent": "request",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "query",
+        "confidence": 0.74,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.74
+        },
+        "reasoning": "规则命中: 怎么, ？",
+        "latency_ms": 3.9,
+        "error": null
+      },
+      {
+        "id": "intent-14-023",
+        "message": "钱扣了但订单仍未支付，已经有一会儿了。",
+        "expected_intent": "payment_issue",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "billing",
+        "confidence": 0.91,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.91
+        },
+        "reasoning": "规则命中: 支付",
+        "latency_ms": 2.3,
+        "error": null
+      },
+      {
+        "id": "intent-04-010",
+        "message": "最近遇到一个情况，hello，已经有一会儿了。",
+        "expected_intent": "greeting",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.3,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.3
+        },
+        "reasoning": "无明确规则命中",
+        "latency_ms": 2.4,
+        "error": null
+      },
+      {
+        "id": "intent-05-026",
+        "message": "最近遇到一个情况，请交给管理人员，谢谢。",
+        "expected_intent": "escalation",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.3,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.3
+        },
+        "reasoning": "无明确规则命中",
+        "latency_ms": 8.5,
+        "error": null
+      },
+      {
+        "id": "intent-09-024",
+        "message": "想咨询一下，谢谢客服的帮助，谢谢。",
+        "expected_intent": "feedback",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.3,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.3
+        },
+        "reasoning": "无明确规则命中",
+        "latency_ms": 3.6,
+        "error": null
+      },
+      {
+        "id": "intent-03-003",
+        "message": "最近遇到一个情况，我需要你们协助处理。",
+        "expected_intent": "request",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.3,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.3
+        },
+        "reasoning": "无明确规则命中",
+        "latency_ms": 2.0,
+        "error": null
+      },
+      {
+        "id": "intent-18-024",
+        "message": "想咨询一下，帮我接人工服务，该怎么处理？",
+        "expected_intent": "human_handoff",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "request",
+        "confidence": 0.78,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.78
+        },
+        "reasoning": "规则命中: 帮我",
+        "latency_ms": 3.2,
+        "error": null
+      },
+      {
+        "id": "intent-15-010",
+        "message": "我的账号可能被盗了，能帮忙确认吗？",
+        "expected_intent": "account_security",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "query",
+        "confidence": 0.72,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.72
+        },
+        "reasoning": "规则命中: ？",
+        "latency_ms": 3.6,
+        "error": null
+      },
+      {
+        "id": "intent-05-004",
+        "message": "我要向上级反映，已经有一会儿了。",
+        "expected_intent": "escalation",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.3,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.3
+        },
+        "reasoning": "无明确规则命中",
+        "latency_ms": 3.2,
+        "error": null
+      },
+      {
+        "id": "intent-02-017",
+        "message": "想咨询一下，处理效率实在太低，谢谢。",
+        "expected_intent": "complaint",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.3,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.3
+        },
+        "reasoning": "无明确规则命中",
+        "latency_ms": 4.1,
+        "error": null
+      },
+      {
+        "id": "intent-04-011",
+        "message": "hi。",
+        "expected_intent": "greeting",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.3,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.3
+        },
+        "reasoning": "无明确规则命中",
+        "latency_ms": 2.4,
+        "error": null
+      },
+      {
+        "id": "intent-18-008",
+        "message": "想咨询一下，这个问题需要人工处理",
+        "expected_intent": "human_handoff",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.3,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.3
+        },
+        "reasoning": "无明确规则命中",
+        "latency_ms": 2.7,
+        "error": null
+      },
+      {
+        "id": "intent-06-003",
+        "message": "请问，系统响应特别慢，该怎么处理？",
+        "expected_intent": "technical",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "query",
+        "confidence": 0.74,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.74
+        },
+        "reasoning": "规则命中: 怎么, ？",
+        "latency_ms": 2.6,
+        "error": null
+      },
+      {
+        "id": "intent-17-004",
+        "message": "想咨询一下，客户端突然崩掉，能帮忙确认吗？",
+        "expected_intent": "technical_crash",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "query",
+        "confidence": 0.72,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.72
+        },
+        "reasoning": "规则命中: ？",
+        "latency_ms": 3.2,
+        "error": null
+      },
+      {
+        "id": "intent-03-025",
+        "message": "请问，请替我修改一下资料，该怎么处理？",
+        "expected_intent": "request",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "query",
+        "confidence": 0.74,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.74
+        },
+        "reasoning": "规则命中: 怎么, ？",
+        "latency_ms": 1.8,
+        "error": null
+      },
+      {
+        "id": "intent-19-003",
+        "message": "麻烦帮我看看，这个情况有点奇怪，能帮忙确认吗？",
+        "expected_intent": "other",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "request",
+        "confidence": 0.78,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.78
+        },
+        "reasoning": "规则命中: 帮我",
+        "latency_ms": 1.7,
+        "error": null
+      },
+      {
+        "id": "intent-10-011",
+        "message": "这张订单还在处理中吗，已经有一会儿了。",
+        "expected_intent": "order_status",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.3,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.3
+        },
+        "reasoning": "无明确规则命中",
+        "latency_ms": 2.3,
+        "error": null
+      },
+      {
+        "id": "intent-06-001",
+        "message": "程序运行时出现未知错误",
+        "expected_intent": "technical",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.3,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.3
+        },
+        "reasoning": "无明确规则命中",
+        "latency_ms": 2.3,
+        "error": null
+      },
+      {
+        "id": "intent-03-012",
+        "message": "最近遇到一个情况，麻烦处理一下这个需求，谢谢。",
+        "expected_intent": "request",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.3,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.3
+        },
+        "reasoning": "无明确规则命中",
+        "latency_ms": 2.5,
+        "error": null
+      },
+      {
+        "id": "intent-04-013",
+        "message": "麻烦帮我看看，hello，已经有一会儿了。",
+        "expected_intent": "greeting",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "request",
+        "confidence": 0.78,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.78
+        },
+        "reasoning": "规则命中: 帮我",
+        "latency_ms": 7.7,
+        "error": null
+      },
+      {
+        "id": "intent-04-027",
+        "message": "您好，谢谢。",
+        "expected_intent": "greeting",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.3,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.3
+        },
+        "reasoning": "无明确规则命中",
+        "latency_ms": 1.5,
+        "error": null
+      },
+      {
+        "id": "intent-13-024",
+        "message": "最近遇到一个情况，开票信息需要修改，已经有一会儿了。",
+        "expected_intent": "invoice",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "other",
+        "confidence": 0.3,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.3
+        },
+        "reasoning": "无明确规则命中",
+        "latency_ms": 3.4,
+        "error": null
+      },
+      {
+        "id": "intent-05-025",
+        "message": "麻烦帮我看看，让你们负责人跟进，能帮忙确认吗？",
+        "expected_intent": "escalation",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "request",
+        "confidence": 0.78,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.78
+        },
+        "reasoning": "规则命中: 帮我",
+        "latency_ms": 1.7,
+        "error": null
+      },
+      {
+        "id": "intent-05-007",
+        "message": "我要联系更高级别客服，该怎么处理？",
+        "expected_intent": "escalation",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "query",
+        "confidence": 0.74,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.74
+        },
+        "reasoning": "规则命中: 怎么, ？",
+        "latency_ms": 14.5,
+        "error": null
+      },
+      {
+        "id": "intent-18-019",
+        "message": "麻烦帮我看看，这个问题需要人工处理，谢谢。",
+        "expected_intent": "human_handoff",
+        "source": "template_synthetic",
+        "review_status": "not_human_reviewed",
+        "dataset_version": "intent-synthetic-v1",
+        "predicted_intent": "request",
+        "confidence": 0.78,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.78
+        },
+        "reasoning": "规则命中: 帮我",
+        "latency_ms": 12.2,
+        "error": null
+      }
+    ]
+  }
+}

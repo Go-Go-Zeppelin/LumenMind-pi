@@ -1,0 +1,478 @@
+{
+  "timestamp": "2026-10-22T07:05:55.135316+00:00",
+  "label": "before-boundary",
+  "methodology": {
+    "intent_chain": "rule -> embedding candidates -> LLM",
+    "model": "deepseek-v4-flash",
+    "api_key_configured": true,
+    "datasets": {
+      "intent_boundary_v1.jsonl": "2eeca42ee64888659724fc79406ba01e0a1a194d70eb6fbad4a2d8adf657499c",
+      "rag_retrieval_v2.jsonl": "2f4ae9bf43f22515f6fcb452f42a81d50fccbad27baee80c76a7a85d8bc9705e"
+    },
+    "sources": {
+      "agent-service/src/agents/intent-router.ts": "62c3bb66accc05cd7a795b5a694ef21719d1d0aba7649d9d17aa5ce220aeafb5",
+      "python-service/mcp/knowledge_base.py": "3cfe3e8def47deedee82b3d7e4daa5ea1d451bf183bd6a8ae50eed97b76b3fcd",
+      "python-service/evaluation/benchmark_suite.py": "3d19ce22e958426dbe4edb9b6f2c96e0cf3f2c3907daef9f73e4c619163e97c1"
+    },
+    "warning": "Existing synthetic cases are development regression data, not an independent human gold set."
+  },
+  "intent": {
+    "total": 60,
+    "correct": 40,
+    "accuracy": 0.6667,
+    "macro_f1": 0.648,
+    "per_class": {
+      "account": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 2
+      },
+      "billing": {
+        "precision": 0.75,
+        "recall": 0.75,
+        "f1": 0.75,
+        "support": 8
+      },
+      "complaint": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 4
+      },
+      "escalation": {
+        "precision": 0.6667,
+        "recall": 0.25,
+        "f1": 0.3636,
+        "support": 8
+      },
+      "feedback": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 2
+      },
+      "human_handoff": {
+        "precision": 0.5,
+        "recall": 1.0,
+        "f1": 0.6667,
+        "support": 8
+      },
+      "logistics": {
+        "precision": 0.5,
+        "recall": 1.0,
+        "f1": 0.6667,
+        "support": 2
+      },
+      "order_status": {
+        "precision": 0.3333,
+        "recall": 1.0,
+        "f1": 0.5,
+        "support": 2
+      },
+      "payment_issue": {
+        "precision": 0.8333,
+        "recall": 0.625,
+        "f1": 0.7143,
+        "support": 8
+      },
+      "query": {
+        "precision": 0.8333,
+        "recall": 0.625,
+        "f1": 0.7143,
+        "support": 8
+      },
+      "refund": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 0
+      },
+      "request": {
+        "precision": 1.0,
+        "recall": 0.25,
+        "f1": 0.4,
+        "support": 8
+      }
+    },
+    "confusion_matrix": {
+      "account": {
+        "account": 2
+      },
+      "billing": {
+        "billing": 6,
+        "payment_issue": 1,
+        "query": 1
+      },
+      "complaint": {
+        "complaint": 4
+      },
+      "escalation": {
+        "human_handoff": 6,
+        "escalation": 2
+      },
+      "feedback": {
+        "feedback": 2
+      },
+      "human_handoff": {
+        "human_handoff": 8
+      },
+      "logistics": {
+        "logistics": 2
+      },
+      "order_status": {
+        "order_status": 2
+      },
+      "payment_issue": {
+        "payment_issue": 5,
+        "billing": 2,
+        "order_status": 1
+      },
+      "query": {
+        "query": 5,
+        "logistics": 1,
+        "human_handoff": 1,
+        "escalation": 1
+      },
+      "refund": {},
+      "request": {
+        "request": 2,
+        "refund": 1,
+        "order_status": 3,
+        "logistics": 1,
+        "human_handoff": 1
+      }
+    },
+    "duration_s": 6.27,
+    "latency_ms_mean": 601.22,
+    "latency_ms_p95": 1142.9,
+    "errors": 0,
+    "source_usage": {
+      "pattern_high_confidence": 21,
+      "embedding_available": 39,
+      "llm_used": 39
+    },
+    "failures": [
+      {
+        "id": "boundary-001",
+        "message": "请由值班主管接手这件事",
+        "expected_intent": "escalation",
+        "source": "authored_boundary_regression_not_independent_gold",
+        "predicted_intent": "human_handoff",
+        "confidence": 0.95,
+        "source_scores": {
+          "llm": 0.95,
+          "embedding": 0.5892,
+          "pattern": 0.3
+        },
+        "reasoning": "明确要求值班主管接手，属于转人工",
+        "latency_ms": 1115.5,
+        "error": null
+      },
+      {
+        "id": "boundary-004",
+        "message": "请找你们经理复核处理结果",
+        "expected_intent": "escalation",
+        "source": "authored_boundary_regression_not_independent_gold",
+        "predicted_intent": "human_handoff",
+        "confidence": 0.95,
+        "source_scores": {
+          "llm": 0.95,
+          "embedding": 0.9803,
+          "pattern": 0.3
+        },
+        "reasoning": "用户要求经理复核，需转人工升级处理",
+        "latency_ms": 800.7,
+        "error": null
+      },
+      {
+        "id": "boundary-005",
+        "message": "能让更高级别的客服介入吗",
+        "expected_intent": "escalation",
+        "source": "authored_boundary_regression_not_independent_gold",
+        "predicted_intent": "human_handoff",
+        "confidence": 0.95,
+        "source_scores": {
+          "llm": 0.95,
+          "embedding": 0.7863,
+          "pattern": 0.3
+        },
+        "reasoning": "用户要求更高级别客服介入，属于转人工/升级处理",
+        "latency_ms": 840.1,
+        "error": null
+      },
+      {
+        "id": "boundary-006",
+        "message": "普通客服解决不了，请上报主管",
+        "expected_intent": "escalation",
+        "source": "authored_boundary_regression_not_independent_gold",
+        "predicted_intent": "human_handoff",
+        "confidence": 0.95,
+        "source_scores": {
+          "llm": 0.95,
+          "embedding": 0.7065,
+          "pattern": 0.3
+        },
+        "reasoning": "明确要求上报主管，转人工升级",
+        "latency_ms": 799.4,
+        "error": null
+      },
+      {
+        "id": "boundary-007",
+        "message": "请转人工主管，我要申诉",
+        "expected_intent": "escalation",
+        "source": "authored_boundary_regression_not_independent_gold",
+        "predicted_intent": "human_handoff",
+        "confidence": 0.99,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.99
+        },
+        "reasoning": "规则命中: 转人工",
+        "latency_ms": 2.5,
+        "error": null
+      },
+      {
+        "id": "boundary-008",
+        "message": "这件事情需要升级处理",
+        "expected_intent": "escalation",
+        "source": "authored_boundary_regression_not_independent_gold",
+        "predicted_intent": "human_handoff",
+        "confidence": 0.99,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.99
+        },
+        "reasoning": "规则命中: 升级处理",
+        "latency_ms": 1.3,
+        "error": null
+      },
+      {
+        "id": "boundary-020",
+        "message": "实扣金额比应付金额多了十元",
+        "expected_intent": "payment_issue",
+        "source": "authored_boundary_regression_not_independent_gold",
+        "predicted_intent": "billing",
+        "confidence": 0.9,
+        "source_scores": {
+          "llm": 0.9,
+          "embedding": 0.5483,
+          "pattern": 0.3
+        },
+        "reasoning": "实扣金额高于应付金额，属于账单金额异常",
+        "latency_ms": 992.3,
+        "error": null
+      },
+      {
+        "id": "boundary-022",
+        "message": "扣款成功后订单状态没更新",
+        "expected_intent": "payment_issue",
+        "source": "authored_boundary_regression_not_independent_gold",
+        "predicted_intent": "order_status",
+        "confidence": 0.94,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.94
+        },
+        "reasoning": "规则命中: 订单状态",
+        "latency_ms": 2.3,
+        "error": null
+      },
+      {
+        "id": "boundary-023",
+        "message": "这笔支付的金额与订单对不上",
+        "expected_intent": "payment_issue",
+        "source": "authored_boundary_regression_not_independent_gold",
+        "predicted_intent": "billing",
+        "confidence": 0.91,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.91
+        },
+        "reasoning": "规则命中: 支付",
+        "latency_ms": 1.7,
+        "error": null
+      },
+      {
+        "id": "boundary-027",
+        "message": "扣费周期是一个月吗",
+        "expected_intent": "billing",
+        "source": "authored_boundary_regression_not_independent_gold",
+        "predicted_intent": "payment_issue",
+        "confidence": 0.96,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.96
+        },
+        "reasoning": "规则命中: 扣费",
+        "latency_ms": 1.3,
+        "error": null
+      },
+      {
+        "id": "boundary-031",
+        "message": "请查一下我的消费明细",
+        "expected_intent": "billing",
+        "source": "authored_boundary_regression_not_independent_gold",
+        "predicted_intent": "query",
+        "confidence": 0.85,
+        "source_scores": {
+          "llm": 0.85,
+          "embedding": 0.7032,
+          "pattern": 0.3
+        },
+        "reasoning": "用户请求查询消费明细，属于信息查询",
+        "latency_ms": 1017.2,
+        "error": null
+      },
+      {
+        "id": "boundary-034",
+        "message": "请问，普通配送一般要几日",
+        "expected_intent": "query",
+        "source": "authored_boundary_regression_not_independent_gold",
+        "predicted_intent": "logistics",
+        "confidence": 0.94,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.94
+        },
+        "reasoning": "规则命中: 配送",
+        "latency_ms": 0.8,
+        "error": null
+      },
+      {
+        "id": "boundary-039",
+        "message": "我不要转人工，只问一下服务范围",
+        "expected_intent": "query",
+        "source": "authored_boundary_regression_not_independent_gold",
+        "predicted_intent": "human_handoff",
+        "confidence": 0.99,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.99
+        },
+        "reasoning": "规则命中: 转人工",
+        "latency_ms": 1.0,
+        "error": null
+      },
+      {
+        "id": "boundary-040",
+        "message": "暂时不用找经理，介绍一下营业时间",
+        "expected_intent": "query",
+        "source": "authored_boundary_regression_not_independent_gold",
+        "predicted_intent": "escalation",
+        "confidence": 0.94,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.94
+        },
+        "reasoning": "规则命中: 找经理",
+        "latency_ms": 0.8,
+        "error": null
+      },
+      {
+        "id": "boundary-042",
+        "message": "替我撤销这个购买订单",
+        "expected_intent": "request",
+        "source": "authored_boundary_regression_not_independent_gold",
+        "predicted_intent": "refund",
+        "confidence": 0.82,
+        "source_scores": {
+          "llm": 0.82,
+          "embedding": 0.9942,
+          "pattern": 0.3
+        },
+        "reasoning": "用户要求撤销购买订单，属于退款/取消订单诉求",
+        "latency_ms": 808.9,
+        "error": null
+      },
+      {
+        "id": "boundary-044",
+        "message": "想让你们取消还未发出的订单",
+        "expected_intent": "request",
+        "source": "authored_boundary_regression_not_independent_gold",
+        "predicted_intent": "order_status",
+        "confidence": 0.82,
+        "source_scores": {
+          "llm": 0.82,
+          "embedding": 0.7677,
+          "pattern": 0.3
+        },
+        "reasoning": "用户要求取消未发货订单，属于订单处理请求",
+        "latency_ms": 945.6,
+        "error": null
+      },
+      {
+        "id": "boundary-045",
+        "message": "能替我调整收货时间吗",
+        "expected_intent": "request",
+        "source": "authored_boundary_regression_not_independent_gold",
+        "predicted_intent": "logistics",
+        "confidence": 0.85,
+        "source_scores": {
+          "llm": 0.85,
+          "embedding": 0.9972,
+          "pattern": 0.3
+        },
+        "reasoning": "用户请求调整收货时间，属于物流配送安排",
+        "latency_ms": 1142.9,
+        "error": null
+      },
+      {
+        "id": "boundary-046",
+        "message": "请更新收货人的联系电话",
+        "expected_intent": "request",
+        "source": "authored_boundary_regression_not_independent_gold",
+        "predicted_intent": "order_status",
+        "confidence": 0.62,
+        "source_scores": {
+          "llm": 0.62,
+          "embedding": 0.5397,
+          "pattern": 0.3
+        },
+        "reasoning": "请求修改收货人联系电话，属订单信息变更",
+        "latency_ms": 1313.0,
+        "error": null
+      },
+      {
+        "id": "boundary-047",
+        "message": "不要查订单，请帮我取消订单",
+        "expected_intent": "request",
+        "source": "authored_boundary_regression_not_independent_gold",
+        "predicted_intent": "order_status",
+        "confidence": 0.94,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.94
+        },
+        "reasoning": "规则命中: 查订单",
+        "latency_ms": 2.3,
+        "error": null
+      },
+      {
+        "id": "boundary-048",
+        "message": "不用人工客服，帮我提交变更",
+        "expected_intent": "request",
+        "source": "authored_boundary_regression_not_independent_gold",
+        "predicted_intent": "human_handoff",
+        "confidence": 0.99,
+        "source_scores": {
+          "llm": 0,
+          "embedding": 0,
+          "pattern": 0.99
+        },
+        "reasoning": "规则命中: 人工客服",
+        "latency_ms": 1.7,
+        "error": null
+      }
+    ]
+  }
+}

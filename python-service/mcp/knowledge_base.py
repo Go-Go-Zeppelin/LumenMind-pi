@@ -14,9 +14,13 @@ ChromaDB 在这里的角色：
 import asyncio
 import hashlib
 import logging
+import os
+import threading
+import time
 from typing import Any, Dict, List, Optional
 
 import chromadb
+from mcp.hybrid_retrieval import LexicalIndex, fuse
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +41,14 @@ class KnowledgeBase:
         chroma_host: str = "localhost",
         chroma_port: int = 8000,
         chroma_path: str = "./data/chroma",
+        retrieval_mode: str | None = None,
     ):
+        self.retrieval_mode = retrieval_mode or os.getenv("KNOWLEDGE_RETRIEVAL_MODE", "hybrid")
+        if self.retrieval_mode not in {"dense", "sparse", "hybrid"}:
+            raise ValueError("KNOWLEDGE_RETRIEVAL_MODE must be dense, sparse or hybrid")
+        self._index_lock = threading.RLock()
+        self._lexical_snapshot = None
+        self._lexical_updated = 0.0
         # 优先连接独立 ChromaDB 服务（服务端内置 embedding 模型，客户端无需下载）
         self._use_server = False
         try:
@@ -97,6 +108,11 @@ class KnowledgeBase:
             # 稳定 ID + upsert 让重复导入幂等，同时让同 ID 内容更新时 Embedding 同步更新。
             operation = self._collection.upsert if upsert else self._collection.add
             operation(ids=ids, documents=docs, metadatas=metas)
+            # Invalidate after a successful write, including same-count updates.
+            # Chroma remains the source of truth; the next read rebuilds BM25.
+            if hasattr(self, "_index_lock"):
+                with self._index_lock:
+                    self._lexical_snapshot = None
             logger.info(f"知识库{'同步' if upsert else '导入'} {len(ids)} 个文档片段")
 
         return len(ids)
@@ -111,26 +127,55 @@ class KnowledgeBase:
 
         ChromaDB 内部自动将 query 转为向量，与存储的文档向量做余弦相似度匹配。
         """
+        if not query.strip() or top_k <= 0:
+            return []
+        count = self._collection.count()
+        if not count:
+            return []
+        top_k = min(top_k, count)
+        mode = self.retrieval_mode
+        if mode == "sparse":
+            return [{**item, "score": round(score, 6), "retrieval_method": "bm25"}
+                    for item, score in self._lexical_index().rank(query)[:top_k]]
         results = self._collection.query(
             query_texts=[query],
-            n_results=top_k,
+            n_results=min(count, max(20, top_k * 4)) if mode == "hybrid" else top_k,
         )
 
         items = []
         if results["documents"] and results["documents"][0]:
-            for doc, meta, dist in zip(
+            for doc_id, doc, meta, dist in zip(
+                results["ids"][0],
                 results["documents"][0],
                 results["metadatas"][0],
                 results["distances"][0],
             ):
                 items.append({
+                    "id":       doc_id,
                     "title":    meta.get("title", ""),
                     "content":  doc,
                     "score":    round(1.0 - dist, 4),  # ChromaDB 返回距离，转为相似度
                     "chunk":    meta.get("chunk_index", 0),
                 })
 
-        return items
+        if mode == "dense":
+            return items
+        return fuse(items, self._lexical_index().rank(query)[:max(20, top_k * 4)], top_k)
+
+    def _lexical_index(self) -> LexicalIndex:
+        # Amortize corpus reads over queries. Refresh external writes within
+        # 30 seconds; writes through this instance invalidate immediately.
+        with self._index_lock:
+            if self._lexical_snapshot is None or time.monotonic() - self._lexical_updated > 30:
+                items = []
+                for offset in range(0, self._collection.count(), 1000):
+                    page = self._collection.get(limit=1000, offset=offset, include=["documents", "metadatas"])
+                    for doc_id, content, meta in zip(page["ids"], page["documents"], page["metadatas"]):
+                        items.append({"id": doc_id, "title": (meta or {}).get("title", ""),
+                                      "content": content or "", "chunk": (meta or {}).get("chunk_index", 0)})
+                self._lexical_snapshot = LexicalIndex(items)
+                self._lexical_updated = time.monotonic()
+            return self._lexical_snapshot
 
     async def search_async(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
         """异步检索；ChromaDB 客户端为同步实现，因此放入线程池执行。"""

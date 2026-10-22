@@ -380,7 +380,8 @@ async def _post_with_retries(client: httpx.AsyncClient, url: str, payload: Dict[
     raise RuntimeError(f"request failed after {retries} attempts: {last}")
 
 
-async def run_intent_benchmark(pi_url: str, concurrency: int) -> Dict[str, Any]:
+async def run_intent_benchmark(pi_url: str, concurrency: int, *, use_llm: bool = True,
+                               predictions_path: Path | None = None) -> Dict[str, Any]:
     cases = _jsonl_read(INTENT_PATH)
     semaphore = asyncio.Semaphore(concurrency)
     completed = 0
@@ -389,10 +390,10 @@ async def run_intent_benchmark(pi_url: str, concurrency: int) -> Dict[str, Any]:
     async with httpx.AsyncClient(timeout=90.0) as client:
         async def one(case: Dict[str, Any]) -> Dict[str, Any]:
             nonlocal completed
-            t0 = time.perf_counter()
             async with semaphore:
+                t0 = time.perf_counter()
                 try:
-                    response = await _post_with_retries(client, f"{pi_url}/intent", {"message": case["message"], "use_llm": True})
+                    response = await _post_with_retries(client, f"{pi_url}/intent", {"message": case["message"], "use_llm": use_llm})
                     row = {**case, "predicted_intent": response.get("intent", "other"), "confidence": response.get("confidence"),
                            "source_scores": response.get("source_scores", {}), "reasoning": response.get("reasoning", ""),
                            "latency_ms": round((time.perf_counter() - t0) * 1000, 1), "error": None}
@@ -405,7 +406,7 @@ async def run_intent_benchmark(pi_url: str, concurrency: int) -> Dict[str, Any]:
                 return row
 
         rows = await asyncio.gather(*(one(case) for case in cases))
-    _jsonl_write(PREDICTIONS_PATH, rows)
+    _jsonl_write(predictions_path or PREDICTIONS_PATH, rows)
     metrics = _classification_metrics(rows)
     metrics.update({
         "duration_s": round(time.perf_counter() - started, 2),
@@ -455,7 +456,8 @@ async def run_rag_retrieval(python_url: str, concurrency: int) -> Dict[str, Any]
                 "recall_at_k": round(statistics.mean(row["recall"] for row in rows), 4),
                 "all_relevant_at_k": round(sum(row["all_relevant_hit"] for row in rows) / len(rows), 4),
                 "errors": sum(bool(row["error"]) for row in rows),
-                "failures": [row for row in rows if not row["hit"]],
+                "failures": [row for row in rows if not row["all_relevant_hit"]],
+                "details": rows,
             }
     return report
 

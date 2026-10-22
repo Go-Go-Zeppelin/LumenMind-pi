@@ -1,0 +1,174 @@
+{
+  "timestamp": "2026-10-22T07:13:23.126476+00:00",
+  "label": "after-boundary",
+  "methodology": {
+    "intent_chain": "rule -> embedding candidates -> LLM",
+    "model": "deepseek-v4-flash",
+    "api_key_configured": true,
+    "datasets": {
+      "intent_boundary_v1.jsonl": "2eeca42ee64888659724fc79406ba01e0a1a194d70eb6fbad4a2d8adf657499c",
+      "rag_retrieval_v2.jsonl": "2f4ae9bf43f22515f6fcb452f42a81d50fccbad27baee80c76a7a85d8bc9705e"
+    },
+    "sources": {
+      "agent-service/src/agents/intent-router.ts": "a1621b22528c8fbaea6a8007e6cd894fedcafacdae297e5095634c080f6931f5",
+      "python-service/mcp/knowledge_base.py": "d4fd4203ca716071beae0559e5ed6bd347cd759313e657eeced041a883b24371",
+      "python-service/mcp/hybrid_retrieval.py": "ae78a99f6d0b3183d45028bb963da2ba92c9e9902221e7c52da599c391a5d813",
+      "python-service/evaluation/benchmark_suite.py": "3d19ce22e958426dbe4edb9b6f2c96e0cf3f2c3907daef9f73e4c619163e97c1"
+    },
+    "warning": "Existing synthetic cases are development regression data, not an independent human gold set."
+  },
+  "intent": {
+    "total": 60,
+    "correct": 58,
+    "accuracy": 0.9667,
+    "macro_f1": 0.9529,
+    "per_class": {
+      "account": {
+        "precision": 1.0,
+        "recall": 0.5,
+        "f1": 0.6667,
+        "support": 2
+      },
+      "billing": {
+        "precision": 1.0,
+        "recall": 0.875,
+        "f1": 0.9333,
+        "support": 8
+      },
+      "complaint": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 4
+      },
+      "escalation": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 8
+      },
+      "feedback": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 2
+      },
+      "human_handoff": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 8
+      },
+      "logistics": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 2
+      },
+      "order_status": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 2
+      },
+      "payment_issue": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 8
+      },
+      "query": {
+        "precision": 0.8889,
+        "recall": 1.0,
+        "f1": 0.9412,
+        "support": 8
+      },
+      "request": {
+        "precision": 0.8889,
+        "recall": 1.0,
+        "f1": 0.9412,
+        "support": 8
+      }
+    },
+    "confusion_matrix": {
+      "account": {
+        "account": 1,
+        "request": 1
+      },
+      "billing": {
+        "billing": 7,
+        "query": 1
+      },
+      "complaint": {
+        "complaint": 4
+      },
+      "escalation": {
+        "escalation": 8
+      },
+      "feedback": {
+        "feedback": 2
+      },
+      "human_handoff": {
+        "human_handoff": 8
+      },
+      "logistics": {
+        "logistics": 2
+      },
+      "order_status": {
+        "order_status": 2
+      },
+      "payment_issue": {
+        "payment_issue": 8
+      },
+      "query": {
+        "query": 8
+      },
+      "request": {
+        "request": 8
+      }
+    },
+    "duration_s": 3.94,
+    "latency_ms_mean": 221.26,
+    "latency_ms_p95": 952.4,
+    "errors": 0,
+    "source_usage": {
+      "pattern_high_confidence": 48,
+      "embedding_available": 12,
+      "llm_used": 12
+    },
+    "failures": [
+      {
+        "id": "boundary-031",
+        "message": "请查一下我的消费明细",
+        "expected_intent": "billing",
+        "source": "authored_boundary_regression_not_independent_gold",
+        "predicted_intent": "query",
+        "confidence": 0.85,
+        "source_scores": {
+          "llm": 0.85,
+          "embedding": 0.7032,
+          "pattern": 0.3
+        },
+        "reasoning": "用户请求查询消费明细，属于信息查询",
+        "latency_ms": 881.1,
+        "error": null
+      },
+      {
+        "id": "boundary-058",
+        "message": "请更新账户昵称",
+        "expected_intent": "account",
+        "source": "authored_boundary_regression_not_independent_gold",
+        "predicted_intent": "request",
+        "confidence": 0.95,
+        "source_scores": {
+          "llm": 0.95,
+          "embedding": 0.6729,
+          "pattern": 0.3
+        },
+        "reasoning": "用户要求实际办理修改账户昵称的操作",
+        "latency_ms": 797.9,
+        "error": null
+      }
+    ]
+  }
+}

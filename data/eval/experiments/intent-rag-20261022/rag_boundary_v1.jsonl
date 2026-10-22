@@ -1,0 +1,24 @@
+{"id": "rag-boundary-001", "question": "买了十天以后发现产品质量有问题，退货有什么要求", "relevant_titles": ["退款政策"], "source": "authored_paraphrase_regression_not_independent_gold"}
+{"id": "rag-boundary-002", "question": "退钱审核和到账分别要等几个工作日", "relevant_titles": ["退款政策"], "source": "authored_paraphrase_regression_not_independent_gold"}
+{"id": "rag-boundary-003", "question": "忘了口令可以用绑定的邮箱找回吗", "relevant_titles": ["账户安全"], "source": "authored_paraphrase_regression_not_independent_gold"}
+{"id": "rag-boundary-004", "question": "账户在陌生设备上被访问了会有什么保护", "relevant_titles": ["账户安全"], "source": "authored_paraphrase_regression_not_independent_gold"}
+{"id": "rag-boundary-005", "question": "每消费一块能攒几个积分", "relevant_titles": ["会员与积分"], "source": "authored_paraphrase_regression_not_independent_gold"}
+{"id": "rag-boundary-006", "question": "生日这个月购物攒分会更多吗", "relevant_titles": ["会员与积分"], "source": "authored_paraphrase_regression_not_independent_gold"}
+{"id": "rag-boundary-007", "question": "加急和普通寄送分别收多少运费", "relevant_titles": ["配送说明"], "source": "authored_paraphrase_regression_not_independent_gold"}
+{"id": "rag-boundary-008", "question": "过节时寄到偏远地区会慢一些吗", "relevant_titles": ["配送说明"], "source": "authored_paraphrase_regression_not_independent_gold"}
+{"id": "rag-boundary-009", "question": "应用突然退出，清缓存有用吗", "relevant_titles": ["技术故障排查"], "source": "authored_paraphrase_regression_not_independent_gold"}
+{"id": "rag-boundary-010", "question": "服务一直返回500要向谁求助", "relevant_titles": ["技术故障排查"], "source": "authored_paraphrase_regression_not_independent_gold"}
+{"id": "rag-boundary-011", "question": "如何拿到公司报销用的电子发票", "relevant_titles": ["发票与开票说明"], "source": "authored_paraphrase_regression_not_independent_gold"}
+{"id": "rag-boundary-012", "question": "公司的纳税识别号写错了怎么更正", "relevant_titles": ["发票与开票说明"], "source": "authored_paraphrase_regression_not_independent_gold"}
+{"id": "rag-boundary-013", "question": "停掉自动续费以后当前周期还可以用吗", "relevant_titles": ["订阅与账单说明"], "source": "authored_paraphrase_regression_not_independent_gold"}
+{"id": "rag-boundary-014", "question": "下个周期什么时候续费要到哪里看", "relevant_titles": ["订阅与账单说明"], "source": "authored_paraphrase_regression_not_independent_gold"}
+{"id": "rag-boundary-015", "question": "同一笔付款银行扣了两笔该怎样核实", "relevant_titles": ["支付异常处理", "订阅与账单说明"], "source": "authored_paraphrase_regression_not_independent_gold"}
+{"id": "rag-boundary-016", "question": "银行的钱扣掉了，订单仍然待支付", "relevant_titles": ["支付异常处理", "订单查询"], "source": "authored_paraphrase_regression_not_independent_gold"}
+{"id": "rag-boundary-017", "question": "登录凭证失效导致401该如何处理", "relevant_titles": ["登录与验证码排查", "技术故障排查"], "source": "authored_paraphrase_regression_not_independent_gold"}
+{"id": "rag-boundary-018", "question": "短信收不到，验证码能一直反复发送吗", "relevant_titles": ["登录与验证码排查"], "source": "authored_paraphrase_regression_not_independent_gold"}
+{"id": "rag-boundary-019", "question": "还没付钱的订单能撤销吗", "relevant_titles": ["订单修改与取消", "订单查询"], "source": "authored_paraphrase_regression_not_independent_gold"}
+{"id": "rag-boundary-020", "question": "东西寄出去以后想换个收货地点", "relevant_titles": ["订单修改与取消", "配送说明"], "source": "authored_paraphrase_regression_not_independent_gold"}
+{"id": "rag-boundary-021", "question": "普通客服查不到后台日志的时候怎么交接", "relevant_titles": ["人工客服与升级处理", "技术故障排查"], "source": "authored_paraphrase_regression_not_independent_gold"}
+{"id": "rag-boundary-022", "question": "想让真人接手但不愿再重复描述问题", "relevant_titles": ["人工客服与升级处理"], "source": "authored_paraphrase_regression_not_independent_gold"}
+{"id": "rag-boundary-023", "question": "交给人工以后能否发送密码以便核验", "relevant_titles": ["人工客服与升级处理", "账户安全"], "source": "authored_paraphrase_regression_not_independent_gold"}
+{"id": "rag-boundary-024", "question": "已经取消购买了是否代表退的钱到账了", "relevant_titles": ["订单修改与取消", "退款政策"], "source": "authored_paraphrase_regression_not_independent_gold"}

@@ -5,6 +5,36 @@ import { config } from "../src/config.js";
 
 describe("LumenMind 意图路由", () => {
   it.each([
+    ["请把问题上报到值班主管", "escalation"],
+    ["我要转人工主管处理", "escalation"],
+    ["这件事需要升级处理", "escalation"],
+    ["请接一位真人客服", "human_handoff"],
+    ["不要机器人继续回答了", "human_handoff"],
+    ["暂时不用找经理，只想了解服务范围", "query"],
+    ["不要转人工，请查询我的订单", "order_status"],
+    ["不用人工客服，请帮我取消订单", "request"],
+    ["银行卡扣款成功但订单状态没有更新", "payment_issue"],
+    ["付款后显示没有成功", "payment_issue"],
+    ["付款页面提示交易失败", "payment_issue"],
+    ["订单扣款金额和应付金额不一致", "payment_issue"],
+    ["每月扣费周期是多少", "billing"],
+    ["请帮我查看本月账单", "billing"],
+    ["麻烦帮我看看会员权益有哪些", "query"],
+    ["标准配送需要多长时间", "query"],
+    ["帮我调整这张订单的收货地址", "request"],
+    ["这次服务让我很不满意", "complaint"],
+    ["不用人工客服帮我查账单", "billing"],
+    ["请问主管的职责是什么", "query"],
+  ])("薄弱类别边界：%s → %s", (message, expected) => {
+    expect(recognizeByRules(message).intent).toBe(expected);
+  });
+
+  it("不把带礼貌前缀的服务抱怨当成办理请求", () => {
+    expect(recognizeByRules("麻烦帮我看看，处理效率实在太低").intent).not.toBe("request");
+    expect(recognizeByRules("请问，谢谢客服的帮助，该怎么处理？").intent).not.toBe("request");
+  });
+
+  it.each([
     ["我的订单什么时候到？", "logistics"],
     ["帮我取消订单", "request"],
     ["你们服务太差了！", "complaint"],

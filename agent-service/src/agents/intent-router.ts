@@ -41,28 +41,59 @@ type IntentRule = { intent: Intent; confidence: number; words: string[] };
 // 规则优先级较高，命中后通常可以直接返回。
 // 同一条规则命中多个关键词时，matchRules() 会小幅提高置信度。
 const SPECIFIC_RULES: IntentRule[] = [
-  { intent: "human_handoff", confidence: 0.99, words: ["转人工", "人工客服", "找人工", "升级处理"] },
   { intent: "technical_login", confidence: 0.96, words: ["无法登录", "登录失败", "登录报错", "401", "验证码"] },
   { intent: "technical_crash", confidence: 0.96, words: ["崩溃", "闪退", "500", "页面报错", "crash"] },
-  { intent: "payment_issue", confidence: 0.96, words: ["重复扣款", "重复扣", "扣了两次", "多扣", "支付失败", "扣费", "payment failed"] },
+  { intent: "payment_issue", confidence: 0.96, words: ["重复扣款", "重复扣", "扣了两次", "多扣", "支付失败", "付款失败", "交易失败", "payment failed"] },
   { intent: "invoice", confidence: 0.96, words: ["发票", "抬头", "税号", "invoice"] },
   { intent: "refund", confidence: 0.96, words: ["退款", "退货", "refund", "return"] },
   { intent: "account_security", confidence: 0.95, words: ["账户被盗", "账号被盗", "异常登录", "重置密码", "两步验证", "账号安全"] },
   { intent: "order_status", confidence: 0.94, words: ["订单状态", "发货了吗", "处理到哪", "order status"] },
-  { intent: "logistics", confidence: 0.94, words: ["物流", "快递", "配送", "运单", "什么时候到", "还没到", "delivery", "shipping"] },
+  { intent: "logistics", confidence: 0.94, words: ["物流", "快递", "包裹", "运单", "什么时候到", "还没到", "delivery", "shipping"] },
 ];
 
 const GENERIC_RULES: IntentRule[] = [
   { intent: "escalation", confidence: 0.94, words: ["找经理", "supervisor", "escalate"] },
   { intent: "technical", confidence: 0.91, words: ["报错", "错误码", "error", "超时", "sdk", "api"] },
-  { intent: "billing", confidence: 0.91, words: ["扣款", "支付", "账单", "订阅", "续费", "billing", "payment"] },
+  { intent: "billing", confidence: 0.91, words: ["扣款", "扣费", "支付", "账单", "订阅", "续费", "billing", "payment"] },
   { intent: "order_status", confidence: 0.94, words: ["我的订单", "查订单", "订单列表", "查询订单", "查看订单", "查一下订单", "订单 ord-"] },
-  { intent: "account", confidence: 0.92, words: ["修改邮箱", "邮箱", "注销账户", "账户资料", "password"] },
-  { intent: "complaint", confidence: 0.88, words: ["太差", "糟糕", "投诉", "等了很久", "horrible"] },
+  { intent: "account", confidence: 0.92, words: ["修改邮箱", "邮箱", "注销账户", "注销账号", "关闭当前账号", "账户资料", "个人资料", "账户昵称", "绑定信息", "password"] },
+  { intent: "complaint", confidence: 0.92, words: ["太差", "糟糕", "投诉", "等了很久", "不满意", "horrible"] },
   { intent: "feedback", confidence: 0.88, words: ["很棒", "满意", "好评", "谢谢你们"] },
-  { intent: "request", confidence: 0.78, words: ["帮我", "请帮", "取消订单", "修改地址", "please", "help"] },
+  { intent: "request", confidence: 0.78, words: ["取消订单", "修改地址"] },
   { intent: "query", confidence: 0.72, words: ["怎么", "什么", "何时", "多久", "哪里", "status", "?", "？"] },
 ];
+
+type RuleMatch = { intent: Intent; confidence: number; matched: string[] };
+
+function activeRoutingText(message: string): string {
+  return message.replace(/(?:不要|不用|不需要|不想|不必|没说要)[^，,。;；！？!?]{0,8}(?:人工客服|人工|真人|经理|主管)/g, "");
+}
+
+/** Match the requested action, not a polite prefix or a domain noun alone. */
+function matchBoundaryRules(message: string): RuleMatch | null {
+  // Remove only negated handoff/manager clauses. "不要机器人" remains a
+  // positive human request; other clauses and business entities stay intact.
+  const text = message;
+  const tests: [Intent, number, RegExp][] = [
+    ["escalation", 0.97, /(?:找|联系|让|交给|上报(?:到)?|升级(?:给|到)?|向|请由|希望由|转(?:给)?).{0,10}(?:经理|主管|负责人|管理层|管理人员|上级|更高级别客服)|升级处理|\b(?:supervisor|escalate)\b/i],
+    ["human_handoff", 0.97, /(?:转|接|找|安排|需要|联系|换|让|要|和|与).{0,6}(?:人工|真人|客服人员)|(?:人工|真人).{0,6}(?:处理|接手|联系|沟通)|(?:不要|不想|别).{0,8}机器人|换人来答|^(?:人工客服|人工)$/],
+    ["payment_issue", 0.96, /(?:付款|支付|交易).{0,8}(?:失败|未成功|没有成功|不成功)|(?:重复|多|两[次笔]|三[次笔]).{0,5}(?:扣款|扣费|扣钱)|扣.{0,6}(?:两[次笔遍]|三[次笔遍])|(?:钱扣了|扣款成功|已扣款|钱已经出去了).{0,20}(?:未支付|待支付|没付|未更新|没更新|没有更新)|(?:扣款|实扣|支付).{0,8}金额.{0,12}(?:不一致|对不上|多了)|(?:扣款|实扣).{0,8}(?:比|和).{0,10}(?:多|不一致)/],
+    // Generic delivery policy is a query; shipment tracking remains logistics.
+    ["query", 0.92, /(?:标准|普通)配送.{0,8}(?:需要|要|一般|几|多长)|(?:配送|服务|营业)时间.{0,8}(?:什么|何时|哪里|几点)|(?:了解|介绍|说明|查看|查询|哪些|什么|哪里).{0,10}(?:会员权益|服务范围|帮助中心)|(?:会员权益|服务范围|帮助中心).{0,8}(?:什么|哪些|哪里|入口)/],
+  ];
+  for (const [intent, confidence, pattern] of tests) {
+    const match = text.match(pattern);
+    if (match) return { intent, confidence, matched: [match[0]] };
+  }
+  return null;
+}
+
+function matchActionRule(message: string): RuleMatch | null {
+  // Domain-specific requests (refund/invoice/account) have already matched.
+  // "帮我看看营业时间" contains no operation and must remain a query.
+  const action = message.match(/(?:取消|撤销|修改|更改|变更|更新|调整|提交|处理).{0,10}(?:订单|地址|收件|收货|联系信息|电话|资料|信息|变更|需求)|(?:帮我|请协助|请帮忙|麻烦|替我|需要你们)(?:一下|协助|帮忙)?(?:取消|撤销|修改|更改|变更|更新|调整|提交|处理)/);
+  return action ? { intent: "request", confidence: 0.92, matched: [action[0]] } : null;
+}
 
 /** 将细粒度意图转换为对外兼容的大类。 */
 function intentGroup(intent: Intent): Intent {
@@ -148,7 +179,19 @@ export function recognizeByRules(message: string): IntentDecision {
   if (["你好", "您好", "嗨", "hi", "hello", "hey", "早上好", "晚上好"].includes(lower)) {
     matched = { intent: "greeting", confidence: 0.99, matched: [lower] };
   } else {
-    matched = matchRules(text, SPECIFIC_RULES) ?? matchRules(text, GENERIC_RULES);
+    const active = activeRoutingText(text);
+    const boundary = matchBoundaryRules(active);
+    const specific = matchRules(active, SPECIFIC_RULES);
+    // Preserve established primary-agent precedence for compound technical +
+    // payment problems. Handoff requests take priority; policy queries only
+    // refine the broad logistics noun rule.
+    const preferBoundary = boundary && (!specific
+      || ["escalation", "human_handoff"].includes(boundary.intent)
+      || (boundary.intent === "payment_issue" && ["payment_issue", "order_status", "logistics"].includes(specific.intent))
+      || (boundary.intent === "query" && specific.intent === "logistics"));
+    matched = (preferBoundary ? boundary : specific)
+      ?? matchRules(active, GENERIC_RULES.filter((rule) => rule.intent === "account"))
+      ?? matchActionRule(active) ?? matchRules(active, GENERIC_RULES);
   }
   const intent = matched?.intent ?? "other";
   const confidence = matched?.confidence ?? 0.3;
@@ -244,6 +287,13 @@ export class IntentRouter {
           "你是 LumenMind 的只读意图路由器。只输出一个 JSON 对象，不要解释。",
           `格式: {"intent":"${[...INTENTS].join("|")}","confidence":0到1,"reasoning":"短句"}`,
           "优先返回细粒度意图：退款 refund、发票 invoice、支付异常 payment_issue、登录故障 technical_login、崩溃 technical_crash、物流 logistics、转人工 human_handoff。",
+          "分类边界：escalation 是向经理、主管、负责人、上级升级或申诉；human_handoff 是普通人工/真人接手。明确要求主管时选 escalation，即使同时提到人工。",
+          "payment_issue 是付款失败、重复扣款、实扣金额与订单不一致、已扣款但订单未支付；billing 是账单、订阅价格、收费组成等一般问题。",
+          "先判断具体业务领域，再考虑通用 query/request。order_status 是订单当前状态、处理进度、是否发货/完成；logistics 是具体包裹、运单、运输与收货进度。account 是账户资料、昵称、绑定信息、邮箱的查询或变更；account_security 是被盗、异常登录、密码泄露和安全设置。",
+          "technical 是接口、网络、SDK、性能和未知技术错误；technical_login 是登录/认证失败；technical_crash 是崩溃、闪退、500。refund 是退货/退钱/退款时效；invoice 是发票/开票/税号。",
+          "complaint 是对服务不满、负面评价、投诉；feedback 是表扬、感谢、正面评价；greeting 是问候寒暄；other 是没有说明具体目的、无法判断的情况，不要强行猜成 query。",
+          "仅在没有更具体领域时，query 是询问信息、规则、位置或通用时效；request 是要求实际办理取消、修改、提交等操作。‘请问/麻烦帮我看看/该怎么处理/能帮忙确认吗’仅是附加表达，不能覆盖主要诉求或据此判 request/query。",
+          "标准配送时效属于 query，具体包裹运输、运单跟踪属于 logistics；否定的转人工或升级请求不能当成用户要求交接。只按用户实际目的判断，不按情绪或单个关键词。",
           embeddingCandidates.length
             ? `Embedding 候选（仅作参考，必须结合用户消息自行判断）：${JSON.stringify(embeddingCandidates)}`
             : "Embedding 未返回候选。",

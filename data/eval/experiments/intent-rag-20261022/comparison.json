@@ -1,0 +1,672 @@
+{
+  "date": "2026-10-22",
+  "model": "deepseek-v4-flash",
+  "baseline_git_head": "c8e4d19231670fbbca149f498dabcc6fd26dc869",
+  "datasets": {
+    "intent_synthetic_v1.jsonl": "d072334597727f650a8bc5b4eb698cc015c6b391bf2383a8c9e948c935078d30",
+    "rag_retrieval_v2.jsonl": "2f4ae9bf43f22515f6fcb452f42a81d50fccbad27baee80c76a7a85d8bc9705e"
+  },
+  "intent": {
+    "before": {
+      "total": 500,
+      "correct": 440,
+      "accuracy": 0.88,
+      "macro_f1": 0.8801,
+      "duration_s": 51.35,
+      "latency_ms_mean": 613.54,
+      "latency_ms_p95": 1087.0,
+      "errors": 0,
+      "source_usage": {
+        "pattern_high_confidence": 148,
+        "embedding_available": 350,
+        "llm_used": 352
+      }
+    },
+    "after": {
+      "total": 500,
+      "correct": 476,
+      "accuracy": 0.952,
+      "macro_f1": 0.952,
+      "duration_s": 34.86,
+      "latency_ms_mean": 409.85,
+      "latency_ms_p95": 1067.6,
+      "errors": 0,
+      "source_usage": {
+        "pattern_high_confidence": 276,
+        "embedding_available": 222,
+        "llm_used": 224
+      }
+    },
+    "weak_classes": {
+      "escalation": {
+        "before": {
+          "precision": 1.0,
+          "recall": 0.7407,
+          "f1": 0.8511,
+          "support": 27
+        },
+        "after": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 27
+        }
+      },
+      "query": {
+        "before": {
+          "precision": 0.7059,
+          "recall": 0.8889,
+          "f1": 0.7869,
+          "support": 27
+        },
+        "after": {
+          "precision": 0.9,
+          "recall": 1.0,
+          "f1": 0.9474,
+          "support": 27
+        }
+      },
+      "payment_issue": {
+        "before": {
+          "precision": 1.0,
+          "recall": 0.5385,
+          "f1": 0.7,
+          "support": 26
+        },
+        "after": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 26
+        }
+      },
+      "request": {
+        "before": {
+          "precision": 0.8519,
+          "recall": 0.8519,
+          "f1": 0.8519,
+          "support": 27
+        },
+        "after": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 27
+        }
+      },
+      "human_handoff": {
+        "before": {
+          "precision": 0.7222,
+          "recall": 1.0,
+          "f1": 0.8387,
+          "support": 26
+        },
+        "after": {
+          "precision": 0.963,
+          "recall": 1.0,
+          "f1": 0.9811,
+          "support": 26
+        }
+      }
+    },
+    "fixed_count": 41,
+    "regressed_count": 5,
+    "fixed": [
+      {
+        "id": "intent-14-005",
+        "message": "最近遇到一个情况，扣款金额和订单不一致，谢谢。",
+        "expected": "payment_issue",
+        "before": "billing",
+        "after": "payment_issue"
+      },
+      {
+        "id": "intent-14-020",
+        "message": "钱扣了但订单仍未支付。",
+        "expected": "payment_issue",
+        "before": "billing",
+        "after": "payment_issue"
+      },
+      {
+        "id": "intent-01-025",
+        "message": "请问，标准配送需要多长时间。",
+        "expected": "query",
+        "before": "logistics",
+        "after": "query"
+      },
+      {
+        "id": "intent-08-022",
+        "message": "请问，如何变更个人资料，该怎么处理？",
+        "expected": "account",
+        "before": "request",
+        "after": "account"
+      },
+      {
+        "id": "intent-14-008",
+        "message": "最近遇到一个情况，钱扣了但订单仍未支付，已经有一会儿了。",
+        "expected": "payment_issue",
+        "before": "billing",
+        "after": "payment_issue"
+      },
+      {
+        "id": "intent-06-004",
+        "message": "麻烦帮我看看，程序运行时出现未知错误",
+        "expected": "technical",
+        "before": "technical_crash",
+        "after": "technical"
+      },
+      {
+        "id": "intent-08-004",
+        "message": "麻烦帮我看看，如何变更个人资料，谢谢。",
+        "expected": "account",
+        "before": "request",
+        "after": "account"
+      },
+      {
+        "id": "intent-14-023",
+        "message": "钱扣了但订单仍未支付，已经有一会儿了。",
+        "expected": "payment_issue",
+        "before": "billing",
+        "after": "payment_issue"
+      },
+      {
+        "id": "intent-05-026",
+        "message": "最近遇到一个情况，请交给管理人员，谢谢。",
+        "expected": "escalation",
+        "before": "human_handoff",
+        "after": "escalation"
+      },
+      {
+        "id": "intent-05-025",
+        "message": "麻烦帮我看看，让你们负责人跟进，能帮忙确认吗？",
+        "expected": "escalation",
+        "before": "human_handoff",
+        "after": "escalation"
+      },
+      {
+        "id": "intent-05-007",
+        "message": "我要联系更高级别客服，该怎么处理？",
+        "expected": "escalation",
+        "before": "human_handoff",
+        "after": "escalation"
+      },
+      {
+        "id": "intent-19-019",
+        "message": "有件事情想说一下，能帮忙确认吗？",
+        "expected": "other",
+        "before": "request",
+        "after": "other"
+      },
+      {
+        "id": "intent-08-008",
+        "message": "请问，账户昵称在哪里修改",
+        "expected": "account",
+        "before": "query",
+        "after": "account"
+      },
+      {
+        "id": "intent-03-013",
+        "message": "我需要你们协助处理，谢谢。",
+        "expected": "request",
+        "before": "human_handoff",
+        "after": "request"
+      },
+      {
+        "id": "intent-05-013",
+        "message": "我要联系更高级别客服，能帮忙确认吗？",
+        "expected": "escalation",
+        "before": "human_handoff",
+        "after": "escalation"
+      },
+      {
+        "id": "intent-14-019",
+        "message": "麻烦帮我看看，钱扣了但订单仍未支付，该怎么处理？",
+        "expected": "payment_issue",
+        "before": "billing",
+        "after": "payment_issue"
+      },
+      {
+        "id": "intent-19-012",
+        "message": "我想先说明一个情况，该怎么处理？",
+        "expected": "other",
+        "before": "query",
+        "after": "other"
+      },
+      {
+        "id": "intent-14-024",
+        "message": "最近遇到一个情况，钱扣了但订单仍未支付。",
+        "expected": "payment_issue",
+        "before": "billing",
+        "after": "payment_issue"
+      },
+      {
+        "id": "intent-03-007",
+        "message": "请问，帮我更新联系信息，已经有一会儿了。",
+        "expected": "request",
+        "before": "account",
+        "after": "request"
+      },
+      {
+        "id": "intent-14-013",
+        "message": "支付后显示没有成功，该怎么处理？",
+        "expected": "payment_issue",
+        "before": "billing",
+        "after": "payment_issue"
+      },
+      {
+        "id": "intent-14-003",
+        "message": "最近遇到一个情况，支付后显示没有成功，能帮忙确认吗？",
+        "expected": "payment_issue",
+        "before": "billing",
+        "after": "payment_issue"
+      },
+      {
+        "id": "intent-06-025",
+        "message": "麻烦帮我看看，程序运行时出现未知错误，该怎么处理？",
+        "expected": "technical",
+        "before": "technical_crash",
+        "after": "technical"
+      },
+      {
+        "id": "intent-03-016",
+        "message": "麻烦帮我看看，我需要你们协助处理，谢谢。",
+        "expected": "request",
+        "before": "other",
+        "after": "request"
+      },
+      {
+        "id": "intent-19-016",
+        "message": "想咨询一下，我想先说明一个情况",
+        "expected": "other",
+        "before": "query",
+        "after": "other"
+      },
+      {
+        "id": "intent-06-007",
+        "message": "麻烦帮我看看，程序运行时出现未知错误，谢谢。",
+        "expected": "technical",
+        "before": "technical_crash",
+        "after": "technical"
+      },
+      {
+        "id": "intent-01-016",
+        "message": "麻烦帮我看看，标准配送需要多长时间，谢谢。",
+        "expected": "query",
+        "before": "logistics",
+        "after": "query"
+      },
+      {
+        "id": "intent-19-026",
+        "message": "请问，我想先说明一个情况，该怎么处理？",
+        "expected": "other",
+        "before": "query",
+        "after": "other"
+      },
+      {
+        "id": "intent-14-010",
+        "message": "最近遇到一个情况，支付后显示没有成功，已经有一会儿了。",
+        "expected": "payment_issue",
+        "before": "billing",
+        "after": "payment_issue"
+      },
+      {
+        "id": "intent-01-013",
+        "message": "最近遇到一个情况，标准配送需要多长时间。",
+        "expected": "query",
+        "before": "logistics",
+        "after": "query"
+      },
+      {
+        "id": "intent-14-026",
+        "message": "麻烦帮我看看，支付后显示没有成功，已经有一会儿了。",
+        "expected": "payment_issue",
+        "before": "billing",
+        "after": "payment_issue"
+      },
+      {
+        "id": "intent-14-025",
+        "message": "扣款金额和订单不一致，能帮忙确认吗？",
+        "expected": "payment_issue",
+        "before": "billing",
+        "after": "payment_issue"
+      },
+      {
+        "id": "intent-05-020",
+        "message": "最近遇到一个情况，请交给管理人员",
+        "expected": "escalation",
+        "before": "human_handoff",
+        "after": "escalation"
+      },
+      {
+        "id": "intent-08-023",
+        "message": "最近遇到一个情况，账户昵称在哪里修改，能帮忙确认吗？",
+        "expected": "account",
+        "before": "query",
+        "after": "account"
+      },
+      {
+        "id": "intent-04-021",
+        "message": "请问，hi，该怎么处理？",
+        "expected": "greeting",
+        "before": "other",
+        "after": "greeting"
+      },
+      {
+        "id": "intent-09-026",
+        "message": "想咨询一下，客服回复很及时，该怎么处理？",
+        "expected": "feedback",
+        "before": "query",
+        "after": "feedback"
+      },
+      {
+        "id": "intent-03-019",
+        "message": "最近遇到一个情况，帮我取消这张订单，谢谢。",
+        "expected": "request",
+        "before": "order_status",
+        "after": "request"
+      },
+      {
+        "id": "intent-05-015",
+        "message": "请问，我要联系更高级别客服，已经有一会儿了。",
+        "expected": "escalation",
+        "before": "human_handoff",
+        "after": "escalation"
+      },
+      {
+        "id": "intent-14-002",
+        "message": "请问，扣款金额和订单不一致。",
+        "expected": "payment_issue",
+        "before": "billing",
+        "after": "payment_issue"
+      },
+      {
+        "id": "intent-05-019",
+        "message": "请问，让你们负责人跟进，谢谢。",
+        "expected": "escalation",
+        "before": "human_handoff",
+        "after": "escalation"
+      },
+      {
+        "id": "intent-02-006",
+        "message": "最近遇到一个情况，客服一直没有回应，该怎么处理？",
+        "expected": "complaint",
+        "before": "human_handoff",
+        "after": "complaint"
+      },
+      {
+        "id": "intent-08-003",
+        "message": "请问，如何变更个人资料，能帮忙确认吗？",
+        "expected": "account",
+        "before": "request",
+        "after": "account"
+      }
+    ],
+    "regressed": [
+      {
+        "id": "intent-04-026",
+        "message": "晚上好，该怎么处理？",
+        "expected": "greeting",
+        "before": "greeting",
+        "after": "other"
+      },
+      {
+        "id": "intent-04-025",
+        "message": "您好，已经有一会儿了。",
+        "expected": "greeting",
+        "before": "greeting",
+        "after": "other"
+      },
+      {
+        "id": "intent-17-003",
+        "message": "想咨询一下，服务端出现内部错误，已经有一会儿了。",
+        "expected": "technical_crash",
+        "before": "technical_crash",
+        "after": "technical"
+      },
+      {
+        "id": "intent-09-017",
+        "message": "麻烦帮我看看，整体体验不错，该怎么处理？",
+        "expected": "feedback",
+        "before": "feedback",
+        "after": "other"
+      },
+      {
+        "id": "intent-09-021",
+        "message": "最近遇到一个情况，整体体验不错，该怎么处理？",
+        "expected": "feedback",
+        "before": "feedback",
+        "after": "other"
+      }
+    ]
+  },
+  "retrieval": {
+    "before": {
+      "1": {
+        "hit_at_k": 0.425,
+        "recall_at_k": 0.3375,
+        "all_relevant_at_k": 0.2583,
+        "errors": 0
+      },
+      "3": {
+        "hit_at_k": 0.6917,
+        "recall_at_k": 0.5847,
+        "all_relevant_at_k": 0.4833,
+        "errors": 0
+      },
+      "5": {
+        "hit_at_k": 0.8167,
+        "recall_at_k": 0.7028,
+        "all_relevant_at_k": 0.5917,
+        "errors": 0
+      }
+    },
+    "after": {
+      "1": {
+        "hit_at_k": 0.9583,
+        "recall_at_k": 0.7764,
+        "all_relevant_at_k": 0.6083,
+        "errors": 0
+      },
+      "3": {
+        "hit_at_k": 0.9917,
+        "recall_at_k": 0.925,
+        "all_relevant_at_k": 0.85,
+        "errors": 0
+      },
+      "5": {
+        "hit_at_k": 1.0,
+        "recall_at_k": 0.9667,
+        "all_relevant_at_k": 0.9333,
+        "errors": 0
+      }
+    },
+    "remaining_top5": [
+      {
+        "id": "rag-retrieval-068",
+        "question": "怎么确认电子发票是否已经开具？",
+        "missing_titles": [
+          "订单查询"
+        ]
+      },
+      {
+        "id": "rag-retrieval-086",
+        "question": "支付异常持续存在应该联系谁核对流水？",
+        "missing_titles": [
+          "人工客服与升级处理"
+        ]
+      },
+      {
+        "id": "rag-retrieval-088",
+        "question": "排查支付问题时能向客服发送验证码吗？",
+        "missing_titles": [
+          "支付异常处理"
+        ]
+      },
+      {
+        "id": "rag-retrieval-101",
+        "question": "订单是否能取消取决于什么？",
+        "missing_titles": [
+          "订单查询"
+        ]
+      },
+      {
+        "id": "rag-retrieval-108",
+        "question": "没有订单后台时客服能说地址已修改吗？",
+        "missing_titles": [
+          "人工客服与升级处理"
+        ]
+      },
+      {
+        "id": "rag-retrieval-115",
+        "question": "需要后台日志和管理员权限时该怎么办？",
+        "missing_titles": [
+          "技术故障排查"
+        ]
+      },
+      {
+        "id": "rag-retrieval-116",
+        "question": "人工交接摘要里可以记录错误码吗？",
+        "missing_titles": [
+          "技术故障排查"
+        ]
+      },
+      {
+        "id": "rag-retrieval-117",
+        "question": "转人工过程中哪些敏感信息不能收集？",
+        "missing_titles": [
+          "账户安全"
+        ]
+      }
+    ]
+  },
+  "ablations": {
+    "rules_before": {
+      "total": 500,
+      "correct": 194,
+      "accuracy": 0.388,
+      "macro_f1": 0.4363,
+      "duration_s": 0.39,
+      "latency_ms_mean": 4.31,
+      "latency_ms_p95": 14.6,
+      "errors": 0,
+      "source_usage": {
+        "pattern_high_confidence": 148,
+        "embedding_available": 0,
+        "llm_used": 0
+      }
+    },
+    "rules_after": {
+      "total": 500,
+      "correct": 304,
+      "accuracy": 0.608,
+      "macro_f1": 0.6374,
+      "duration_s": 0.53,
+      "latency_ms_mean": 5.41,
+      "latency_ms_p95": 21.4,
+      "errors": 0,
+      "source_usage": {
+        "pattern_high_confidence": 276,
+        "embedding_available": 0,
+        "llm_used": 0
+      }
+    },
+    "sparse": {
+      "1": {
+        "hit_at_k": 0.95,
+        "recall_at_k": 0.7681,
+        "all_relevant_at_k": 0.6,
+        "errors": 0
+      },
+      "3": {
+        "hit_at_k": 0.9917,
+        "recall_at_k": 0.9139,
+        "all_relevant_at_k": 0.825,
+        "errors": 0
+      },
+      "5": {
+        "hit_at_k": 1.0,
+        "recall_at_k": 0.975,
+        "all_relevant_at_k": 0.95,
+        "errors": 0
+      }
+    }
+  },
+  "boundary_regression": {
+    "intent_before": {
+      "total": 60,
+      "correct": 40,
+      "accuracy": 0.6667,
+      "macro_f1": 0.648,
+      "duration_s": 6.27,
+      "latency_ms_mean": 601.22,
+      "latency_ms_p95": 1142.9,
+      "errors": 0,
+      "source_usage": {
+        "pattern_high_confidence": 21,
+        "embedding_available": 39,
+        "llm_used": 39
+      }
+    },
+    "intent_after": {
+      "total": 60,
+      "correct": 60,
+      "accuracy": 1.0,
+      "macro_f1": 1.0,
+      "duration_s": 2.32,
+      "latency_ms_mean": 185.66,
+      "latency_ms_p95": 1108.4,
+      "errors": 0,
+      "source_usage": {
+        "pattern_high_confidence": 50,
+        "embedding_available": 10,
+        "llm_used": 10
+      }
+    },
+    "retrieval_dense": {
+      "1": {
+        "hit_at_k": 0.3333,
+        "recall_at_k": 0.2708,
+        "all_relevant_at_k": 0.2083,
+        "errors": 0
+      },
+      "3": {
+        "hit_at_k": 0.5833,
+        "recall_at_k": 0.4792,
+        "all_relevant_at_k": 0.375,
+        "errors": 0
+      },
+      "5": {
+        "hit_at_k": 0.6667,
+        "recall_at_k": 0.5625,
+        "all_relevant_at_k": 0.4583,
+        "errors": 0
+      }
+    },
+    "retrieval_hybrid": {
+      "1": {
+        "hit_at_k": 0.7917,
+        "recall_at_k": 0.6875,
+        "all_relevant_at_k": 0.5833,
+        "errors": 0
+      },
+      "3": {
+        "hit_at_k": 1.0,
+        "recall_at_k": 0.9583,
+        "all_relevant_at_k": 0.9167,
+        "errors": 0
+      },
+      "5": {
+        "hit_at_k": 1.0,
+        "recall_at_k": 0.9792,
+        "all_relevant_at_k": 0.9583,
+        "errors": 0
+      }
+    }
+  },
+  "limitations": [
+    "Synthetic development data and authored regression cases, not independently annotated gold or production distribution.",
+    "Intent comparison is a single fresh baseline and final run; model provider behavior may change. Intermediate candidates are also preserved.",
+    "Twelve short default knowledge documents; title-level labels, not chunk relevance or answer quality.",
+    "There are five paired intent regressions and eight incomplete top-5 retrieval cases.",
+    "No answer-generation or LLM-judge quality improvement was measured."
+  ]
+}

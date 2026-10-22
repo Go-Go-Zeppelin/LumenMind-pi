@@ -1,0 +1,151 @@
+{
+  "timestamp": "2026-10-22T07:19:22.079037+00:00",
+  "label": "final-boundary",
+  "methodology": {
+    "git_head": "c8e4d19231670fbbca149f498dabcc6fd26dc869",
+    "concurrency": 6,
+    "infrastructure": {
+      "status": "ok",
+      "fixture": "isolated-intent-retrieval",
+      "chunks": 12,
+      "retrieval_mode": "hybrid",
+      "corpus_sha256": "22279ae12a1c90bdd0054bddd6a84e84974922e5e6b72c1834dbad43cfb95000"
+    },
+    "embedding_model": "Chroma default all-MiniLM-L6-v2 (unchanged)",
+    "intent_chain": "rule -> embedding candidates -> LLM",
+    "model": "deepseek-v4-flash",
+    "api_key_configured": true,
+    "datasets": {
+      "intent_boundary_v1.jsonl": "2eeca42ee64888659724fc79406ba01e0a1a194d70eb6fbad4a2d8adf657499c",
+      "rag_retrieval_v2.jsonl": "2f4ae9bf43f22515f6fcb452f42a81d50fccbad27baee80c76a7a85d8bc9705e"
+    },
+    "sources": {
+      "agent-service/src/agents/intent-router.ts": "4da78848aa8176f5ac1b582b2a962e94b8dd37f70dc4853d8c78a0561040ac24",
+      "python-service/mcp/knowledge_base.py": "d4fd4203ca716071beae0559e5ed6bd347cd759313e657eeced041a883b24371",
+      "python-service/mcp/hybrid_retrieval.py": "ae78a99f6d0b3183d45028bb963da2ba92c9e9902221e7c52da599c391a5d813",
+      "python-service/mcp/intent_index.py": "055a0c473e18823ca8b0763f4a779e0b8d206948122a018535632c8770dac3de",
+      "python-service/evaluation/benchmark_suite.py": "3d19ce22e958426dbe4edb9b6f2c96e0cf3f2c3907daef9f73e4c619163e97c1",
+      "python-service/evaluation/optimization_experiment.py": "448cf8ed222915389a3d711e85e3c69b73cdeb713c6ed4e713745a64ca009fe9"
+    },
+    "warning": "Existing synthetic cases are development regression data, not an independent human gold set."
+  },
+  "intent": {
+    "total": 60,
+    "correct": 60,
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "per_class": {
+      "account": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 2
+      },
+      "billing": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 8
+      },
+      "complaint": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 4
+      },
+      "escalation": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 8
+      },
+      "feedback": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 2
+      },
+      "human_handoff": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 8
+      },
+      "logistics": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 2
+      },
+      "order_status": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 2
+      },
+      "payment_issue": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 8
+      },
+      "query": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 8
+      },
+      "request": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 8
+      }
+    },
+    "confusion_matrix": {
+      "account": {
+        "account": 2
+      },
+      "billing": {
+        "billing": 8
+      },
+      "complaint": {
+        "complaint": 4
+      },
+      "escalation": {
+        "escalation": 8
+      },
+      "feedback": {
+        "feedback": 2
+      },
+      "human_handoff": {
+        "human_handoff": 8
+      },
+      "logistics": {
+        "logistics": 2
+      },
+      "order_status": {
+        "order_status": 2
+      },
+      "payment_issue": {
+        "payment_issue": 8
+      },
+      "query": {
+        "query": 8
+      },
+      "request": {
+        "request": 8
+      }
+    },
+    "duration_s": 2.32,
+    "latency_ms_mean": 185.66,
+    "latency_ms_p95": 1108.4,
+    "errors": 0,
+    "source_usage": {
+      "pattern_high_confidence": 50,
+      "embedding_available": 10,
+      "llm_used": 10
+    },
+    "failures": []
+  }
+}

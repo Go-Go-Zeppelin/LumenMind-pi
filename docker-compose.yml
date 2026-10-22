@@ -73,6 +73,7 @@ services:
       BUSINESS_SEED_DEMO: "true"
       PI_AGENT_URL: http://pi-agent:3000
       KNOWLEDGE_QUERY_REWRITE: ${KNOWLEDGE_QUERY_REWRITE:-false}
+      KNOWLEDGE_RETRIEVAL_MODE: ${KNOWLEDGE_RETRIEVAL_MODE:-hybrid}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
     volumes:
       - ./data:/app/data
