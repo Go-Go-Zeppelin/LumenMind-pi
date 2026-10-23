@@ -1,5 +1,13 @@
 """Retrieval behavior over arbitrary documents, without a model or Chroma server."""
+import sys
 import threading
+import types
+
+# The CI test environment intentionally omits the runtime-only Chroma client.
+# KnowledgeBase is exercised with a fake collection below, so keep collection
+# importable without downloading or installing ChromaDB.
+if "chromadb" not in sys.modules:
+    sys.modules["chromadb"] = types.ModuleType("chromadb")
 
 from mcp.hybrid_retrieval import LexicalIndex, fuse, query_tokens, tokenize
 from mcp.knowledge_base import KnowledgeBase
