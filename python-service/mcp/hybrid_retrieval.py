@@ -86,6 +86,16 @@ def fuse(dense: list[dict[str, Any]], sparse: list[tuple[dict[str, Any], float]]
         key = max(ranked, key=lambda key: scores[key] / (1 + counts[candidates[key]["title"]]))
         ranked.remove(key)
         item = candidates[key]
-        counts[item["title"]] += 1
-        selected.append({**item, "score": round(scores[key], 6), "retrieval_method": "hybrid_rrf"})
+        title_count = counts[item["title"]] + 1
+        counts[item["title"]] = title_count
+        adjusted_score = scores[key] / title_count
+        selected.append({
+            **item,
+            # score is the score used for the final ordering. Preserve the
+            # unpenalized RRF score for diagnostics and API consumers that
+            # need the raw fusion value.
+            "score": round(adjusted_score, 6),
+            "rrf_score": round(scores[key], 6),
+            "retrieval_method": "hybrid_rrf",
+        })
     return selected
