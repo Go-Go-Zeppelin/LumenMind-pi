@@ -35,6 +35,17 @@ def test_multiple_chunks_do_not_flood_all_positions():
     result = fuse(chunks + [other], [(row, 1.0) for row in chunks + [other]], 3)
     assert "另一文档" in [row["title"] for row in result]
     assert len({row["id"] for row in result}) == 3
+    assert [row["score"] for row in result] == sorted((row["score"] for row in result), reverse=True)
+
+
+def test_diversity_penalty_is_reflected_in_score_and_raw_rrf_is_preserved():
+    docs = [document("a", "同一文档", "网络连接问题", .9),
+            document("b", "同一文档", "网络连接问题", .8),
+            document("c", "另一文档", "网络故障排查", .7)]
+    result = fuse(docs, [(row, 1.0) for row in docs], 3)
+    assert [row["id"] for row in result] == ["a", "c", "b"]
+    assert [row["score"] for row in result] == sorted((row["score"] for row in result), reverse=True)
+    assert all(row["rrf_score"] >= row["score"] for row in result)
 
 
 class Collection:

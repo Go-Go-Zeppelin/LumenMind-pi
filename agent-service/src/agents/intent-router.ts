@@ -66,7 +66,13 @@ const GENERIC_RULES: IntentRule[] = [
 type RuleMatch = { intent: Intent; confidence: number; matched: string[] };
 
 function activeRoutingText(message: string): string {
-  return message.replace(/(?:不要|不用|不需要|不想|不必|没说要)[^，,。;；！？!?]{0,8}(?:人工客服|人工|真人|经理|主管)/g, "");
+  // Remove negated handoff/escalation clauses before matching the positive
+  // boundary rules. Keep "不要机器人" intact: that is a positive request
+  // for a human, while "不要升级处理" must not become escalation.
+  return message.replace(
+    /(?:不要|不用|不需要|不想|不必|没说要|别|无需|无须)[^，,。;；！？!?]{0,8}(?:人工客服|人工|真人|经理|主管|负责人|管理层|管理人员|上级|升级(?:处理|给|到)?)/g,
+    "",
+  );
 }
 
 /** Match the requested action, not a polite prefix or a domain noun alone. */
