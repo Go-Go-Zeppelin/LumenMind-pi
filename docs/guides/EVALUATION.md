@@ -1,5 +1,7 @@
 # LumenMind-pi Agent 评测闭环
 
+方法论阅读：[五分钟速览](../notes/agent-evaluation-methodology-summary.md) · [文章原文存档](../references/Agent%20评测：方法论与体系设计.md)。
+
 这次改造依据《Agent 评测：方法论与体系设计》，把现有逐轮 LLM 打分扩展为：
 
 ```text

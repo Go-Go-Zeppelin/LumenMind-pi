@@ -1,7 +1,7 @@
 """Offline legacy import and fixed-job maintenance; dry-run is the CLI default.
 
 No environment file, live Redis client, Chroma collection or model is accessed.
-The snapshot format and operator procedure are documented in docs/MEMORY_MIGRATION.md.
+The snapshot format and operator procedure are documented in docs/guides/MEMORY_MIGRATION.md.
 """
 from __future__ import annotations
 

@@ -56,17 +56,17 @@ Python 应用重启前后，正式业务库的4条订单、4条账单、全部�
 
 | 环节 | 实现与验证 |
 |---|---|
-| chat入口 | [agent-service/src/app.ts:83](../agent-service/src/app.ts:83)：从请求取 user_id；缺省 anonymous。 |
-| chat → runChat | [agent-service/src/agents/orchestrator.ts:194](../agent-service/src/agents/orchestrator.ts:194)：trim 后局部 userId，传入 runChat，未写共享字段。 |
-| runChat → runWithFallback | [agent-service/src/agents/orchestrator.ts:353](../agent-service/src/agents/orchestrator.ts:353)：userId 作为参数传给每个目标 Agent。 |
-| 执行输入 | [agent-service/src/agents/orchestrator.ts:499](../agent-service/src/agents/orchestrator.ts:499)：input.userId 保持请求身份。 |
-| executor.run → 本次闭包 | [agent-service/src/agents/executor.ts:162](../agent-service/src/agents/executor.ts:162)：每次 run 调用 createBusinessTools(infrastructure,input.userId)，不把身份存在池化执行器。 |
-| 闭包 → HTTP客户端 | [agent-service/src/tools/business-tools.ts:42](../agent-service/src/tools/business-tools.ts:42)：四个 query 闭包引用 userId；schema 没有用户字段。 |
-| HTTP 参数 | [agent-service/src/clients/infrastructure.ts:118](../agent-service/src/clients/infrastructure.ts:118)：URLSearchParams 附加 user_id，路径编号编码；客户端无当前用户状态。 |
-| HTTP → SQL | [python-service/business/api.py:15](../python-service/business/api.py:15)：去空白后传固定查询；store使用 WHERE user_id=? 或 JOIN orders 后 WHERE o.user_id=?。 |
-| SQL归属 | [python-service/business/store.py:64](../python-service/business/store.py:64)：订单查询与详情过滤user；账单查询第78行、详情第88行JOIN订单过滤user。 |
-| 异常回退 | [agent-service/src/agents/orchestrator.ts:526](../agent-service/src/agents/orchestrator.ts:526)：General.run({...input}) 保留userId；原与回退调用轨迹合并。 |
-| 监控降级 | [agent-service/src/agents/orchestrator.ts:292](../agent-service/src/agents/orchestrator.ts:292)：改变路由角色，不改变runChat局部userId。 |
+| chat入口 | [agent-service/src/app.ts:83](../../../agent-service/src/app.ts:83)：从请求取 user_id；缺省 anonymous。 |
+| chat → runChat | [agent-service/src/agents/orchestrator.ts:194](../../../agent-service/src/agents/orchestrator.ts:194)：trim 后局部 userId，传入 runChat，未写共享字段。 |
+| runChat → runWithFallback | [agent-service/src/agents/orchestrator.ts:353](../../../agent-service/src/agents/orchestrator.ts:353)：userId 作为参数传给每个目标 Agent。 |
+| 执行输入 | [agent-service/src/agents/orchestrator.ts:499](../../../agent-service/src/agents/orchestrator.ts:499)：input.userId 保持请求身份。 |
+| executor.run → 本次闭包 | [agent-service/src/agents/executor.ts:162](../../../agent-service/src/agents/executor.ts:162)：每次 run 调用 createBusinessTools(infrastructure,input.userId)，不把身份存在池化执行器。 |
+| 闭包 → HTTP客户端 | [agent-service/src/tools/business-tools.ts:42](../../../agent-service/src/tools/business-tools.ts:42)：四个 query 闭包引用 userId；schema 没有用户字段。 |
+| HTTP 参数 | [agent-service/src/clients/infrastructure.ts:118](../../../agent-service/src/clients/infrastructure.ts:118)：URLSearchParams 附加 user_id，路径编号编码；客户端无当前用户状态。 |
+| HTTP → SQL | [python-service/business/api.py:15](../../../python-service/business/api.py:15)：去空白后传固定查询；store使用 WHERE user_id=? 或 JOIN orders 后 WHERE o.user_id=?。 |
+| SQL归属 | [python-service/business/store.py:64](../../../python-service/business/store.py:64)：订单查询与详情过滤user；账单查询第78行、详情第88行JOIN订单过滤user。 |
+| 异常回退 | [agent-service/src/agents/orchestrator.ts:526](../../../agent-service/src/agents/orchestrator.ts:526)：General.run({...input}) 保留userId；原与回退调用轨迹合并。 |
+| 监控降级 | [agent-service/src/agents/orchestrator.ts:292](../../../agent-service/src/agents/orchestrator.ts:292)：改变路由角色，不改变runChat局部userId。 |
 
 补充运行结果：带空格的 u1001/u1002 经真实 `/chat` HTTP 标准化后分别取3/1条账单；Billing中断和监控降级后HTTP仍为u1002。8次交错请求无串号；共享同一个executor并发run、allowKnowledge=false时，仍分别取3/1条订单。收到的业务HTTP参数和响应状态保存在证据包 `offline-http.jsonl` 及JSON的 `offline_http` 中。
 
@@ -144,7 +144,7 @@ e1a34878503e7d044178d2be0d00048bd6c16fafd37e63c00417732bd005653f
 
 ### P3，非阻断：成功只读账单查询会被标记为人工升级
 
-定位：[agent-service/src/agents/orchestrator.ts:149](../agent-service/src/agents/orchestrator.ts:149) 与 [agent-service/src/agents/orchestrator.ts:383](../agent-service/src/agents/orchestrator.ts:383)；账单Skill的后续处理倾向见 [skills/billing_support/SKILL.md:20](../skills/billing_support/SKILL.md:20)。
+定位：[agent-service/src/agents/orchestrator.ts:149](../../../agent-service/src/agents/orchestrator.ts:149) 与 [agent-service/src/agents/orchestrator.ts:383](../../../agent-service/src/agents/orchestrator.ts:383)；账单Skill的后续处理倾向见 [skills/billing_support/SKILL.md:20](../../../skills/billing_support/SKILL.md:20)。
 
 触发：u1001发送“订单 ORD-1001-001 的账单”或“查询账单 BILL-1001-002”。本轮request_id分别为 `3a76d1ac-4c44-4693-b5d3-fe99fcd224f0` 和 `d5d09904-0343-4b02-9dd2-139efe465f5a`。工具均成功，回复金额/状态准确，但回复额外出现“人工审核”等建议，最终escalated=true。
 

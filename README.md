@@ -2,11 +2,11 @@
 
 LumenMind 的 Agent 运行时基于 TypeScript + Pi Agent SDK，同时保留 Python 的记忆、知识库管理、评测和监控基础设施。
 
-[MIT License](LICENSE) · [参与贡献](CONTRIBUTING.md) · [安全说明](SECURITY.md) · [开源状态与已知问题](docs/OPEN_SOURCE_STATUS.md)
+[MIT License](LICENSE) · [文档索引](docs/README.md) · [参与贡献](CONTRIBUTING.md) · [安全说明](SECURITY.md) · [开源状态与已知问题](docs/project/OPEN_SOURCE_STATUS.md)
 
 > 开发预览：业务查询、路由和工具链已有实现；记忆升级的会话、摘要、事实、索引和离线迁移主链路已接通；完整部署及故障验收仍有待办。当前没有生产级认证，请在受信任的本地环境中运行。历史验收报告仅适用于其注明的日期和业务范围。
 
-2026-10-19 已按模块实现数据库租约与幂等、后台恢复、完整轮次摘要、来源证据与事实纠正、遗忘屏障、角色化历史、模型预算、Chroma 索引 outbox 和备份优先的离线迁移。验证结果与限制见 [记忆开发验收记录](docs/AGENT_MEMORY_ACCEPTANCE.md)，迁移步骤见 [操作指南](docs/MEMORY_MIGRATION.md)。
+2026-10-19 已按模块实现数据库租约与幂等、后台恢复、完整轮次摘要、来源证据与事实纠正、遗忘屏障、角色化历史、模型预算、Chroma 索引 outbox 和备份优先的离线迁移。验证结果与限制见 [记忆开发验收记录](docs/acceptance/agent-memory/AGENT_MEMORY_ACCEPTANCE.md)，迁移步骤见 [操作指南](docs/guides/MEMORY_MIGRATION.md)。
 
 当前实现包含 2026-09-28 的运行时更新：细粒度意图、结构化实体、主/辅助 Agent 路由、低置信度澄清、请求级工具轨迹、幂等知识库写入、RAG 工具自主调用，以及 Redis/ChromaDB 非阻塞异步访问。
 
@@ -53,7 +53,7 @@ flowchart LR
 - TypeScript：Pi Agent 生命周期、工具循环、结构化 Agent 契约、多实例性能路由、独立升级节点、多 Agent Composer、Skills、SSE、MCP。
 - Python：SQLite 演示订单/账单只读查询、SQLite 记忆权威存储、持久摘要/事实任务与遗忘屏障、知识库与管理、LLM-as-Judge 评测、Prometheus、旧 API 兼容代理。新记忆链路直接从 SQLite 构建快照；Redis 版本化渲染缓存尚未启用。Chroma 情景索引使用可重试 outbox 和 SQLite 复核。
 
-记忆模块的后续开发依据 [Agent 记忆优化开发方案](docs/AGENT_MEMORY_DEVELOPMENT.md)，包含现状问题、目标架构、接口协议、数据迁移、分阶段任务和验收标准。文档保留原始设计基线，并在第 18 节记录本次实现调整及尚未验收的项目。
+记忆模块的后续开发依据 [Agent 记忆优化开发方案](docs/design/AGENT_MEMORY_DEVELOPMENT.md)，包含现状问题、目标架构、接口协议、数据迁移、分阶段任务和验收标准。文档保留原始设计基线，并在第 18 节记录本次实现调整及尚未验收的项目。
 
 当前记忆主库默认为 `data/memory/memory.sqlite3`（Compose 中为 `/app/data/memory/memory.sqlite3`）。新请求使用 `/memory/turn/begin` → `/memory/context` → `/memory/turn/finish`，旧 `/memory/turn` 仍可兼容调用。事实、设置和删除接口已接通；`anonymous`/`demo` 不抽取跨会话事实。明确事实 ID 可直接撤回，含糊的删除描述会要求澄清。物理删除的索引清理进度由 `GET /memory/cleanup` 查询；迟到写入未确认前保持 PENDING。
 
@@ -201,7 +201,7 @@ cd python-service
 .venv/bin/python -m evaluation.run_suite --repeats 3
 ```
 
-详细输入、报告与门禁边界见 [Agent 评测闭环](docs/EVALUATION.md)。`persist_report=true` 会保存执行轨迹快照与错例问题簇；正常运行不会覆盖历史基线。`release_gate=review` 表示仍需人工确认或补充证据，不能直接用于无人值守发布。
+详细输入、报告与门禁边界见 [Agent 评测闭环](docs/guides/EVALUATION.md)。`persist_report=true` 会保存执行轨迹快照与错例问题簇；正常运行不会覆盖历史基线。`release_gate=review` 表示仍需人工确认或补充证据，不能直接用于无人值守发布。
 
 `/chat` 继续兼容原字段，并新增：
 
@@ -249,7 +249,7 @@ docker compose config --quiet
 
 业务 API 测试使用临时 SQLite 和独立 FastAPI app，不启动 Redis/Chroma、不写正式库。TypeScript 业务工具/执行器测试 mock HTTP 和模型事件，覆盖用户隔离、异常 trace、正常路径、专业 Agent 失败降级和监控降级；真实模型聊天单独进行 Docker 验收。
 
-2026-10-08 实际验收：TypeScript 56 项测试、Python 51 项测试、类型检查与构建通过；Docker 15 项直接 HTTP 检查和 11 次真实模型聊天通过，包含 Pi 原生 `/chat`、`/chat/stream`、用户隔离和工具 trace。重启 Python 后记录及数据库 SHA256 不变。详见 [验收记录](docs/MINIMAL_BUSINESS_ACCEPTANCE.md) 和 [完整响应与 trace 快照](docs/MINIMAL_BUSINESS_ACCEPTANCE.json)。
+2026-10-08 实际验收：TypeScript 56 项测试、Python 51 项测试、类型检查与构建通过；Docker 15 项直接 HTTP 检查和 11 次真实模型聊天通过，包含 Pi 原生 `/chat`、`/chat/stream`、用户隔离和工具 trace。重启 Python 后记录及数据库 SHA256 不变。详见 [验收记录](docs/acceptance/minimal-business/MINIMAL_BUSINESS_ACCEPTANCE.md) 和 [完整响应与 trace 快照](docs/acceptance/minimal-business/MINIMAL_BUSINESS_ACCEPTANCE.json)。
 
 ## Anthropic-compatible 模型
 
