@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="LumenMind Pi 记忆系统面试演示：上下文快照、长期事实、情景索引、遗忘屏障和可恢复任务。">
+  <title>LumenMind Pi · Memory Console</title>
+  <style>
+    :root {
+      --bg: #071014;
+      --surface: #0d1a20;
+      --surface-2: #101f26;
+      --surface-3: #152a31;
+      --line: #28414a;
+      --line-soft: #1b3038;
+      --text: #e9f2ed;
+      --muted: #8ca7ad;
+      --mint: #b9efc6;
+      --mint-2: #7edbc7;
+      --blue: #9bc5f6;
+      --amber: #f4bf7f;
+      --red: #f2958b;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      --sans: "PingFang SC", "Noto Sans CJK SC", "Microsoft YaHei", system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: var(--bg); }
+    body { color: var(--text); font-family: var(--sans); }
+    button { font: inherit; color: inherit; cursor: pointer; }
+    button:focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; }
+    .app { min-height: 100vh; background:
+      radial-gradient(800px 420px at 16% -12%, #2a6b5e26, transparent 72%),
+      radial-gradient(700px 400px at 92% 6%, #2f557227, transparent 70%), var(--bg); }
+    .shell { max-width: 1460px; margin: 0 auto; padding: 28px 38px 32px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .mark { width: 38px; height: 38px; display: grid; place-items: center; border: 1px solid #628d7d; border-radius: 50%; color: var(--mint); font: italic 25px Georgia, serif; box-shadow: 0 0 22px #b9efc61a; }
+    .brand-copy { line-height: 1.15; }
+    .brand-copy strong { display: block; font-size: 18px; letter-spacing: .3px; }
+    .brand-copy span { color: var(--muted); font: 12px var(--mono); letter-spacing: 1.3px; }
+    .status-line { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 13px; }
+    .live { display: inline-flex; align-items: center; gap: 7px; padding: 7px 11px; border: 1px solid #3b6657; border-radius: 999px; color: var(--mint); background: #20352d66; font: 12px var(--mono); }
+    .live i { width: 7px; height: 7px; border-radius: 50%; background: var(--mint); box-shadow: 0 0 11px var(--mint); animation: blink 1.8s ease-in-out infinite; }
+    @keyframes blink { 50% { opacity: .35; } }
+    .scope { font: 12px var(--mono); color: #b1c3c7; border-left: 1px solid var(--line); padding-left: 15px; }
+    .hero { display: grid; grid-template-columns: minmax(0, 1fr) 450px; gap: 48px; align-items: end; padding: 62px 0 33px; }
+    .eyebrow { margin: 0 0 17px; color: var(--mint); font: 12px var(--mono); letter-spacing: 2.5px; text-transform: uppercase; }
+    h1 { margin: 0; max-width: 780px; font-size: clamp(37px, 4.4vw, 65px); line-height: 1.08; letter-spacing: -2.2px; font-weight: 610; }
+    h1 em { color: var(--mint); font-style: normal; }
+    .hero p { margin: 20px 0 0; max-width: 720px; color: #a9bdc1; font-size: 17px; line-height: 1.75; }
+    .metric-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 11px; }
+    .metric { padding: 17px 17px 15px; border: 1px solid var(--line); border-radius: 11px; background: linear-gradient(145deg, #12232a, #0e1a20); }
+    .metric label { display: block; color: var(--muted); font-size: 12px; margin-bottom: 11px; }
+    .metric strong { display: block; font: 25px var(--mono); color: var(--mint); }
+    .metric span { display: block; margin-top: 7px; font-size: 12px; color: #a0b9ba; }
+    .metric.alert strong { color: var(--amber); }
+    .workspace { border: 1px solid var(--line); border-radius: 16px; overflow: hidden; background: #0c181eeb; box-shadow: 0 30px 90px #00000032; }
+    .workspace-head { min-height: 70px; display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 0 21px; border-bottom: 1px solid var(--line); background: #101f25; }
+    .tabs { display: flex; gap: 8px; align-items: stretch; height: 70px; }
+    .tab { border: 0; border-bottom: 2px solid transparent; background: transparent; padding: 0 14px; color: var(--muted); font-size: 14px; }
+    .tab:hover { color: var(--text); }
+    .tab.active { border-color: var(--mint); color: var(--mint); }
+    .head-actions { display: flex; gap: 9px; align-items: center; }
+    .ghost, .primary { border-radius: 7px; padding: 9px 13px; border: 1px solid var(--line); background: #12232a; font-size: 13px; }
+    .ghost:hover { border-color: var(--mint-2); background: #193137; }
+    .primary { border-color: var(--mint); color: #15231b; background: var(--mint); font-weight: 650; }
+    .primary:hover { background: #d4f7d6; }
+    .view { display: none; padding: 25px; }
+    .view.active { display: block; animation: view-in .26s ease-out; }
+    @keyframes view-in { from { opacity: .2; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+    .view-title { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 19px; }
+    .view-title h2 { margin: 0; font-size: 22px; font-weight: 560; }
+    .view-title p { margin: 5px 0 0; color: var(--muted); font-size: 13px; }
+    .mono { font-family: var(--mono); }
+    .run-state { color: var(--mint); font: 12px var(--mono); }
+    .pipeline { position: relative; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 17px; }
+    .pipeline::before { content: ""; position: absolute; left: 45px; right: 45px; top: 31px; height: 1px; background: #39535a; z-index: 0; }
+    .step { position: relative; z-index: 1; min-height: 120px; padding: 15px 15px 13px; border: 1px solid var(--line); border-radius: 10px; background: #101f25; text-align: left; transition: border .2s, background .2s, transform .2s; }
+    .step:hover { transform: translateY(-2px); border-color: #51746d; }
+    .step.active { border-color: var(--mint); background: linear-gradient(145deg, #18362f, #11272a); box-shadow: 0 0 0 3px #b9efc60b; }
+    .step.done { border-color: #466b5a; }
+    .step-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .step-no { display: grid; place-items: center; width: 32px; height: 32px; border: 1px solid #496b72; border-radius: 50%; background: #0c181e; color: var(--muted); font: 13px var(--mono); }
+    .step.active .step-no, .step.done .step-no { border-color: var(--mint); color: var(--mint); }
+    .step small { color: var(--muted); font: 11px var(--mono); }
+    .step strong { display: block; font-size: 16px; font-weight: 580; }
+    .step span { display: block; margin-top: 6px; color: #9eb7ba; font-size: 12px; line-height: 1.45; }
+    .step-dot { position: absolute; right: 13px; top: 25px; width: 7px; height: 7px; border-radius: 50%; background: var(--line); }
+    .step.active .step-dot { background: var(--mint); box-shadow: 0 0 12px var(--mint); }
+    .run-layout { display: grid; grid-template-columns: minmax(0, 1.18fr) minmax(320px, .82fr); gap: 15px; }
+    .panel { border: 1px solid var(--line); border-radius: 11px; background: #0f1e24; }
+    .panel-head { display: flex; align-items: center; justify-content: space-between; min-height: 48px; padding: 0 16px; border-bottom: 1px solid var(--line-soft); }
+    .panel-head strong { font-size: 13px; font-weight: 560; }
+    .panel-head span { color: var(--muted); font: 11px var(--mono); }
+    .event-list { padding: 9px 16px 13px; }
+    .event { display: grid; grid-template-columns: 61px 15px minmax(0,1fr); gap: 10px; align-items: start; padding: 11px 0; border-bottom: 1px solid #1b303733; }
+    .event:last-child { border-bottom: 0; }
+    .event time { color: #728d94; font: 11px var(--mono); padding-top: 2px; }
+    .event .bullet { position: relative; width: 11px; height: 11px; margin-top: 3px; border-radius: 50%; border: 2px solid var(--mint-2); }
+    .event:not(:last-child) .bullet::after { content: ""; position: absolute; left: 3px; top: 9px; width: 1px; height: 36px; background: #35504e; }
+    .event.amber .bullet { border-color: var(--amber); }
+    .event strong { display: block; font-size: 13px; font-weight: 540; }
+    .event p { margin: 4px 0 0; color: #91adb2; font-size: 12px; line-height: 1.5; }
+    .snapshot { padding: 14px 16px 16px; }
+    .json { margin: 0; min-height: 172px; padding: 13px 14px; border: 1px solid #20383f; border-radius: 7px; background: #09151a; color: #b8cecb; font: 11px/1.8 var(--mono); white-space: pre-wrap; }
+    .key { color: var(--blue); } .str { color: var(--mint); } .num { color: var(--amber); }
+    .budget { margin-top: 14px; }
+    .budget-head { display: flex; justify-content: space-between; color: var(--muted); font-size: 11px; }
+    .bar { height: 7px; margin-top: 7px; overflow: hidden; border-radius: 99px; background: #21353c; }
+    .bar b { display: block; width: 64%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--mint-2), var(--mint)); transition: width .5s ease; }
+    .stack { display: grid; grid-template-columns: repeat(4, 1fr); gap: 11px; margin-top: 15px; }
+    .stack-card { min-height: 133px; padding: 15px; border: 1px solid var(--line); border-radius: 10px; background: #101f25; }
+    .stack-card header { display: flex; justify-content: space-between; gap: 6px; align-items: center; margin-bottom: 12px; }
+    .stack-card header strong { font-size: 13px; font-weight: 560; }
+    .stack-card header span { color: var(--mint); font: 11px var(--mono); }
+    .stack-card p { min-height: 42px; margin: 0; color: #9cb4b7; font-size: 12px; line-height: 1.55; }
+    .stack-card .bar { height: 5px; margin-top: 13px; }
+    .stack-card .bar b { width: 52%; }
+    .stack-card.fact { border-color: #3f5b4f; background: linear-gradient(145deg, #142a29, #101f25); }
+    .stack-card.fact .bar b { width: 31%; background: var(--amber); }
+    .stack-card.episode .bar b { width: 74%; background: var(--blue); }
+    .stack-card.turns .bar b { width: 46%; background: #b1b8ee; }
+    .facts-layout { display: grid; grid-template-columns: minmax(0,1.17fr) minmax(300px,.83fr); gap: 15px; }
+    .fact-table { width: 100%; border-collapse: collapse; }
+    .fact-table th { padding: 12px 15px; color: var(--muted); text-align: left; font: 11px var(--mono); font-weight: 400; border-bottom: 1px solid var(--line); }
+    .fact-table td { padding: 15px; border-bottom: 1px solid #1d333944; vertical-align: top; font-size: 13px; }
+    .fact-table tr:last-child td { border-bottom: 0; }
+    .fact-name { display: block; color: var(--muted); font: 11px var(--mono); margin-bottom: 5px; }
+    .fact-value { font-size: 14px; }
+    .fact-source { display: inline-flex; align-items: center; gap: 5px; margin-top: 8px; color: #a6bdc1; font-size: 11px; }
+    .fact-source i { width: 6px; height: 6px; border-radius: 50%; background: var(--mint-2); }
+    .fact-status { display: inline-block; padding: 4px 7px; border: 1px solid #3f6d5a; border-radius: 4px; color: var(--mint); background: #284a3a33; font: 10px var(--mono); }
+    .fact-status.old { color: #a8b5b5; border-color: #536268; background: #35434a40; }
+    .retract { padding: 5px 8px; border: 1px solid #5a423b; border-radius: 5px; background: transparent; color: var(--amber); font-size: 11px; }
+    .retract:hover { border-color: var(--red); color: var(--red); }
+    .decision-log { padding: 16px; }
+    .decision-log h3 { margin: 0 0 8px; font-size: 16px; font-weight: 560; }
+    .decision-log > p { margin: 0 0 16px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+    .decision { display: grid; grid-template-columns: 27px minmax(0,1fr); gap: 10px; padding: 10px 0; border-top: 1px solid var(--line-soft); }
+    .decision-icon { display: grid; place-items: center; width: 27px; height: 27px; border-radius: 6px; background: #234738; color: var(--mint); font: 13px var(--mono); }
+    .decision-icon.amber { background: #523d2c; color: var(--amber); }
+    .decision strong { display: block; font-size: 12px; font-weight: 550; }
+    .decision span { display: block; margin-top: 3px; color: #8da6aa; font-size: 11px; line-height: 1.5; }
+    .facts-footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 15px; padding: 12px 15px; border: 1px dashed #45626a; border-radius: 8px; color: #9ab2b6; font-size: 12px; }
+    .privacy-layout { display: grid; grid-template-columns: minmax(0,1fr) 320px; gap: 15px; }
+    .privacy-main { padding: 18px; }
+    .privacy-main h3 { margin: 0 0 5px; font-size: 17px; font-weight: 560; }
+    .privacy-main > p { margin: 0 0 19px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+    .privacy-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 11px; }
+    .privacy-card { min-height: 127px; padding: 14px; border: 1px solid var(--line); border-radius: 9px; background: #101f25; }
+    .privacy-card .icon { display: grid; place-items: center; width: 29px; height: 29px; margin-bottom: 11px; border-radius: 7px; color: var(--mint); background: #214637; font: 14px var(--mono); }
+    .privacy-card h4 { margin: 0 0 6px; font-size: 13px; font-weight: 560; }
+    .privacy-card p { margin: 0; color: #92abb0; font-size: 11px; line-height: 1.55; }
+    .privacy-rail { padding: 16px; }
+    .privacy-rail h3 { margin: 0 0 15px; font-size: 15px; font-weight: 560; }
+    .audit { position: relative; padding-left: 18px; border-left: 1px solid #3c5e5c; }
+    .audit-item { position: relative; padding: 0 0 18px 13px; }
+    .audit-item:last-child { padding-bottom: 0; }
+    .audit-item::before { content: ""; position: absolute; left: -22px; top: 2px; width: 8px; height: 8px; border-radius: 50%; background: var(--mint); box-shadow: 0 0 0 4px #1a3830; }
+    .audit-item.pending::before { background: var(--amber); box-shadow: 0 0 0 4px #443522; }
+    .audit-item time { display: block; color: var(--muted); font: 10px var(--mono); }
+    .audit-item strong { display: block; margin-top: 4px; font-size: 12px; font-weight: 540; }
+    .audit-item span { display: block; margin-top: 3px; color: #8ea7ab; font-size: 11px; line-height: 1.45; }
+    .toast { position: fixed; right: 24px; bottom: 22px; z-index: 10; max-width: 320px; padding: 13px 15px; border: 1px solid #5b806e; border-radius: 8px; background: #142b26f2; color: var(--mint); font-size: 12px; opacity: 0; transform: translateY(10px); pointer-events: none; transition: .24s ease; }
+    .toast.show { opacity: 1; transform: none; }
+    .footnote { display: flex; justify-content: space-between; gap: 20px; margin-top: 15px; color: #6f8990; font: 11px var(--mono); }
+    @media (max-width: 960px) {
+      .shell { padding: 22px 20px 26px; }
+      .hero { grid-template-columns: 1fr; gap: 26px; padding-top: 40px; }
+      .run-layout, .facts-layout, .privacy-layout { grid-template-columns: 1fr; }
+      .stack { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 640px) {
+      .status-line .scope { display: none; }
+      .workspace-head { align-items: flex-start; flex-direction: column; padding-top: 5px; }
+      .tabs { height: 52px; width: 100%; overflow: auto; }
+      .tab { white-space: nowrap; padding: 0 8px; }
+      .head-actions { position: absolute; right: 20px; margin-top: 1px; }
+      .head-actions .ghost { display: none; }
+      .view { padding: 18px 14px; }
+      .pipeline { grid-template-columns: repeat(2, 1fr); }
+      .pipeline::before { display: none; }
+      .metric-row, .privacy-grid { grid-template-columns: 1fr; }
+      .stack { grid-template-columns: 1fr; }
+      .footnote { flex-direction: column; gap: 5px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <main class="shell">
+      <header class="topbar">
+        <div class="brand"><div class="mark">π</div><div class="brand-copy"><strong>LumenMind-pi</strong><span>MEMORY CONSOLE / INTERVIEW DEMO</span></div></div>
+        <div class="status-line"><span class="live"><i></i> SYSTEM READY</span><span class="scope">scope / user_2048 · conv_092</span></div>
+      </header>
+
+      <section class="hero">
+        <div>
+          <p class="eyebrow">A memory layer you can explain</p>
+          <h1>记忆，不只是存储。<br>它是下一次回答的<em>证据。</em></h1>
+          <p>把一次对话拆成可校验的快照：当前上下文、滚动摘要、长期事实与情景索引各自负责，遗忘操作通过版本和代际屏障阻止旧内容“复活”。</p>
+        </div>
+        <div class="metric-row" aria-label="系统指标">
+          <div class="metric"><label>上下文预算</label><strong>24k</strong><span>硬上限 · 单次渲染</span></div>
+          <div class="metric"><label>记忆层级</label><strong>03</strong><span>summary / facts / episodes</span></div>
+          <div class="metric alert"><label>Ghost memories</label><strong>0</strong><span>SQLite 复核后注入</span></div>
+        </div>
+      </section>
+
+      <section class="workspace" aria-label="记忆系统演示台">
+        <div class="workspace-head">
+          <nav class="tabs" role="tablist" aria-label="演示视图">
+            <button class="tab active" data-view="run" role="tab" aria-selected="true">一次请求</button>
+            <button class="tab" data-view="facts" role="tab" aria-selected="false">长期事实</button>
+            <button class="tab" data-view="privacy" role="tab" aria-selected="false">隐私与恢复</button>
+          </nav>
+          <div class="head-actions"><button class="ghost" id="resetBtn">重置视图</button><button class="primary" id="playBtn">▶ 播放一轮</button></div>
+        </div>
+
+        <section class="view active" id="view-run" role="tabpanel">
+          <div class="view-title"><div><h2>从请求到记忆写回，保持同一份快照</h2><p>演示场景：用户追问“登录问题还是没好，我用的是 Mac”</p></div><span class="run-state" id="runState">READY · revision 12</span></div>
+          <div class="pipeline" id="pipeline">
+            <button class="step active" data-step="0"><div class="step-top"><span class="step-no">01</span><small>BEGIN</small></div><strong>获取会话租约</strong><span>锁住同一 conv，生成 request_id</span><i class="step-dot"></i></button>
+            <button class="step" data-step="1"><div class="step-top"><span class="step-no">02</span><small>CONTEXT</small></div><strong>构建记忆快照</strong><span>SQLite 读取并做预算筛选</span><i class="step-dot"></i></button>
+            <button class="step" data-step="2"><div class="step-top"><span class="step-no">03</span><small>AGENT</small></div><strong>路由与回答</strong><span>Router、主 Agent 共享上下文</span><i class="step-dot"></i></button>
+            <button class="step" data-step="3"><div class="step-top"><span class="step-no">04</span><small>FINISH</small></div><strong>写回与排队</strong><span>先提交轮次，再异步整理</span><i class="step-dot"></i></button>
+          </div>
+          <div class="run-layout">
+            <div class="panel"><div class="panel-head"><strong>TRACE / request_8f31</strong><span id="traceStatus">等待播放</span></div><div class="event-list" id="eventList">
+              <div class="event"><time>10:42:01.214</time><i class="bullet"></i><div><strong>请求进入 MemoryCoordinator</strong><p>识别为普通问答 · 不触发显式记住/遗忘操作</p></div></div>
+              <div class="event"><time>10:42:01.227</time><i class="bullet"></i><div><strong>读取一致快照</strong><p>fact_revision=7 · context_revision=12 · erase_epoch=0</p></div></div>
+              <div class="event"><time>10:42:01.482</time><i class="bullet"></i><div><strong>上下文注入 Agent</strong><p>summary + 2 facts + recent_messages · 15,360 / 24,000 chars</p></div></div>
+              <div class="event amber"><time>10:42:02.906</time><i class="bullet"></i><div><strong>finish → enqueue</strong><p>最终回复已持久化；摘要与事实任务进入可恢复队列</p></div></div>
+            </div></div>
+            <div class="panel"><div class="panel-head"><strong>CONTEXT SNAPSHOT</strong><span>schema v2</span></div><div class="snapshot"><pre class="json">{
+  <span class="key">"status"</span>: <span class="str">"ready"</span>,
+  <span class="key">"routing_context"</span>: <span class="str">"登录故障，待确认客户端版本"</span>,
+  <span class="key">"summary_generation"</span>: <span class="num">4</span>,
+  <span class="key">"facts"</span>: [<span class="str">"preferred_channel: email"</span>],
+  <span class="key">"episodes"</span>: <span class="num">1</span>,
+  <span class="key">"recent_messages"</span>: <span class="num">6</span>
+}</pre><div class="budget"><div class="budget-head"><span>rendered context</span><span id="budgetText">15,360 / 24,000</span></div><div class="bar"><b id="budgetBar"></b></div></div></div></div>
+          </div>
+          <div class="stack" aria-label="记忆分层">
+            <article class="stack-card"><header><strong>滚动摘要</strong><span>GEN 04</span></header><p>登录排查仍未解决；用户等待确认客户端版本。</p><div class="bar"><b></b></div></article>
+            <article class="stack-card fact"><header><strong>长期事实</strong><span>2 ACTIVE</span></header><p>用户偏好邮件联系；设备为 Mac。只来自真实 user 证据。</p><div class="bar"><b></b></div></article>
+            <article class="stack-card episode"><header><strong>情景索引</strong><span>1 HIT</span></header><p>召回“上次登录排查”片段，再由 SQLite 复核代际与范围。</p><div class="bar"><b></b></div></article>
+            <article class="stack-card turns"><header><strong>近期轮次</strong><span>06 MSG</span></header><p>保留完整角色边界；当前 request 不重复注入自己。</p><div class="bar"><b></b></div></article>
+          </div>
+        </section>
+
+        <section class="view" id="view-facts" role="tabpanel">
+          <div class="view-title"><div><h2>长期事实：可追溯、可纠正、可撤回</h2><p>事实不是画像覆盖，而是带来源的增量决策</p></div><span class="run-state">fact_revision 07</span></div>
+          <div class="facts-layout">
+            <div class="panel"><div class="panel-head"><strong>ACTIVE FACTS / user_2048</strong><span>scope isolated</span></div><table class="fact-table"><thead><tr><th>KEY / 内容</th><th>来源证据</th><th>状态</th><th></th></tr></thead><tbody id="factRows">
+              <tr><td><span class="fact-name">contact.channel</span><span class="fact-value">偏好通过邮件联系</span></td><td><span class="fact-source"><i></i> source_seq 18 · “电话不方便，发邮件吧”</span></td><td><span class="fact-status">ACTIVE</span></td><td><button class="retract" data-fact="email">撤回</button></td></tr>
+              <tr><td><span class="fact-name">device.os</span><span class="fact-value">当前使用 Mac</span></td><td><span class="fact-source"><i></i> source_seq 22 · “我用的是 Mac”</span></td><td><span class="fact-status">ACTIVE</span></td><td><button class="retract" data-fact="mac">撤回</button></td></tr>
+              <tr><td><span class="fact-name">contact.channel</span><span class="fact-value">曾偏好电话联系</span></td><td><span class="fact-source"><i></i> source_seq 11 · 已被新偏好替代</span></td><td><span class="fact-status old">SUPERSEDED</span></td><td><span class="mono" style="color:#71878b;font-size:10px">audit only</span></td></tr>
+            </tbody></table></div>
+            <aside class="panel decision-log"><h3>Judge decision log</h3><p>模型只输出严格 schema，服务端在事务内校验 revision / cursor / epoch。</p>
+              <div class="decision"><div class="decision-icon">＋</div><div><strong>ADD · device.os</strong><span>证据来自 user 原文；新增事实并建立 source mapping。</span></div></div>
+              <div class="decision"><div class="decision-icon amber">↻</div><div><strong>SUPERSEDE · contact.channel</strong><span>email 替换 phone；旧事实保留审计关联但不再注入。</span></div></div>
+              <div class="decision"><div class="decision-icon">✓</div><div><strong>NOOP · duplicate guard</strong><span>同一稳定 key 不重复写入，游标仍然推进。</span></div></div>
+              <div class="facts-footer"><span>事实只从真实用户发言抽取</span><span class="mono" style="color:var(--mint)">PROVENANCE ON</span></div>
+            </aside>
+          </div>
+        </section>
+
+        <section class="view" id="view-privacy" role="tabpanel">
+          <div class="view-title"><div><h2>隐私与恢复：删除是一个可验证的边界</h2><p>清空、撤回、关闭记忆都会推进 erase_epoch，并让迟到任务失去提交资格</p></div><span class="run-state">erase_epoch 03</span></div>
+          <div class="privacy-layout">
+            <div class="panel privacy-main"><h3>这套设计如何避免“旧记忆复活”</h3><p>记忆服务故障时，普通聊天可以降级，但不会伪装成“已经保存”。显式记住/遗忘操作返回真实回执。</p><div class="privacy-grid">
+              <article class="privacy-card"><div class="icon">01</div><h4>SQLite 权威库</h4><p>缓存和向量索引都可重建；注入前用同一快照复核。</p></article>
+              <article class="privacy-card"><div class="icon">02</div><h4>Erase barrier</h4><p>删除后推进代际，旧摘要、旧事实和旧索引候选不再可提交。</p></article>
+              <article class="privacy-card"><div class="icon">03</div><h4>持久任务</h4><p>摘要、事实抽取和索引清理可重试，重启不会丢掉状态。</p></article>
+            </div></div>
+            <aside class="panel privacy-rail"><h3>RECOVERY AUDIT</h3><div class="audit">
+              <div class="audit-item"><time>10:31:08</time><strong>用户撤回旧电话偏好</strong><span>事实软失效 · epoch 02 → 03</span></div>
+              <div class="audit-item"><time>10:31:09</time><strong>旧情景索引进入清理队列</strong><span>SQLite 先阻断召回，Chroma 异步删除</span></div>
+              <div class="audit-item pending"><time>10:31:12</time><strong>cleanup / PENDING</strong><span>远端确认未返回，保留无正文状态等待重试</span></div>
+            </div></aside>
+          </div>
+        </section>
+      </section>
+      <div class="footnote"><span>LumenMind Pi · TypeScript 编排 × Python 记忆基础设施</span><span>演示数据为脱敏样例 · 结构与真实接口一致</span></div>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+  <script>
+    const tabs = [...document.querySelectorAll('.tab')];
+    const views = [...document.querySelectorAll('.view')];
+    const steps = [...document.querySelectorAll('.step')];
+    const playBtn = document.getElementById('playBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const runState = document.getElementById('runState');
+    const traceStatus = document.getElementById('traceStatus');
+    const toast = document.getElementById('toast');
+    let timer = null;
+    let stepIndex = 0;
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add('show');
+      window.clearTimeout(showToast.timer);
+      showToast.timer = window.setTimeout(() => toast.classList.remove('show'), 2400);
+    }
+    function switchView(name) {
+      tabs.forEach(tab => { const active = tab.dataset.view === name; tab.classList.toggle('active', active); tab.setAttribute('aria-selected', String(active)); });
+      views.forEach(view => view.classList.toggle('active', view.id === `view-${name}`));
+    }
+    tabs.forEach(tab => tab.addEventListener('click', () => switchView(tab.dataset.view)));
+    function setStep(index, announce = true) {
+      stepIndex = index;
+      steps.forEach((step, i) => { step.classList.toggle('active', i === index); step.classList.toggle('done', i < index); });
+      const labels = ['LEASE ACQUIRED', 'SNAPSHOT READY', 'AGENT RUNNING', 'WRITEBACK QUEUED'];
+      runState.textContent = `${labels[index]} · revision ${index >= 3 ? 13 : 12}`;
+      traceStatus.textContent = `${String(index + 1).padStart(2, '0')} / 04`;
+      const bar = document.getElementById('budgetBar');
+      const text = document.getElementById('budgetText');
+      bar.style.width = `${[48, 64, 72, 68][index]}%`;
+      text.textContent = [`11,520 / 24,000`, `15,360 / 24,000`, `17,280 / 24,000`, `16,320 / 24,000`][index];
+      if (announce) showToast(`步骤 ${index + 1} · ${labels[index].toLowerCase()}`);
+    }
+    steps.forEach((step, index) => step.addEventListener('click', () => { window.clearInterval(timer); timer = null; playBtn.textContent = '▶ 播放一轮'; setStep(index); }));
+    function playRun() {
+      if (timer) { window.clearInterval(timer); timer = null; playBtn.textContent = '▶ 播放一轮'; return; }
+      stepIndex = 0; setStep(0, false); playBtn.textContent = 'Ⅱ 暂停';
+      timer = window.setInterval(() => {
+        if (stepIndex >= 3) { window.clearInterval(timer); timer = null; playBtn.textContent = '↻ 再播一次'; showToast('一轮完成 · response 与 turn 已落库'); return; }
+        setStep(stepIndex + 1);
+      }, 1250);
+    }
+    playBtn.addEventListener('click', playRun);
+    resetBtn.addEventListener('click', () => { window.clearInterval(timer); timer = null; playBtn.textContent = '▶ 播放一轮'; setStep(0, false); switchView('run'); showToast('视图已重置'); });
+    document.querySelectorAll('.retract').forEach(button => button.addEventListener('click', () => {
+      const row = button.closest('tr');
+      if (!row) return;
+      button.disabled = true;
+      const status = row.querySelector('.fact-status');
+      status.className = 'fact-status old';
+      status.textContent = 'RETRACTED';
+      row.style.opacity = '.58';
+      showToast(`已创建撤回回执 · ${button.dataset.fact} · erase_epoch + 1`);
+    }));
+  </script>
+</body>
+</html>

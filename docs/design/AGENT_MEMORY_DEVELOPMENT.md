@@ -65,10 +65,10 @@ Orchestrator.chat()
 
 主要代码依据：
 
-- [Python 记忆实现](../python-service/memory/conversation_memory.py)、[记忆 HTTP 接口](../python-service/api/main.py)。
-- [Pi 编排器](../agent-service/src/agents/orchestrator.ts)、[HTTP 客户端](../agent-service/src/clients/infrastructure.ts)。
-- [Pi 执行器](../agent-service/src/agents/executor.ts)、[提示词装配](../agent-service/src/agents/prompts.ts)、[意图路由](../agent-service/src/agents/intent-router.ts)。
-- [现有画像测试](../python-service/tests/test_memory_profile.py)、[部署配置](../docker-compose.yml)。
+- [Python 记忆实现](../../python-service/memory/conversation_memory.py)、[记忆 HTTP 接口](../../python-service/api/main.py)。
+- [Pi 编排器](../../agent-service/src/agents/orchestrator.ts)、[HTTP 客户端](../../agent-service/src/clients/infrastructure.ts)。
+- [Pi 执行器](../../agent-service/src/agents/executor.ts)、[提示词装配](../../agent-service/src/agents/prompts.ts)、[意图路由](../../agent-service/src/agents/intent-router.ts)。
+- [现有画像测试](../../python-service/tests/test_memory_profile.py)、[部署配置](../../docker-compose.yml)。
 
 ## 3. 从 Ragent 借鉴什么，调整什么
 
@@ -620,7 +620,7 @@ docker compose config --quiet
 
 ## 18. 2026-10-19 模块实现与调整
 
-本轮为模块开发与验证交付，不将全部验收矩阵标记为通过。完整记录与合成证据见 [开发验收记录](AGENT_MEMORY_ACCEPTANCE.md) 和 [JSON](AGENT_MEMORY_ACCEPTANCE.json)。
+本轮为模块开发与验证交付，不将全部验收矩阵标记为通过。完整记录与合成证据见 [开发验收记录](../acceptance/agent-memory/AGENT_MEMORY_ACCEPTANCE.md) 和 [JSON](../acceptance/agent-memory/AGENT_MEMORY_ACCEPTANCE.json)。
 
 已实现的主链路包括：版本化 SQLite 迁移、数据库时间与递增会话租约、持久幂等映射、异常/取消/恢复终态、单一快照渲染、主辅共享角色化历史、所有 Pi 模型请求预算与工具结果限长；真实用户来源 Judge、原子事实差异提交、固定批次重试/隔离、显式清空及事实 ID 撤回；滚动摘要代际、原文保留、Chroma 幂等 outbox/召回复核/删除补偿、离线旧数据导入和可观测指标。
 

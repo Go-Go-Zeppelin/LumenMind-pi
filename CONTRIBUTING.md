@@ -30,9 +30,9 @@ docker compose config --quiet
 ## 提交要求
 
 - 描述问题、修改后的行为及验证结果；将修改限制在相关范围内。
-- 记忆模块开发以 [开发方案](docs/AGENT_MEMORY_DEVELOPMENT.md) 为依据，区分规划、已接通能力和已通过验收的能力。
+- 记忆模块开发以 [开发方案](docs/design/AGENT_MEMORY_DEVELOPMENT.md) 为依据，区分规划、已接通能力和已通过验收的能力。
 - 不提交 `.env`、密钥、运行数据库、真实用户会话或个人信息。
 - 使用合成样例和临时数据库验证，避免修改日常用户数据。
-- `docs/MINIMAL_BUSINESS_*` 是历史业务验收材料，不代表当前记忆升级已经验收。
+- `docs/acceptance/minimal-business/MINIMAL_BUSINESS_*` 是历史业务验收材料，不代表当前记忆升级已经验收。
 
 提交贡献时，请确保你有权以本项目的 [MIT 许可证](LICENSE) 提供相关代码和材料。

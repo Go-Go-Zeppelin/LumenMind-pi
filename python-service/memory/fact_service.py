@@ -165,23 +165,33 @@ class FactService:
         deadline = loop.time() + timeout_seconds
         receipt = {"status": "PENDING", "request_id": request_id, "mutated": False}
         try:
-            # The whole foreground operation, including waiting for SQLite, is
-            # bounded. Background model tasks are separately owned and shielded.
-            async with asyncio.timeout(timeout_seconds):
-                for _ in range(max_batches):
-                    if self._closed or loop.time() >= deadline:
-                        break
-                    await self._schedule(user_id=user_id, force=True)
-                    receipt = await asyncio.to_thread(self.repository.lookup_fact_receipt, user_id, request_id)
-                    if receipt.get("status") not in {"PENDING", "RETRY_WAIT", "PROCESSING", "READY"}:
-                        return self._receipt(receipt, request_id)
-                    task = await self._claim(user_id=user_id)
-                    if task is None:
-                        break
-                    # Cancelling this HTTP wait never cancels an in-flight Judge
-                    # or a repository commit that has already started.
-                    await asyncio.shield(task)
+            # Scheduling and claiming must finish before the foreground wait is
+            # allowed to time out. Otherwise a short timeout can return while
+            # the SQLite call is still in the executor, leaving the durable job
+            # unowned and violating the background-task contract.
+            claimed = False
+            for _ in range(max_batches):
+                if self._closed or (claimed and loop.time() >= deadline):
+                    break
+                await self._schedule(user_id=user_id, force=True)
                 receipt = await asyncio.to_thread(self.repository.lookup_fact_receipt, user_id, request_id)
+                if receipt.get("status") not in {"PENDING", "RETRY_WAIT", "PROCESSING", "READY"}:
+                    return self._receipt(receipt, request_id)
+                task = await self._claim(user_id=user_id)
+                if task is None:
+                    break
+                claimed = True
+                # Cancelling this HTTP wait never cancels an in-flight Judge
+                # or a repository commit that has already started. The timeout
+                # starts after ownership is established, so even a timeout
+                # during the SQLite setup cannot orphan the claimed job.
+                remaining = max(0.0, deadline - loop.time())
+                try:
+                    async with asyncio.timeout(remaining):
+                        await asyncio.shield(task)
+                except TimeoutError:
+                    return self._receipt({**receipt, "wait_timed_out": True}, request_id)
+            receipt = await asyncio.to_thread(self.repository.lookup_fact_receipt, user_id, request_id)
         except TimeoutError:
             return self._receipt({**receipt, "wait_timed_out": True}, request_id)
         return self._receipt(receipt, request_id)

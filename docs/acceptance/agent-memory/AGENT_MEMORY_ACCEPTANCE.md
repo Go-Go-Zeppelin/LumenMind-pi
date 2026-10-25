@@ -1,6 +1,6 @@
 # Agent 记忆模块开发验收记录
 
-日期：2026-10-19（Asia/Shanghai）。依据 [开发方案](AGENT_MEMORY_DEVELOPMENT.md) 按模块实现与提交。本文描述已执行的验证及边界，不代替完整生产部署验收。
+日期：2026-10-19（Asia/Shanghai）。依据 [开发方案](../../design/AGENT_MEMORY_DEVELOPMENT.md) 按模块实现与提交。本文描述已执行的验证及边界，不代替完整生产部署验收。
 
 ## 模块交付
 
@@ -12,7 +12,7 @@
 | 显式操作与隐私 | 确定性回执、清空/事实 ID 撤回独立事务、匿名隔离、开关 eligibility、全 scope 背景遗忘边界、原文/证据删除墓碑、敏感素材在 Judge 前排除；`memory-coordinator.test.ts`、`test_memory_api.py`、`test_memory_end_to_end.py`。 |
 | 滚动摘要 | 完整终态轮次、至少保留目标最近 3 轮、旧摘要重写、结构/有界输出、代际与上下文冲突防护、摘要失败不删原文、不推进覆盖边界、敏感摘要拒收；`test_memory_compaction.py`。 |
 | 情景索引 | 独立集合及哈希 ID、持久 outbox、幂等 upsert、索引候选经 SQLite 复核、范围去重、epoch 删除及迟到写入补偿、未确认远端写入保持清理 PENDING；`test_memory_episodes.py`。 |
-| 迁移与维护 | 显式离线 JSON、默认 dry-run、SQLite online backup、IMPORTING 锁、稳定来源排序、无伪造轮次、旧画像 CANDIDATE、重复导入不增行、删除屏障阻止复活、隔离任务有审计重排；`test_memory_migration.py`、[操作指南](MEMORY_MIGRATION.md)。 |
+| 迁移与维护 | 显式离线 JSON、默认 dry-run、SQLite online backup、IMPORTING 锁、稳定来源排序、无伪造轮次、旧画像 CANDIDATE、重复导入不增行、删除屏障阻止复活、隔离任务有审计重排；`test_memory_migration.py`、[操作指南](../../guides/MEMORY_MIGRATION.md)。 |
 | 观测与配置 | 模型调用/usage、摘要前后体积和耗时、截断、容量、待处理与隔离任务、删除进度；无正文指标、`/memory/status`、`/memory/cleanup`、范围及超时/租约交叉校验；`test_memory_metrics.py`。 |
 
 ## 自动化结果
