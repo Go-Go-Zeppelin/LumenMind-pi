@@ -176,6 +176,27 @@ def test_flush_timeout_keeps_owned_judge_running_until_commit(tmp_path):
     asyncio.run(scenario())
 
 
+def test_flush_timeout_during_claim_keeps_owned_judge_running(tmp_path):
+    async def scenario():
+        repo = MemoryRepository(str(tmp_path / "slow-claim.sqlite3"))
+        store(repo, 1, "hello")
+        service = FactService(repo, FakeJudge(delay=0.05))
+        original_schedule = service._schedule
+
+        async def slow_schedule(*args, **kwargs):
+            await asyncio.sleep(0.02)
+            return await original_schedule(*args, **kwargs)
+
+        service._schedule = slow_schedule
+        pending = await service.flush("alice", "r1", timeout_seconds=0.01)
+        assert pending["wait_timed_out"] is True
+        assert len(service._tasks) == 1
+        await service.close()
+        assert repo.lookup_fact_receipt("alice", "r1")["status"] == "NOOP"
+
+    asyncio.run(scenario())
+
+
 def test_background_tick_waits_for_threshold_then_preserves_conversation_boundaries(tmp_path):
     async def scenario():
         repo = MemoryRepository(str(tmp_path / "memory.sqlite3"))
