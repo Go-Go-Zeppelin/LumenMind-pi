@@ -1,0 +1,65 @@
+name: PR Agent
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  issue_comment:
+    types: [created, edited]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  pr_agent:
+    # Fork PR 可由仓库维护者通过评论指令发起评审。
+    if: >-
+      github.event.sender.type != 'Bot' &&
+      (
+        (
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.draft == false &&
+          github.event.pull_request.head.repo.full_name == github.repository
+        ) ||
+        (
+          github.event_name == 'issue_comment' &&
+          github.event.issue.pull_request &&
+          contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association) &&
+          (
+            startsWith(github.event.comment.body, '/review') ||
+            startsWith(github.event.comment.body, '/describe') ||
+            startsWith(github.event.comment.body, '/improve') ||
+            startsWith(github.event.comment.body, '/ask')
+          )
+        )
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: pr-agent-${{ github.event.pull_request.number || github.event.issue.number }}
+      cancel-in-progress: true
+    steps:
+      - name: Check DeepSeek API key
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+        run: |
+          if [ -z "$DEEPSEEK_API_KEY" ]; then
+            echo "::error::Add DEEPSEEK_API_KEY in Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+      - name: Run PR Agent
+        uses: the-pr-agent/pr-agent@v0.39.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          CONFIG__MODEL: deepseek/deepseek-v4-pro
+          CONFIG__FALLBACK_MODELS: '["deepseek/deepseek-v4-flash"]'
+          CONFIG__RESPONSE_LANGUAGE: zh-CN
+          GITHUB_ACTION_CONFIG__AUTO_DESCRIBE: "true"
+          GITHUB_ACTION_CONFIG__AUTO_REVIEW: "true"
+          GITHUB_ACTION_CONFIG__AUTO_IMPROVE: "true"
+          # synchronize 事件必须显式开启，并配置需要执行的命令。
+          GITHUB_ACTION_CONFIG__HANDLE_PUSH_TRIGGER: "true"
+          GITHUB_ACTION_CONFIG__PUSH_COMMANDS: '["/describe", "/review"]'
