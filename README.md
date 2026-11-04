@@ -12,8 +12,8 @@ LumenMind 的 Agent 运行时基于 TypeScript + Pi Agent SDK，同时保留 Pyt
 
 当前使用官方新命名空间：
 
-- `@earendil-works/pi-agent-core@0.82.1`
-- `@earendil-works/pi-ai@0.82.1`
+- `@earendil-works/pi-agent-core@1.4.0`
+- `@earendil-works/pi-ai@1.4.0`
 - `@modelcontextprotocol/sdk@1.30.0`
 
 ## 架构
